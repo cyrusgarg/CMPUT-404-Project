@@ -14,12 +14,12 @@ class Post(models.Model):
     ]
     id=models.UUIDField(primary_key=True,editable=False)
     author = models.ForeignKey(User, on_delete=models.CASCADE)  # Link post to an author
-    title=models.CharField(max_length=255)
-    description=models.TextField()
+    title=models.CharField(max_length=255,default="")
+    description=models.TextField(default="")
     content = models.TextField(blank=True, null=True)
     contentType = models.CharField(max_length=20, choices=CONTENT_TYPE_CHOICES, default='text/plain')
     published = models.DateTimeField("published", default=datetime.now)   # Store the published date in a datetime field in the database
-    visibility = models.CharField(max_length=20, choices=[("PUBLIC", "Public"), ("FRIENDS", "Friends Only"), ("UNLISTED", "Unlisted")])
+    visibility = models.CharField(max_length=20, choices=[("PUBLIC", "Public"), ("FRIENDS", "Friends Only"), ("UNLISTED", "Unlisted")],default='UNLISTED')
     
     def get_formatted_content(self):
         if self.contentType == 'text/markdown':

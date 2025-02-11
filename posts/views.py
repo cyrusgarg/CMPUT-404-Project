@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .serializers import PostSerializer
 import json, uuid
+
 def index(request):
     """Homepage displaying all posts."""
     posts = Post.objects.all().order_by('-published')  # Show latest posts first
@@ -38,7 +39,7 @@ def create_post(request):
             title=title,
             description=description,
             content=content,
-            contentType=contentType
+            contentType=contentType,
             visibility=visibility
         )
         
@@ -54,31 +55,10 @@ def delete_post(request, post_id):
     #return HttpResponse(f"Post {post_id} deleted successfully!")
 
 @api_view(['GET'])
-def get_author_posts(request, author_id):
-    """Retrieve all posts from a specific author"""
-    author = get_object_or_404(User, id=author_id)
-    posts = Post.objects.filter(author=author)
-    serializer = PostSerializer(posts, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
-
-@api_view(['GET'])
-def get_post_detail(request, author_id, post_id):
-    """Retrieve a specific post from an author"""
-    post = get_object_or_404(Post, id=post_id, author_id=author_id)
+def get_post_by_fqid(request, post_id):
+    """
+    Retrieve a public post by Fully Qualified ID (FQID).
+    """
+    post = get_object_or_404(Post, id=post_id)  
     serializer = PostSerializer(post)
     return Response(serializer.data, status=status.HTTP_200_OK)
-
-@api_view(['POST'])
-def create_post(request, author_id):
-    """Create a new post for a specific author"""
-    author = get_object_or_404(User, id=author_id)
-    
-    data = request.data.copy()  # Copy data from request body
-    data["author"] = author.id  # Ensure the author ID is set correctly
-
-    serializer = PostSerializer(data=data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
