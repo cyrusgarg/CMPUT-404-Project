@@ -4,7 +4,7 @@
     <title>Post Detail</title>
 </head>
 <body>
-    <h1>{{ post.content }}</h1>
+    <h1 class="content">{{ post.content }}</h1>
     <p>Published on: {{ post.pub_date }}</p>
     <a href="{% url 'posts:index' %}">Back to posts</a>
 </body>

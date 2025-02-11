@@ -8,8 +8,8 @@
     <ul>
         {% for post in posts %}
             <li>
-                <a href="{% url 'post_detail' post.id %}">{{ post.content }}</a>
-                <form action="{% url 'delete_post' post.id %}" method="post" style="display:inline;">
+                <a href="{% url 'posts:post_detail' post.id %}">{{ post.content }}</a>
+                <form action="{% url 'posts:delete_post' post.id %}" method="post" style="display:inline;">
                     {% csrf_token %}
                     <button type="submit">Delete</button>
                 </form>
