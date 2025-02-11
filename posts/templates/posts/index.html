@@ -5,10 +5,37 @@
 </head>
 <body>
     <h1>All Posts</h1>
+    <form action="{% url 'posts:create_post' %}" method="post">
+        {% csrf_token %}
+        <label for="title">Title:</label>
+        <input type="text" name="title" required>
+        
+        <label for="description">Description:</label>
+        <input type="text" name="description" required>
+        
+        <label for="content">Content:</label>
+        <textarea name="content" required></textarea>
+
+        <label for="contentType">Content Type:</label>
+        <select name="contentType">
+            <option value="text/plain">Plain Text</option>
+            <option value="text/markdown">Markdown</option>
+        </select>
+
+        <label for="visibility">Visibility:</label>
+        <select name="visibility">
+            <option value="PUBLIC">Public</option>
+            <option value="FRIENDS">Friends Only</option>
+            <option value="UNLISTED">Unlisted</option>
+        </select>
+        <button type="submit">Create Post</button>
+    </form>
+
     <ul>
         {% for post in posts %}
             <li>
-                <a href="{% url 'posts:post_detail' post.id %}">{{ post.content }}</a>
+                <a href="{% url 'posts:post_detail' post.id %}">{{ post.title }}</a>
+                <span>({{ post.visibility }})</span>
                 <form action="{% url 'posts:delete_post' post.id %}" method="post" style="display:inline;">
                     {% csrf_token %}
                     <button type="submit">Delete</button>

@@ -1,10 +1,14 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse
+from django.http import HttpResponse,JsonResponse
 from .models import Post, User
-
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from .serializers import PostSerializer
+import json, uuid
 def index(request):
     """Homepage displaying all posts."""
-    posts = Post.objects.all().order_by('-pub_date')  # Show latest posts first
+    posts = Post.objects.all().order_by('-published')  # Show latest posts first
     return render(request, 'posts/index.html', {'posts': posts})
 
 def post_detail(request, post_id):
@@ -13,16 +17,68 @@ def post_detail(request, post_id):
     return render(request, 'posts/post_detail.html', {'post': post})
 
 def create_post(request):
-    """Create a new post (dummy logic for now)."""
-    user = User.objects.first()  # Example: assign to the first user (replace with actual logic)
-    if not user:
-        return HttpResponse("No users exist in the database. Create a user first.", status=400)
+    """Create a new post (supports both web form & API)."""
+    if request.method == 'POST':
+        title = request.POST.get('title', 'Untitled Post')
+        description = request.POST.get('description', '')
+        content = request.POST.get('content', '')
+        contentType = request.POST.get('contentType', 'text/plain')
+        visibility=request.POST.get('visibility','PUBLIC') #Default visibility
 
-    post = Post.objects.create(author=user, content="Sample Post Content")
-    return HttpResponse(f"New post created with ID: {post.id}")
+        if visibility not in ["PUBLIC", "FRIENDS", "UNLISTED"]:
+            return HttpResponse("Invalid visibility option", status=400)
+
+        user = User.objects.first()  # Assign to first user (change logic for actual users)
+        if not user:
+            return HttpResponse("No users exist in the database. Create a user first.", status=400)
+
+        post = Post.objects.create(
+            id=uuid.uuid4(),
+            author=user,
+            title=title,
+            description=description,
+            content=content,
+            contentType=contentType
+            visibility=visibility
+        )
+        
+        return redirect('posts:index')
+
+    return HttpResponse("Invalid request", status=400)
 
 def delete_post(request, post_id):
     """Delete a post."""
     post = get_object_or_404(Post, id=post_id)
     post.delete()
-    return HttpResponse(f"Post {post_id} deleted successfully!")
+    return redirect('posts:index')
+    #return HttpResponse(f"Post {post_id} deleted successfully!")
+
+@api_view(['GET'])
+def get_author_posts(request, author_id):
+    """Retrieve all posts from a specific author"""
+    author = get_object_or_404(User, id=author_id)
+    posts = Post.objects.filter(author=author)
+    serializer = PostSerializer(posts, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def get_post_detail(request, author_id, post_id):
+    """Retrieve a specific post from an author"""
+    post = get_object_or_404(Post, id=post_id, author_id=author_id)
+    serializer = PostSerializer(post)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def create_post(request, author_id):
+    """Create a new post for a specific author"""
+    author = get_object_or_404(User, id=author_id)
+    
+    data = request.data.copy()  # Copy data from request body
+    data["author"] = author.id  # Ensure the author ID is set correctly
+
+    serializer = PostSerializer(data=data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
