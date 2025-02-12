@@ -36,10 +36,12 @@
             <li>
                 <a href="{% url 'posts:post_detail' post.id %}">{{ post.title }}</a>
                 <span>({{ post.visibility }})</span>
+                {% if user.is_authenticated and post.author.id == user.id %}
                 <form action="{% url 'posts:delete_post' post.id %}" method="post" style="display:inline;">
                     {% csrf_token %}
                     <button type="submit">Delete</button>
                 </form>
+                {% endif %}
             </li>
         {% endfor %}
     </ul>

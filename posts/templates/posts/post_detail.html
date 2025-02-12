@@ -9,7 +9,9 @@
     <p>Published on: {{ post.published }}</p>
     
     <div id="post-content" class="content">{{ formatted_content|safe }}</div>
-
+    {% if user.is_authenticated and post.author.id == user.id %}
+    <a href="{% url 'posts:edit_post' post.id %}">Edit</a>
+    {% endif %}
     <a href="{% url 'posts:index' %}">Back to posts</a>
     <script src="{% static 'markdown-renderer.min.js' %}"></script>
 </body>

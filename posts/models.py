@@ -20,6 +20,15 @@ class Post(models.Model):
     contentType = models.CharField(max_length=20, choices=CONTENT_TYPE_CHOICES, default='text/plain')
     published = models.DateTimeField("published", default=datetime.now)   # Store the published date in a datetime field in the database
     visibility = models.CharField(max_length=20, choices=[("PUBLIC", "Public"), ("FRIENDS", "Friends Only"), ("UNLISTED", "Unlisted")],default='UNLISTED')
+
+    def save(self, *args, **kwargs):
+        """Prevent non-authors from modifying a post directly via scripts."""
+        if self.pk:  # If post exists in DB (update case)
+            original = Post.objects.get(pk=self.pk)
+            if original.author != self.author:
+                raise PermissionDenied("You cannot change the author of this post.")
+
+        super().save(*args, **kwargs)
     
     def get_formatted_content(self):
         if self.contentType == 'text/markdown':

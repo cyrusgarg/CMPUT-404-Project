@@ -1,7 +1,9 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse,JsonResponse
 from .models import Post, User
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view,permission_classes
+from rest_framework.permissions import IsAuthenticated
+from .permissions import IsAuthorOrReadOnly
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import PostSerializer
@@ -51,9 +53,20 @@ def create_post(request):
 def delete_post(request, post_id):
     """Delete a post."""
     post = get_object_or_404(Post, id=post_id)
+    #Todo post will never deleted, it would be only change the visibility to deleted
     post.delete()
     return redirect('posts:index')
     #return HttpResponse(f"Post {post_id} deleted successfully!")
+
+def edit_post(request, post_id):
+    """Render the post edit form for the author."""
+    post = get_object_or_404(Post, id=post_id)
+
+    # Ensure only the author can edit
+    if request.user != post.author:
+        return HttpResponse("You are not allowed to edit this post.", status=403)
+
+    return render(request, "posts/edit_post.html", {"post": post})
 
 @api_view(['GET'])
 def get_post_by_fqid(request, post_id):
@@ -63,3 +76,32 @@ def get_post_by_fqid(request, post_id):
     post = get_object_or_404(Post, id=post_id)  
     serializer = PostSerializer(post)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['PUT', 'POST'])  # Allow both API and web-based edits
+@permission_classes([IsAuthenticated, IsAuthorOrReadOnly])  # Ensure only the author can edit
+def update_post(request, author_id, post_id):
+    """Allow an author to update their own post."""
+    post = get_object_or_404(Post, id=post_id, author_id=author_id)
+
+    # Handling Web Form Submission
+    if request.method == "POST":
+        title = request.POST.get("title", post.title)
+        description = request.POST.get("description", post.description)
+        content = request.POST.get("content", post.content)
+        contentType = request.POST.get("contentType", post.contentType)
+
+        post.title = title
+        post.description = description
+        post.content = content
+        post.contentType = contentType
+        post.save()
+
+        return redirect("posts:post_detail", post_id=post.id)
+
+    # Handling API Request
+    serializer = PostSerializer(post, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

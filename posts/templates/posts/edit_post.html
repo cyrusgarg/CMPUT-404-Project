@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Post</title>
+</head>
+<body>
+    <h1>Edit Post</h1>
+    <form action="{% url 'posts:update_post' post.author.id post.id %}" method="POST">
+        {% csrf_token %}
+        <label>Title:</label>
+        <input type="text" name="title" value="{{ post.title }}" required><br>
+
+        <label>Description:</label>
+        <textarea name="description" required>{{ post.description }}</textarea><br>
+
+        <label>Content:</label>
+        <textarea name="content" required>{{ post.content }}</textarea><br>
+
+        <label>Content Type:</label>
+        <select name="contentType">
+            <option value="text/plain" {% if post.contentType == "text/plain" %}selected{% endif %}>Plain Text</option>
+            <option value="text/markdown" {% if post.contentType == "text/markdown" %}selected{% endif %}>Markdown</option>
+        </select><br>
+
+        <button type="submit">Save Changes</button>
+    </form>
+    <a href="{% url 'posts:post_detail' post.id %}">Cancel</a>
+</body>
+</html>
