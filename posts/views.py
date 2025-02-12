@@ -15,7 +15,8 @@ def index(request):
 def post_detail(request, post_id):
     """View a single post."""
     post = get_object_or_404(Post, id=post_id)
-    return render(request, 'posts/post_detail.html', {'post': post})
+    formatted_content = post.get_formatted_content()
+    return render(request, 'posts/post_detail.html', {'post': post,'formatted_content': formatted_content})
 
 def create_post(request):
     """Create a new post (supports both web form & API)."""

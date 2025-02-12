@@ -8,7 +8,7 @@
     <h1>{{ post.title }}</h1>
     <p>Published on: {{ post.published }}</p>
     
-    <div id="post-content" class="content">{{ post.content }}</div>
+    <div id="post-content" class="content">{{ formatted_content|safe }}</div>
 
     <a href="{% url 'posts:index' %}">Back to posts</a>
     <script src="{% static 'markdown-renderer.min.js' %}"></script>

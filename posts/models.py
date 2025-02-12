@@ -23,5 +23,5 @@ class Post(models.Model):
     
     def get_formatted_content(self):
         if self.contentType == 'text/markdown':
-            return markdown.markdown(self.content)  # Convert markdown to HTML
+            return markdown.markdown(self.content,extensions=['extra'])  # Convert markdown to HTML
         return self.content

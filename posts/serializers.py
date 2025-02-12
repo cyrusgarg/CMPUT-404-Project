@@ -3,16 +3,15 @@ from .models import Post
 
 class PostSerializer(serializers.Serializer):
     id = serializers.UUIDField(read_only=True)
-    author = serializers.CharField()  # Store as author ID
+    author = serializers.UUIDField()  # Store as author ID (Assuming author has a UUID)
     title = serializers.CharField(max_length=255)
     description = serializers.CharField()
-    content = serializers.CharField()
-    formatted_content = serializers.SerializerMethodField()
+    content = serializers.SerializerMethodField()
     contentType = serializers.ChoiceField(choices=[('text/plain', 'Plain Text'), ('text/markdown', 'Markdown')])
     published= serializers.DateTimeField()
     visibility = serializers.ChoiceField(choices=["PUBLIC", "FRIENDS", "UNLISTED"])
 
-    def get_formatted_content(self, obj):
+    def get_content(self, obj):
         """Convert Markdown content to HTML if applicable."""
         return obj.get_formatted_content()
 
