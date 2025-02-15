@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path,include
 from . import views
 
 app_name = "posts"  # Define namespace for URLs / 定义URL命名空间（GJ）
@@ -25,3 +25,4 @@ urlpatterns = [
     path('<uuid:post_id>/update/', views.update_post, name="update_post"),  
     # API endpoint for updating a post / 通过API更新帖子（GJ）
 ]
+

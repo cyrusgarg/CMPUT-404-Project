@@ -66,3 +66,4 @@ class PostSerializer(serializers.ModelSerializer):
         instance.visibility = validated_data.get('visibility', instance.visibility)
         instance.save()
         return instance
+

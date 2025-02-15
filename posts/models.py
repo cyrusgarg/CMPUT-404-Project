@@ -5,8 +5,6 @@ import markdown
 import uuid
 
 
-
-
 class Post(models.Model):
     """ 
     Post model storing post details such as content, visibility, and ownership.
