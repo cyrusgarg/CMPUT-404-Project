@@ -1,11 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
+    {% load static %}
     <title>Post Detail</title>
 </head>
 <body>
-    <h1>{{ post.content }}</h1>
-    <p>Published on: {{ post.pub_date }}</p>
+    <h1>{{ post.title }}</h1>
+    <p>Published on: {{ post.published }}</p>
+    
+    <div id="post-content" class="content">{{ formatted_content|safe }}</div>
+    {% if user.is_authenticated and post.author.id == user.id %}
+    <a href="{% url 'posts:edit_post' post.id %}">Edit</a>
+    {% endif %}
     <a href="{% url 'posts:index' %}">Back to posts</a>
+    <script src="{% static 'markdown-renderer.min.js' %}"></script>
 </body>
 </html>
