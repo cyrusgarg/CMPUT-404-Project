@@ -1,18 +1,35 @@
 <!DOCTYPE html>
 <html>
 <head>
-    {% load static %}
-    <title>Post Detail</title>
+    <title>{{ post.title }}</title>
 </head>
 <body>
     <h1>{{ post.title }}</h1>
-    <p>Published on: {{ post.published }}</p>
     
-    <div id="post-content" class="content">{{ formatted_content|safe }}</div>
-    {% if user.is_authenticated and post.author.id == user.id %}
-    <a href="{% url 'posts:edit_post' post.id %}">Edit</a>
+    <!-- Display post metadata / 显示帖子元数据（GJ） -->
+    <p><strong>Description:</strong> {{ post.description }}</p>
+    <p><strong>Content:</strong> {{ post.content }}</p>
+    <p><strong>Published:</strong> {{ post.published }}</p>
+    <p><strong>Visibility:</strong> {{ post.visibility }}</p>
+
+    {% if post.visibility == "DELETED" %}
+        <!-- Show deleted message if the post is marked as deleted / 如果帖子被标记为删除，显示红色警告（GJ） -->
+        <p style="color: red;"><strong>This post has been deleted.</strong></p>
     {% endif %}
-    <a href="{% url 'posts:index' %}">Back to posts</a>
-    <script src="{% static 'markdown-renderer.min.js' %}"></script>
+
+    {% if user == post.author.username %}
+        <!-- If the logged-in user is the author, allow editing / 如果当前用户是帖子作者，则允许编辑（GJ） -->
+        <a href="{% url 'posts:edit_post' post.id %}">Edit</a>
+
+        <!-- Delete post form / 删除帖子表单（GJ） -->
+        <form action="{% url 'posts:delete_post' post.id %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit">Delete</button>
+        </form>
+    {% endif %}
+
+    <br>
+    <!-- Back to posts list / 返回帖子列表（GJ） -->
+    <a href="{% url 'posts:view_posts' %}">Back to Posts</a>
 </body>
 </html>

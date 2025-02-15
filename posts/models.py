@@ -1,36 +1,75 @@
 from datetime import datetime
 from django.db import models
+from django.contrib.auth.models import User  # Use Django built-in User model / 使用Django内置用户模型（GJ）
 import markdown
+import uuid
 
-class User(models.Model):
-    username = models.CharField(max_length=150, unique=True)
-    email = models.EmailField(unique=True, default="example@example.com")  # Add a default value
-    created_at = models.DateTimeField(auto_now_add=True)
 
 class Post(models.Model):
-    CONTENT_TYPE_CHOICES=[
-        ('text/plain','Plain Text'),
-        ('text/markdown','Markdown'),
+    """ 
+    Post model storing post details such as content, visibility, and ownership.
+    帖子模型，存储帖子内容、可见性和作者信息。（GJ）
+    """
+
+    CONTENT_TYPE_CHOICES = [
+        ('text/plain', 'Plain Text'),  # Plain text format / 纯文本格式（GJ）
+        ('text/markdown', 'Markdown'),  # Markdown format / Markdown格式（GJ）
     ]
-    id=models.UUIDField(primary_key=True,editable=False)
-    author = models.ForeignKey(User, on_delete=models.CASCADE)  # Link post to an author
-    title=models.CharField(max_length=255,default="")
-    description=models.TextField(default="")
-    content = models.TextField(blank=True, null=True)
-    contentType = models.CharField(max_length=20, choices=CONTENT_TYPE_CHOICES, default='text/plain')
-    published = models.DateTimeField("published", default=datetime.now)   # Store the published date in a datetime field in the database
-    visibility = models.CharField(max_length=20, choices=[("PUBLIC", "Public"), ("FRIENDS", "Friends Only"), ("UNLISTED", "Unlisted")],default='UNLISTED')
 
-    def save(self, *args, **kwargs):
-        """Prevent non-authors from modifying a post directly via scripts."""
-        if self.pk:  # If post exists in DB (update case)
-            original = Post.objects.get(pk=self.pk)
-            if original.author != self.author:
-                raise PermissionDenied("You cannot change the author of this post.")
+    VISIBILITY_CHOICES = [
+        ("PUBLIC", "Public"),  # Public post visible to everyone / 公开帖子，所有人可见（GJ）
+        ("FRIENDS", "Friends Only"),  # Only visible to friends / 仅好友可见的帖子（GJ）
+        ("UNLISTED", "Unlisted"),  # Unlisted post, visible only with a link / 未列出帖子，仅有链接的人可见（GJ）
+        ("DELETED", "Deleted")  # Deleted post, only visible to admins / 已删除的帖子，仅管理员可见（GJ）
+    ]
 
-        super().save(*args, **kwargs)
-    
+    #id = models.UUIDField(primary_key=True, editable=False)  # Unique identifier for the post / 帖子唯一标识符（GJ）
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  
+    author = models.ForeignKey(User, on_delete=models.CASCADE)  # Link post to Django user model / 关联到Django用户模型（GJ）
+    title = models.CharField(max_length=255, default="")  # Post title / 帖子标题（GJ）
+    description = models.TextField(default="")  # Short description of the post / 帖子简要描述（GJ）
+    content = models.TextField(blank=True, null=True)  # Post content / 帖子内容（GJ）
+    contentType = models.CharField(max_length=20, choices=CONTENT_TYPE_CHOICES, default='text/plain')  # Content type (plain or markdown) / 帖子内容类型（纯文本或Markdown）（GJ）
+    published = models.DateTimeField("published", default=datetime.now)  # Timestamp of post creation / 帖子发布时间戳（GJ）
+    visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default='UNLISTED')  # Post visibility settings / 帖子可见性设置（GJ）
+
     def get_formatted_content(self):
+        """ 
+        Convert Markdown content to HTML if applicable.
+        如果帖子内容是Markdown格式，则转换为HTML。（GJ）
+        """
         if self.contentType == 'text/markdown':
-            return markdown.markdown(self.content,extensions=['extra'])  # Convert markdown to HTML
+            return markdown.markdown(self.content, extensions=['extra']) 
         return self.content
+
+    @staticmethod
+    def get_visible_posts(user):
+        """
+        Retrieve posts visible to the specified user.
+        获取指定用户可见的帖子。（GJ）
+
+        - Admin can see all posts including deleted ones.
+          管理员可以看到所有帖子，包括已删除的帖子。（GJ）
+        - Regular users can see:
+          普通用户可以看到：
+          - PUBLIC (Visible to everyone) / PUBLIC（公开，对所有人可见）
+          - UNLISTED (Visible only via direct link) / UNLISTED（未列出，仅有链接的人可见）
+          - FRIENDS (Visible only to friends) / FRIENDS（仅好友可见）
+        - Deleted posts are excluded for regular users.
+          普通用户无法看到已删除的帖子。（GJ）
+        """
+        if user.is_superuser:
+            return Post.objects.all()  # Admin can view all posts / 管理员可以看到所有帖子（GJ）
+
+        return Post.objects.filter(
+            models.Q(visibility="PUBLIC") |  # Public posts visible to all / 公开帖子，所有人可见（GJ）
+            models.Q(visibility="UNLISTED") |  # Unlisted posts accessible via direct link / 需要链接访问的未列出帖子（GJ）
+            models.Q(visibility="FRIENDS", author__friends=user)  # Friends-only posts visible to friends / 仅好友可见的帖子（GJ）
+        ).exclude(visibility="DELETED")  # Exclude deleted posts for regular users / 普通用户无法看到已删除的帖子（GJ）
+
+    def __str__(self):
+        """
+        Return the post title as its string representation.
+        返回帖子标题作为字符串表示。（GJ）
+        """
+        return self.title

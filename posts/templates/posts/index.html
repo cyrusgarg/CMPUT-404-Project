@@ -1,18 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Posts</title>
+    <title>My Posts</title>
 </head>
 <body>
-    <h1>All Posts</h1>
+    <h1>My Posts</h1>
+
+    <!-- Form for creating a new post / 创建新帖子的表单（GJ） -->
     <form action="{% url 'posts:create_post' %}" method="post">
         {% csrf_token %}
+        
         <label for="title">Title:</label>
         <input type="text" name="title" required>
-        
+
         <label for="description">Description:</label>
         <input type="text" name="description" required>
-        
+
         <label for="content">Content:</label>
         <textarea name="content" required></textarea>
 
@@ -28,22 +31,41 @@
             <option value="FRIENDS">Friends Only</option>
             <option value="UNLISTED">Unlisted</option>
         </select>
+
         <button type="submit">Create Post</button>
     </form>
 
+    <h2>My Posts List</h2>
     <ul>
         {% for post in posts %}
             <li>
+                <!-- Display post title and visibility / 显示帖子标题和可见性（GJ） -->
                 <a href="{% url 'posts:post_detail' post.id %}">{{ post.title }}</a>
                 <span>({{ post.visibility }})</span>
-                {% if user.is_authenticated and post.author.id == user.id %}
-                <form action="{% url 'posts:delete_post' post.id %}" method="post" style="display:inline;">
-                    {% csrf_token %}
-                    <button type="submit">Delete</button>
-                </form>
+
+                {% if post.visibility == "DELETED" %}
+                    <!-- Show deleted message / 显示已删除提示（GJ） -->
+                    <span style="color: red;">[Deleted]</span>
+                {% else %}
+                    {% if user == post.author.username %}
+                        <!-- Buttons for editing and deleting posts / 编辑和删除帖子的按钮（GJ） -->
+                        <a href="{% url 'posts:edit_post' post.id %}">Edit</a>
+
+                        <form action="{% url 'posts:delete_post' post.id %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit">Delete</button>
+                        </form>
+                    {% endif %}
                 {% endif %}
             </li>
+        {% empty %}
+            <!-- Message when no posts are available / 没有帖子时显示消息（GJ） -->
+            <li>No posts available.</li>
         {% endfor %}
     </ul>
+
+    <br>
+    <!-- Link to view other posts / 查看其他帖子页面的链接（GJ） -->
+    <a href="{% url 'posts:view_posts' %}">View Other Users' Posts</a>
 </body>
 </html>
