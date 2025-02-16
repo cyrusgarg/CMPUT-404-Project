@@ -22,4 +22,30 @@
         {% endif %}
     </div>
 </div>
+
+<hr>
+
+<!-- Public Posts Section -->
+<div class="public-posts">
+    <h2>Public Posts</h2>
+    {% if public_posts %}
+        <ul>
+            {% for post in public_posts %}
+                {% with unique_id="post_payload_"|add:forloop.counter %}
+                    <li>
+                        <strong>{{ post.event_type }}</strong> 
+                        <small>on {{ post.created_at|date:"Y-m-d H:i" }}</small>
+                        <div class="post-content">
+                            <!-- Displaying the raw JSON payload; customize as needed -->
+                            <pre>{{ post.payload|json_script:unique_id }}</pre>
+                        </div>
+                    </li>
+                {% endwith %}
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No public posts available.</p>
+    {% endif %}
+</div>
+
 {% endblock %}
