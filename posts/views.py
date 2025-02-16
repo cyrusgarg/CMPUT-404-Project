@@ -6,6 +6,8 @@ from django.db import models
 from django.contrib.auth.models import User  # Import Django User model / 导入Django用户模型（GJ）
 from django.views.decorators.csrf import csrf_exempt
 import json
+from rest_framework.decorators import api_view,permission_classes
+from .permissions import IsAuthorOrAdmin
 
 @login_required
 def index(request):
@@ -78,7 +80,7 @@ def post_detail(request, post_id):
 
     if post.visibility == "FRIENDS" and request.user != post.author and not request.user in post.author.friends.all():
         return HttpResponseForbidden("You do not have permission to view this post.")  # Prevent unauthorized friend-only access / 防止未授权用户访问仅好友可见帖子（GJ）
-
+    post.content = post.get_formatted_content()
     return render(request, "posts/post_detail.html", {"post": post, "user": request.user.username})  # Pass user info / 传递用户信息（GJ）
 
 @login_required
@@ -169,3 +171,35 @@ def update_post(request, post_id):
         return JsonResponse({"message": "Post updated successfully"})  # Return success response / 返回成功响应（GJ）
 
     return JsonResponse({"error": "Invalid request"}, status=400)  # Return error response / 返回错误响应（GJ）
+
+@api_view(['GET'])
+def get_post_by_fqid(request, post_id):
+    """
+    Retrieve a public post by Fully Qualified ID (FQID).
+    """
+    post = get_object_or_404(Post, id=post_id)  
+    serializer = PostSerializer(post)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@permission_classes([IsAuthorOrAdmin])  # Ensure only the author can edit
+def web_update_post(request, post_id):
+    """Allow an author to update their own post."""
+    post = get_object_or_404(Post, id=post_id)
+
+    # Handling Web Form Submission
+    if request.method == "POST":
+      title = request.POST.get("title", post.title)
+      description = request.POST.get("description", post.description)
+      content = request.POST.get("content", post.content)
+      contentType = request.POST.get("contentType", post.contentType)
+      visibility=request.POST.get("visibility",post.visibility)
+
+      post.title = title
+      post.description = description
+      post.content = content
+      post.content=post.get_formatted_content()
+      post.contentType = contentType
+      post.visibility=visibility
+      post.save()
+
+      return redirect("posts:post_detail", post_id=post.id)

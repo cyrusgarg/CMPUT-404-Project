@@ -5,7 +5,7 @@
 </head>
 <body>
     <h1>Edit Post</h1>
-    <form action="{% url 'posts:update_post' post.author.id post.id %}" method="POST">
+    <form action="{% url 'posts:web_update_post' post.id %}" method="POST">
         {% csrf_token %}
         <label>Title:</label>
         <input type="text" name="title" value="{{ post.title }}" required><br>
@@ -20,6 +20,14 @@
         <select name="contentType">
             <option value="text/plain" {% if post.contentType == "text/plain" %}selected{% endif %}>Plain Text</option>
             <option value="text/markdown" {% if post.contentType == "text/markdown" %}selected{% endif %}>Markdown</option>
+        </select><br>
+
+        <label>Visibility:</label>
+        <select name="visibility">
+            <option value="PUBLIC" {% if post.visibility == "PUBLIC" %}selected{% endif %}>Public</option>
+            <option value="FRIENDS" {% if post.contentType == "FRIENDS" %}selected{% endif %}>Friends Only</option>
+            <option value="UNLISTED" {% if post.contentType == "UNLISTED" %}selected{% endif %}>Unlisted</option>
+            <option value="DELETED" {% if post.contentType == "DELETED" %}selected{% endif %}>Deleted</option>
         </select><br>
 
         <button type="submit">Save Changes</button>
