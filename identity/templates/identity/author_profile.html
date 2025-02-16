@@ -1,21 +1,25 @@
-{% extends 'base.html' %}  {# This line should only appear once #}
+{% extends 'base.html' %}
 
 {% block content %}
-<div class="authors-container">
-    <h1>Community Members</h1>
-    <div class="authors-grid">
-        {% for author in authors %}
-            <div class="author-card">
-                {% if author.profile_image %}
-                    <img src="{{ author.profile_image.url }}" alt="{{ author.display_name }}" class="author-image">
-                {% endif %}
-                <h2>{{ author.display_name }}</h2>
-                <p class="author-bio">{{ author.bio|truncatewords:30 }}</p>
-                <a href="{% url 'identity:author-profile' author.user.username %}" class="view-profile-btn">View Profile</a>
-            </div>
-        {% endfor %}
-    </div>
+<div class="profile-container">
+    <h1>{{ author.display_name }}</h1>
     
-    {% include 'pagination.html' %}
+    {% if author.profile_image %}
+        <img src="{{ author.profile_image.url }}" alt="{{ author.display_name }}" class="profile-image">
+    {% endif %}
+    
+    {% if author.bio %}
+        <div class="bio-section">
+            <h2>About</h2>
+            <p>{{ author.bio }}</p>
+        </div>
+    {% endif %}
+    
+    <div class="user-info">
+        <p>Username: {{ author.user.username }}</p>
+        {% if author.user.first_name or author.user.last_name %}
+            <p>Name: {{ author.user.first_name }} {{ author.user.last_name }}</p>
+        {% endif %}
+    </div>
 </div>
 {% endblock %}

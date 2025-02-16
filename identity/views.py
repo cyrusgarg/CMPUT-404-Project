@@ -5,7 +5,7 @@ from .models import Author
 
 class AuthorProfileView(DetailView):
     model = Author
-    template_name = 'authors/profile.html'
+    template_name = 'identity/author_profile.html'
     context_object_name = 'author'
     
     def get_object(self):
