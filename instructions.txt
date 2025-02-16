@@ -1,3 +1,6 @@
+Some helpful git commands
+    git pull origin main
+
 To install the requirements from requirements file
     pip install -r requirements.txt 
 

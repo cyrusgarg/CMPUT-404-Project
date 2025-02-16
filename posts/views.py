@@ -24,7 +24,6 @@ def index(request):
       管理员可以看到所有帖子，包括已删除的帖子。（GJ）
     """
     user = request.user  # Get the logged-in Django user / 获取当前登录的Django用户（GJ）
-
     if user.is_superuser:
         posts = Post.objects.all().order_by('-published')  # Admin can see all posts, ordered by creation date
     else:
