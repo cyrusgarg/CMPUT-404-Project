@@ -7,7 +7,7 @@
     <h1>My Posts</h1>
 
     <!-- Form for creating a new post / 创建新帖子的表单（GJ） -->
-    <form action="{% url 'posts:create_post' %}" method="post">
+    <form action="{% url 'posts:create_post' %}" method="post" enctype="multipart/form-data">
         {% csrf_token %}
         
         <label for="title">Title:</label>
@@ -32,6 +32,9 @@
             <option value="UNLISTED">Unlisted</option>
         </select>
 
+        <label for="image">Upload Image:</label>
+        <input type="file" name="image" accept="image/*">
+
         <button type="submit">Create Post</button>
     </form>
 
@@ -42,6 +45,11 @@
                 <!-- Display post title and visibility / 显示帖子标题和可见性（GJ） -->
                 <a href="{% url 'posts:post_detail' post.id %}">{{ post.title }}</a>
                 <span>({{ post.visibility }})</span>
+
+                {% if post.image %}
+                    <br>
+                    <img src="{{ post.image.url }}" alt="{{ post.title }} Image" style="max-width: 100px;">
+                {% endif %}
 
                 {% if post.visibility == "DELETED" %}
                     <!-- Show deleted message / 显示已删除提示（GJ） -->

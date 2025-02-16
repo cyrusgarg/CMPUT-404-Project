@@ -13,12 +13,20 @@
     <p><strong>Published:</strong> {{ post.published }}</p>
     <p><strong>Visibility:</strong> {{ post.visibility }}</p>
 
+    <!-- display images -->
+    {% if post.image %}
+        <img src="{{ post.image.url }}" alt="{{ post.title }} Image" style="max-width: 100%;">
+    {% else %}
+        <p><em>No image available for this post.</em></p>
+    {% endif %}
+
+
     {% if post.visibility == "DELETED" %}
         <!-- Show deleted message if the post is marked as deleted / 如果帖子被标记为删除，显示红色警告（GJ） -->
         <p style="color: red;"><strong>This post has been deleted.</strong></p>
     {% endif %}
 
-    {% if user == post.author.username %}
+    {% if user == post.author %}
         <!-- If the logged-in user is the author, allow editing / 如果当前用户是帖子作者，则允许编辑（GJ） -->
         <a href="{% url 'posts:edit_post' post.id %}">Edit</a>
 

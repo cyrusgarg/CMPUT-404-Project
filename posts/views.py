@@ -8,6 +8,9 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from rest_framework.decorators import api_view,permission_classes
 from .permissions import IsAuthorOrAdmin
+from rest_framework.response import Response
+from rest_framework import status
+from .serializers import PostSerializer
 
 @login_required
 def index(request):
@@ -97,6 +100,10 @@ def create_post(request):
         content = request.POST.get("content", "")
         contentType = request.POST.get("contentType", "text/plain")
         visibility = request.POST.get("visibility", "UNLISTED")
+        image = request.FILES.get("image")  # Handle uploaded image
+
+        # Log the uploaded image to see if it's correctly received
+        print("Image received: ", image)
 
         post = Post.objects.create(
             author=request.user,  # Assign the logged-in user as the post author / 设定当前用户为帖子作者（GJ）
@@ -105,6 +112,7 @@ def create_post(request):
             content=content,
             contentType=contentType,
             visibility=visibility,
+            image=image  # Save the image if provided
         )
         return redirect("posts:index")  # Redirect to posts index / 创建帖子后跳转到主页（GJ）
     
@@ -160,11 +168,16 @@ def update_post(request, post_id):
 
     if request.method == "POST":
         data = json.loads(request.body.decode("utf-8"))  # Parse JSON data / 解析JSON数据（GJ）
+        image = request.FILES.get("image")  # Handle uploaded image
+
         post.title = data.get("title", post.title)
         post.description = data.get("description", post.description)
         post.content = data.get("content", post.content)
         post.contentType = data.get("contentType", post.contentType)
         post.visibility = data.get("visibility", post.visibility)
+
+        if image:  # Only update if a new image is uploaded
+            post.image = image
         post.save()
 
         return JsonResponse({"message": "Post updated successfully"})  # Return success response / 返回成功响应（GJ）
@@ -193,11 +206,21 @@ def web_update_post(request, post_id):
       contentType = request.POST.get("contentType", post.contentType)
       visibility=request.POST.get("visibility",post.visibility)
 
+      # Get the new image (if any) from the form
+      image = request.FILES.get('image')
+
       post.title = title
       post.description = description
       post.content = content
       post.contentType = contentType
       post.visibility=visibility
+
+      # If a new image is uploaded, update the image
+      if image:
+          post.image = image
+
       post.save()
 
       return redirect("posts:post_detail", post_id=post.id)
+    
+    return redirect("posts:post_detail", post_id=post.id)  # return to the post detail page if form submission fails
