@@ -12,13 +12,14 @@ class PostSerializer(serializers.ModelSerializer):
     - Ensures visibility and content type choices are respected.
       确保可见性和内容类型的选择有效。（GJ）
     """
+    image = serializers.ImageField(required=False, allow_null=True)   # not every post needs image
     author = serializers.CharField(source='author.username', read_only=True)  # Store author as username string / 将作者存储为用户名字符串（GJ）
 
     class Meta:
         model = Post  # Specify model / 指定模型（GJ）
         fields = [
             "id", "author", "title", "description", "content", 
-            "contentType", "published", "visibility"
+            "contentType", "published", "visibility", "image"
         ]  # Define the fields to be serialized / 定义需要序列化的字段（GJ）
 
     def validate_visibility(self, value):

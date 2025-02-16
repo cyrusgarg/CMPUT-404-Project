@@ -8,6 +8,9 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from rest_framework.decorators import api_view,permission_classes
 from .permissions import IsAuthorOrAdmin
+from rest_framework.response import Response
+from rest_framework import status
+from .serializers import PostSerializer
 
 @login_required
 def index(request):
@@ -23,9 +26,9 @@ def index(request):
     user = request.user  # Get the logged-in Django user / 获取当前登录的Django用户（GJ）
 
     if user.is_superuser:
-        posts = Post.objects.all()  # Admin can see all posts / 管理员可以看到所有帖子（GJ）
+        posts = Post.objects.all().order_by('-published')  # Admin can see all posts, ordered by creation date
     else:
-        posts = Post.objects.filter(author=user).exclude(visibility="DELETED")  # Regular users only see their posts / 普通用户只能看到自己的帖子（GJ）
+        posts = Post.objects.filter(author=user).exclude(visibility="DELETED").order_by('-published')  # Regular users only see their posts, ordered by creation date 
 
     return render(request, "posts/index.html", {"posts": posts, "user": user.username})  # Pass username to the template / 传递用户名到模板（GJ）
 
@@ -59,7 +62,7 @@ def view_posts(request):
         models.Q(visibility="FRIENDS", author__id__in=friends_ids) |  # 仅好友可见帖子（GJ）
         models.Q(visibility="UNLISTED", author__id__in=following_ids) |  # 仅作者或关注者可见（GJ）
         models.Q(visibility="UNLISTED", author=user)  # 自己的 UNLISTED 也可见（GJ）
-    ).exclude(visibility="DELETED")  # 普通用户不能看到已删除帖子（GJ）
+    ).exclude(visibility="DELETED").order_by('-published')  # Order by creation date
 
     
     return render(request, "posts/views.html", {"posts": posts, "user": user.username})  # Render the posts page / 渲染帖子页面（GJ）
@@ -97,6 +100,10 @@ def create_post(request):
         content = request.POST.get("content", "")
         contentType = request.POST.get("contentType", "text/plain")
         visibility = request.POST.get("visibility", "UNLISTED")
+        image = request.FILES.get("image")  # Handle uploaded image
+
+        # Log the uploaded image to see if it's correctly received
+        print("Image received: ", image)
 
         post = Post.objects.create(
             author=request.user,  # Assign the logged-in user as the post author / 设定当前用户为帖子作者（GJ）
@@ -105,6 +112,7 @@ def create_post(request):
             content=content,
             contentType=contentType,
             visibility=visibility,
+            image=image  # Save the image if provided
         )
         return redirect("posts:index")  # Redirect to posts index / 创建帖子后跳转到主页（GJ）
     
@@ -160,11 +168,16 @@ def update_post(request, post_id):
 
     if request.method == "POST":
         data = json.loads(request.body.decode("utf-8"))  # Parse JSON data / 解析JSON数据（GJ）
+        image = request.FILES.get("image")  # Handle uploaded image
+
         post.title = data.get("title", post.title)
         post.description = data.get("description", post.description)
         post.content = data.get("content", post.content)
         post.contentType = data.get("contentType", post.contentType)
         post.visibility = data.get("visibility", post.visibility)
+
+        if image:  # Only update if a new image is uploaded
+            post.image = image
         post.save()
 
         return JsonResponse({"message": "Post updated successfully"})  # Return success response / 返回成功响应（GJ）
@@ -193,11 +206,21 @@ def web_update_post(request, post_id):
       contentType = request.POST.get("contentType", post.contentType)
       visibility=request.POST.get("visibility",post.visibility)
 
+      # Get the new image (if any) from the form
+      image = request.FILES.get('image')
+
       post.title = title
       post.description = description
       post.content = content
       post.contentType = contentType
       post.visibility=visibility
+
+      # If a new image is uploaded, update the image
+      if image:
+          post.image = image
+
       post.save()
 
       return redirect("posts:post_detail", post_id=post.id)
+    
+    return redirect("posts:post_detail", post_id=post.id)  # return to the post detail page if form submission fails

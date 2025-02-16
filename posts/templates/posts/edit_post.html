@@ -7,7 +7,7 @@
 </head>
 <body>
     <h1>Edit Post</h1>
-    <form action="{% url 'posts:web_update_post' post.id %}" method="POST">
+    <form action="{% url 'posts:web_update_post' post.id %}" method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         <label>Title:</label>
         <input type="text" name="title" value="{{ post.title }}" required><br>
@@ -31,6 +31,14 @@
             <option value="UNLISTED" {% if post.contentType == "UNLISTED" %}selected{% endif %}>Unlisted</option>
             <option value="DELETED" {% if post.contentType == "DELETED" %}selected{% endif %}>Deleted</option>
         </select><br>
+
+        <label for="image">Upload Image:</label>
+        <input type="file" name="image" accept="image/*">
+
+        {% if post.image %}
+            <p>Current Image:</p>
+            <img src="{{ post.image.url }}" alt="{{ post.title }} Image" style="max-width: 200px;"><br>
+        {% endif %}
 
         <button type="submit">Save Changes</button>
     </form>

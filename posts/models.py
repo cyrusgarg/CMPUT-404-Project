@@ -3,6 +3,12 @@ from django.db import models
 from django.contrib.auth.models import User  # Use Django built-in User model / 使用Django内置用户模型（GJ）
 import markdown
 import uuid
+from django.core.exceptions import ValidationError
+
+# for security issues sinec Django allows all file types by default.
+def validate_image_file_extension(value):
+    if not value.name.endswith((".jpg", ".jpeg", ".png")):
+        raise ValidationError("Only JPG and PNG images are allowed.")
 
 
 class Post(models.Model):
@@ -32,6 +38,8 @@ class Post(models.Model):
     contentType = models.CharField(max_length=20, choices=CONTENT_TYPE_CHOICES, default='text/plain')  # Content type (plain or markdown) / 帖子内容类型（纯文本或Markdown）（GJ）
     published = models.DateTimeField("published", default=datetime.now)  # Timestamp of post creation / 帖子发布时间戳（GJ）
     visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default='UNLISTED')  # Post visibility settings / 帖子可见性设置（GJ）
+    image = models.ImageField(upload_to="post_images/", blank=True, null=True, validators=[validate_image_file_extension])  # Image field
+
 
     def get_formatted_content(self):
         """ 
@@ -64,7 +72,7 @@ class Post(models.Model):
         return Post.objects.filter(
             models.Q(visibility="PUBLIC") |  # Public posts visible to all / 公开帖子，所有人可见（GJ）
             models.Q(visibility="UNLISTED") |  # Unlisted posts accessible via direct link / 需要链接访问的未列出帖子（GJ）
-            models.Q(visibility="FRIENDS", author__friends=user)  # Friends-only posts visible to friends / 仅好友可见的帖子（GJ）
+            models.Q(visibility="FRIENDS", author__friends=user) # Friends-only posts visible to friends / 仅好友可见的帖子（GJ）
         ).exclude(visibility="DELETED")  # Exclude deleted posts for regular users / 普通用户无法看到已删除的帖子（GJ）
 
     def __str__(self):
