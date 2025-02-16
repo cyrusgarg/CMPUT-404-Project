@@ -2,13 +2,14 @@
 <html>
 <head>
     <title>{{ post.title }}</title>
+    {% load static %}
 </head>
 <body>
     <h1>{{ post.title }}</h1>
     
     <!-- Display post metadata / 显示帖子元数据（GJ） -->
     <p><strong>Description:</strong> {{ post.description }}</p>
-    <p><strong>Content:</strong> {{ post.content }}</p>
+    <p class="content"><strong>Content:</strong> {{ post.content }}</p>
     <p><strong>Published:</strong> {{ post.published }}</p>
     <p><strong>Visibility:</strong> {{ post.visibility }}</p>
 
@@ -30,6 +31,7 @@
 
     <br>
     <!-- Back to posts list / 返回帖子列表（GJ） -->
-    <a href="{% url 'posts:view_posts' %}">Back to Posts</a>
+    <a href="{% url 'posts:index' %}">Back to Posts</a>
+    <script src="{% static 'markdown-renderer.min.js' %}"></script> <!-- Load bundled JS -->
 </body>
 </html>
