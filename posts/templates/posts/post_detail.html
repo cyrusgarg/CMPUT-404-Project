@@ -3,6 +3,7 @@
 <head>
     <title>{{ post.title }}</title>
     {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/PostDetail.css' %}">
 </head>
 <body>
     <h1>{{ post.title }}</h1>
@@ -15,7 +16,7 @@
 
     {% if post.visibility == "DELETED" %}
         <!-- Show deleted message if the post is marked as deleted / 如果帖子被标记为删除，显示红色警告（GJ） -->
-        <p style="color: red;"><strong>This post has been deleted.</strong></p>
+        <p id="deleted-warning"><strong>This post has been deleted.</strong></p>
     {% endif %}
 
     {% if user == post.author.username %}

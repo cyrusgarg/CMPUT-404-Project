@@ -2,6 +2,8 @@
 <html>
 <head>
     <title>View Posts</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/PostView.css' %}">
 </head>
 <body>
     <h1>View Other Users' Posts</h1>
@@ -16,7 +18,7 @@
 
                 {% if post.visibility == "DELETED" %}
                     <!-- Show deleted message if the user is an admin / 如果是管理员，则显示已删除帖子（GJ） -->
-                    <span style="color: red;">[Deleted]</span>
+                    <span id="deleted-warning">[Deleted]</span>
                 {% endif %}
             </li>
         {% empty %}
