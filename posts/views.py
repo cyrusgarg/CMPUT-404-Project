@@ -26,9 +26,9 @@ def index(request):
     user = request.user  # Get the logged-in Django user / 获取当前登录的Django用户（GJ）
 
     if user.is_superuser:
-        posts = Post.objects.all()  # Admin can see all posts / 管理员可以看到所有帖子（GJ）
+        posts = Post.objects.all().order_by('-published')  # Admin can see all posts, ordered by creation date
     else:
-        posts = Post.objects.filter(author=user).exclude(visibility="DELETED")  # Regular users only see their posts / 普通用户只能看到自己的帖子（GJ）
+        posts = Post.objects.filter(author=user).exclude(visibility="DELETED").order_by('-published')  # Regular users only see their posts, ordered by creation date 
 
     return render(request, "posts/index.html", {"posts": posts, "user": user.username})  # Pass username to the template / 传递用户名到模板（GJ）
 
@@ -62,7 +62,7 @@ def view_posts(request):
         models.Q(visibility="FRIENDS", author__id__in=friends_ids) |  # 仅好友可见帖子（GJ）
         models.Q(visibility="UNLISTED", author__id__in=following_ids) |  # 仅作者或关注者可见（GJ）
         models.Q(visibility="UNLISTED", author=user)  # 自己的 UNLISTED 也可见（GJ）
-    ).exclude(visibility="DELETED")  # 普通用户不能看到已删除帖子（GJ）
+    ).exclude(visibility="DELETED").order_by('-published')  # Order by creation date
 
     
     return render(request, "posts/views.html", {"posts": posts, "user": user.username})  # Render the posts page / 渲染帖子页面（GJ）
