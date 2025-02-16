@@ -1,0 +1,94 @@
+/* General Styles */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    color: #333;
+    margin: 20px;
+    padding: 20px;
+    max-width: 800px;
+    margin: auto;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    background: white;
+    border-radius: 8px;
+}
+
+/* Post Title */
+h1 {
+    font-size: 28px;
+    color: #222;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+/* Post Metadata */
+p {
+    font-size: 16px;
+    margin: 10px 0;
+}
+
+/* Highlight Content */
+p.content {
+    background-color: #f3f3f3;
+    padding: 10px;
+    border-left: 4px solid #007BFF;
+    font-size: 18px;
+    font-weight: bold;
+    color: #222;
+}
+
+/* Buttons */
+a, button {
+    display: inline-block;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 8px 15px;
+    margin-top: 10px;
+    border-radius: 5px;
+    transition: 0.3s ease;
+}
+
+a {
+    color: white;
+    background-color: #007BFF;
+}
+
+a:hover {
+    background-color: #0056b3;
+}
+
+button {
+    border: none;
+    color: white;
+    background-color: #DC3545;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #b02a37;
+}
+
+/* Deleted Post Warning */
+#deleted-warning {
+    color: red;
+    font-weight: bold;
+    text-align: center;
+    background: #FFDDDD;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #FF0000;
+    margin: 15px 0;
+}
+
+/* Back to Posts Link */
+a[href*="posts:index"] {
+    display: block;
+    text-align: center;
+    margin-top: 20px;
+    background: #6c757d;
+}
+
+a[href*="posts:index"]:hover {
+    background: #545b62;
+}
