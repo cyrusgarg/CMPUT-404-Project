@@ -2,6 +2,8 @@
 <html>
 <head>
     <title>My Posts</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/PostIndex.css' %}">
 </head>
 <body>
     <h1>My Posts</h1>
@@ -53,7 +55,7 @@
 
                 {% if post.visibility == "DELETED" %}
                     <!-- Show deleted message / 显示已删除提示（GJ） -->
-                    <span style="color: red;">[Deleted]</span>
+                    <span id="deleted-warning">[Deleted]</span>
                 {% else %}
                     {% if user == post.author.username %}
                         <!-- Buttons for editing and deleting posts / 编辑和删除帖子的按钮（GJ） -->
