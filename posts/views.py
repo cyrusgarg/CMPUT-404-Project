@@ -80,7 +80,6 @@ def post_detail(request, post_id):
 
     if post.visibility == "FRIENDS" and request.user != post.author and not request.user in post.author.friends.all():
         return HttpResponseForbidden("You do not have permission to view this post.")  # Prevent unauthorized friend-only access / 防止未授权用户访问仅好友可见帖子（GJ）
-    post.content = post.get_formatted_content()
     return render(request, "posts/post_detail.html", {"post": post, "user": request.user.username})  # Pass user info / 传递用户信息（GJ）
 
 @login_required
@@ -197,7 +196,6 @@ def web_update_post(request, post_id):
       post.title = title
       post.description = description
       post.content = content
-      post.content=post.get_formatted_content()
       post.contentType = contentType
       post.visibility=visibility
       post.save()
