@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post Stream</title>
+</head>
+<body>
+    <h1>My Stream</h1>
+    <ul id="post-list"></ul>
+
+    <script>
+        async function fetchPosts() {
+            const response = await fetch("/api/posts/stream/");
+            const posts = await response.json();
+            const postList = document.getElementById("post-list");
+
+            posts.forEach(post => {
+                const li = document.createElement("li");
+                li.innerHTML = `<strong>${post.title}</strong>: ${post.content}`;
+                postList.appendChild(li);
+            });
+        }
+        fetchPosts();
+    </script>
+</body>
+</html>

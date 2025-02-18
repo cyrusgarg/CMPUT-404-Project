@@ -223,3 +223,47 @@ def web_update_post(request, post_id):
       return redirect("posts:post_detail", post_id=post.id)
     
     return redirect("posts:post_detail", post_id=post.id)  # return to the post detail page if form submission fails
+
+def stream_page(request):
+    """
+    Render the stream page for users.
+    """
+    return render(request, "posts/stream.html")
+  
+@api_view(['GET'])
+@permission_classes([IsAuthorOrAdmin])
+def get_stream(request):
+    """
+    Retrieve the post stream for the logged-in author.
+    - Shows public posts
+    - Shows friends-only & unlisted posts from followed authors
+    - Hides deleted posts
+    - Sorts by most recent published date
+    """
+    print("request object:", request)
+    # Get the logged-in author
+    author = get_object_or_404(User, id=request.user.id)
+
+    # Get the list of authors the user follows
+    followed_authors = author.following.values_list('id', flat=True)
+
+    # Fetch posts:
+    posts = Post.objects.filter(
+        visibility__in=["PUBLIC", "UNLISTED", "FRIENDS"],
+    ).exclude(
+        visibility="DELETED"
+    ).order_by('-published')
+
+    # Filter posts based on visibility rules:
+    filtered_posts = []
+    for post in posts:
+        if post.visibility == "PUBLIC":
+            filtered_posts.append(post)  # Public posts are always shown
+        elif post.visibility == "UNLISTED" and post.author.id in followed_authors:
+            filtered_posts.append(post)  # Unlisted posts only from followed authors
+        elif post.visibility == "FRIENDS" and post.author.id in followed_authors:
+            filtered_posts.append(post)  # Friends-only posts from followed authors
+
+    # Serialize and return posts
+    serializer = PostSerializer(filtered_posts, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
