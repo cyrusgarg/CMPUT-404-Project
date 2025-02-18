@@ -2,6 +2,8 @@ import json
 from django.views.generic import DetailView, ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, get_object_or_404
+from posts.models import Post  
+from identity.models import Author
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.dateparse import parse_datetime
@@ -17,6 +19,12 @@ class AuthorProfileView(DetailView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        author = self.get_object()
+        # Add public posts to profile
+        context['posts'] = Post.objects.filter(
+            author=author,
+            visibility='PUBLIC'
+        ).order_by('-published')
         # include the latest 10 GitHub activities for this author:
         context['public_posts'] = self.get_object().github_activities.order_by('-created_at')
         return context

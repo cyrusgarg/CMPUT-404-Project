@@ -23,6 +23,7 @@ urlpatterns = [
     path('posts/', include('posts.urls',namespace='posts_frontend')),
     #path('api/authors/', include('authors.urls')),  # Include author-related API (including inbox)
     path('authors/', include('identity.urls', namespace='identity')),
+    path('api/authors/', include('identity.api_urls', namespace='identity_api')),
     path('api/posts/', include('posts.urls',namespace='posts_api')),  # Keep post-related API separate
     path('admin/', admin.site.urls),
 ]
