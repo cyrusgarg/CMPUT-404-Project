@@ -27,8 +27,5 @@ urlpatterns = [
     
     path('<uuid:post_id>/webUpdate/', views.web_update_post, name="web_update_post"),  
 
-    path("stream/page",views.stream_page,name="stream_page"),
-
-    path("stream/", views.get_stream, name="post_stream")
 ]
 
