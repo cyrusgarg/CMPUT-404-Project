@@ -1,7 +1,8 @@
 from django.views.generic import DetailView, ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, get_object_or_404
-from .models import Author  
+from posts.models import Post  
+from identity.models import Author
 
 class AuthorProfileView(DetailView):
     model = Author
@@ -13,7 +14,12 @@ class AuthorProfileView(DetailView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Add additional context if needed
+        author = self.get_object()
+        # Add public posts to profile
+        context['posts'] = Post.objects.filter(
+            author=author,
+            visibility='PUBLIC'
+        ).order_by('-published')
         return context
 
 class AuthorListView(ListView):
