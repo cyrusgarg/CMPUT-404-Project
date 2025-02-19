@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Post
-from authors.models import Author
+from identity.models import Author
 import markdown
 import base64
 from django.contrib.auth.models import User  # Import Django User model / 导入Django用户模型（GJ）
@@ -92,7 +92,7 @@ class PostSerializer(serializers.ModelSerializer):
                 for comment in comments
             ]
         }
-        
+
     def get_likes(self, obj):
         """Fetches likes for the post."""
         likes = obj.likes.order_by('-published')[:5]  # Fetch latest 5 likes
