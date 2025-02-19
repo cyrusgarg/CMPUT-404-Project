@@ -26,5 +26,6 @@ urlpatterns = [
     # API endpoint for updating a post / 通过API更新帖子（GJ）
     
     path('<uuid:post_id>/webUpdate/', views.web_update_post, name="web_update_post"),  
+
 ]
 

@@ -24,7 +24,7 @@ SITE_URL = 'http://127.0.0.1:8000'
 SECRET_KEY = 'django-insecure-p+fs8ix*o6!*l_ry%vp_*33&0$*$z(8n0p3ag_11+*(d+domu0'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 
 MEDIA_URL = "/media/"

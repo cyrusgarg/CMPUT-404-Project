@@ -6,8 +6,6 @@ from django.dispatch import receiver
 from django.urls import reverse
 from django.conf import settings
 from django.contrib import admin
-from .models import Author
-
 
 class Author(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='author_profile')
