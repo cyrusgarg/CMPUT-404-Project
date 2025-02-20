@@ -5,7 +5,6 @@ import markdown
 import uuid
 from django.core.exceptions import ValidationError
 from identity.models import Author
-from django.conf import settings
 
 # for security issues sinec Django allows all file types by default.
 def validate_image_file_extension(value):

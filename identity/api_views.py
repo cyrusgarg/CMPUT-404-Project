@@ -6,8 +6,6 @@ from rest_framework import status
 from .models import Author
 from posts.models import Post
 from posts.serializers import PostSerializer
-from uuid import UUID
-from django.http import JsonResponse
 
 @api_view(['GET'])
 def author_list(request):
