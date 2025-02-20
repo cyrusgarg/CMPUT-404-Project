@@ -47,7 +47,7 @@ class Requests(ListView):
     context_object_name = 'requests'
 
     def get_queryset(self):
-        return FollowRequests.objects.filter(receiver__username=self.kwargs['username']).order_by(-created_at)
+        return FollowRequests.objects.filter(receiver__username=self.kwargs['username']).order_by('-created_at')
 
 # --- GitHub Webhook View ---
 @csrf_exempt
