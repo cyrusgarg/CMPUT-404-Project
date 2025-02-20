@@ -57,7 +57,7 @@
                     <!-- Show deleted message / 显示已删除提示（GJ） -->
                     <span id="deleted-warning">[Deleted]</span>
                 {% else %}
-                    {% if user == post.author.username %}
+                    {% if user == post.author %}
                         <!-- Buttons for editing and deleting posts / 编辑和删除帖子的按钮（GJ） -->
                         <a href="{% url 'posts:edit_post' post.id %}">Edit</a>
 

@@ -16,8 +16,8 @@ class PostSerializer(serializers.ModelSerializer):
       确保可见性和内容类型的选择有效。（GJ）
     """
     type = serializers.CharField(default="post")
-    id = serializers.SerializerMethodField()  # Full API URL for post
     page = serializers.SerializerMethodField()  # HTML Page URL
+    id = serializers.SerializerMethodField()  # Full API URL for post
     author = serializers.SerializerMethodField()  # Full author details
     content = serializers.SerializerMethodField()  # Convert Markdown/Base64 images
     comments = serializers.SerializerMethodField()  # Include comments
@@ -28,8 +28,8 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post  # Specify model / 指定模型（GJ）
         fields = [
-            "type","id", "author", "title", "description", "content", 
-            "contentType", "published", "visibility", "image" ,"comments", "likes"
+            "type","title","id","description","page","contentType", "content", 
+             "author", "comments", "likes","published", "visibility", "image" 
         ]  # Define the fields to be serialized / 定义需要序列化的字段（GJ）
 
     def get_id(self, obj):
@@ -44,7 +44,7 @@ class PostSerializer(serializers.ModelSerializer):
         """Returns the author details in the required format."""
         return {
             "type": "author",
-            "id": obj.author.id,
+            "id": obj.author.author_id,
             "host": obj.author.host,
             "displayName": obj.author.display_name,
             "github": obj.author.github,
@@ -64,6 +64,7 @@ class PostSerializer(serializers.ModelSerializer):
     
     def get_comments(self, obj):
         """Fetches comments in the required format."""
+        return ""
         comments = obj.comments.order_by('-published')[:5]  # Fetch latest 5 comments
         return {
             "type": "comments",
@@ -95,6 +96,7 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_likes(self, obj):
         """Fetches likes for the post."""
+        return ""
         likes = obj.likes.order_by('-published')[:5]  # Fetch latest 5 likes
         return {
             "type": "likes",
