@@ -70,25 +70,28 @@
 /* identity/static/identity/style.css */
 
 .action-links {
-    text-align: center; /* Centers the button block */
-    margin: 20px 0;     /* Adds space above and below the container */
-  }
-  
-  .action-links a {
-    display: inline-block;
+    display: flex;
+    justify-content: center; 
+    gap: 20px;             
+    margin: 20px 0;       
+}
+
+.action-links a {
+    flex: 0 0 200px;       
+    height: 50px;          
+    display: flex;         
+    align-items: center;   
+    justify-content: center; 
     text-decoration: none;
-    padding: 10px 20px;
-    margin: 10px;       /* Adds space between the buttons */
     border: 2px solid #007BFF;
     background-color: #007BFF;
     color: white;
     border-radius: 5px;
     font-size: 16px;
     transition: background-color 0.3s, color 0.3s;
-  }
-  
-  .action-links a:hover {
+}
+
+.action-links a:hover {
     background-color: white;
     color: #007BFF;
-  }
-  
+}
