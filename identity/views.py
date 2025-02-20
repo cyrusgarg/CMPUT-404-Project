@@ -1,13 +1,16 @@
 import json
 from django.views.generic import DetailView, ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from posts.models import Post  
 from identity.models import Author
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.dateparse import parse_datetime
-from .models import Author, GitHubActivity
+from .models import Author, GitHubActivity, Following, FollowRequests
+from django.contrib.auth.models import User
+from django.urls import reverse
+from django.contrib import messages
 
 class AuthorProfileView(DetailView):
     model = Author
@@ -27,6 +30,9 @@ class AuthorProfileView(DetailView):
         ).order_by('-published')
         # include the latest 10 GitHub activities for this author:
         context['public_posts'] = self.get_object().github_activities.order_by('-created_at')
+        context['is_current_user'] = author.user == self.request.user
+        context['is_follow_requested'] = FollowRequests.objects.filter(sender=self.request.user, receiver=author.user).exists()
+        context['is_following'] = Following.objects.filter(follower=self.request.user, followee=author.user).exists()
         return context
 
 class AuthorListView(ListView):
@@ -34,6 +40,14 @@ class AuthorListView(ListView):
     template_name = 'authors/author_list.html'
     context_object_name = 'authors'
     paginate_by = 10
+
+class Requests(ListView):
+    model = FollowRequests
+    template_name = 'identity/follow_requests.html'
+    context_object_name = 'requests'
+
+    def get_queryset(self):
+        return FollowRequests.objects.filter(receiver__username=self.kwargs['username']).order_by(-created_at)
 
 # --- GitHub Webhook View ---
 @csrf_exempt
@@ -79,3 +93,40 @@ def github_webhook(request):
 
     except Exception as e:
         return HttpResponseBadRequest("Error processing webhook: " + str(e))
+
+def follow(request):
+    sender = get_object_or_404(User, username=request.POST["sender"])
+    receiver = get_object_or_404(User, username=request.POST["receiver"])
+    if(not FollowRequests.objects.filter(sender=sender, receiver=receiver).exists() and not Following.objects.filter(follower=sender, followee=receiver).exists()):
+        FollowRequests.objects.create(sender=sender, receiver=receiver)
+        return redirect(reverse('identity:author-profile', kwargs={'username': receiver.username}))
+    return HttpResponse("Error in sending a follow request")
+
+def unfollow(request):
+    follower = get_object_or_404(User, username=request.POST.get('follower'))
+    followee = get_object_or_404(User, username=request.POST.get('followee'))
+    follow = Following.objects.filter(follower=follower, followee=followee)
+    if(follow.exists()):
+        follow.delete()
+        return redirect(reverse('identity:author-profile', kwargs={'username': followee.username}))
+    return HttpResponse("Error during unfollowing")
+
+def accept(request):
+    sender = get_object_or_404(User, username=request.POST["sender"])
+    receiver = get_object_or_404(User, username=request.POST["receiver"])
+    
+    request = FollowRequests.objects.filter(sender=sender, receiver=receiver)
+    if(request.exists() and not Following.objects.filter(follower=sender, followee=receiver).exists()):
+        request.delete()
+        Following.objects.create(follower=sender, followee=receiver)
+        return redirect(reverse('identity:requests', kwargs={'username': receiver.username}))
+    return HttpResponse("Error in accepting the follow request")
+
+def decline(request):
+    sender = get_object_or_404(User, username=request.POST["sender"])
+    receiver = get_object_or_404(User, username=request.POST["receiver"])
+    request = FollowRequests.objects.filter(sender=sender, receiver=receiver)
+    if(request.exists()):
+        request.delete()
+        return redirect(reverse('identity:requests', kwargs={'username': receiver.username}))
+    return HttpResponse("Error in declining the follow request")
