@@ -22,7 +22,7 @@ class AuthorProfileView(DetailView):
         author = self.get_object()
         # Add public posts to profile
         context['posts'] = Post.objects.filter(
-            author=author,
+            author=author.user,
             visibility='PUBLIC'
         ).order_by('-published')
         # include the latest 10 GitHub activities for this author:
