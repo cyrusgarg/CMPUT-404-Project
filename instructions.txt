@@ -1,3 +1,5 @@
+To create token for authentication, use the following:
+    python manage.py drf_create_token <username>
 Some helpful git commands
     git branch  //to see which branch you are on
     git pull origin main //to pull the origin main code into current branch

@@ -49,7 +49,7 @@ class IsPostVisibleToUser(permissions.BasePermission):
             return True  # Unlisted posts are accessible via link / 未列出帖子可以通过链接访问（GJ）
 
         if obj.visibility == "FRIENDS":
-            return obj.author == request.user or request.user in obj.author.friends.all()  
+            return obj.author.user == request.user or request.user in obj.author.friends.all()  
             # Friends-only posts are visible only to the author and their friends
             # 仅作者和其好友可以查看好友可见帖子（GJ）
 
