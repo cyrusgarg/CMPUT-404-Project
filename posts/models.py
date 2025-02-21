@@ -33,7 +33,7 @@ class Post(models.Model):
     #id = models.UUIDField(primary_key=True, editable=False)  # Unique identifier for the post / 帖子唯一标识符（GJ）
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  
     #author = models.ForeignKey(User, on_delete=models.CASCADE)  # Link post to Django user model / 关联到Django用户模型（GJ）
-    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    author = models.ForeignKey(User, on_delete=models.CASCADE)  
     title = models.CharField(max_length=255, default="")  # Post title / 帖子标题（GJ）
     description = models.TextField(default="")  # Short description of the post / 帖子简要描述（GJ）
     content = models.TextField(blank=True, null=True)  # Post content / 帖子内容（GJ）
