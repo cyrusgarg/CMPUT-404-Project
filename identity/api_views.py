@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Author
 from posts.models import Post
+from posts.serializers import PostSerializer
 
 @api_view(['GET'])
 def author_list(request):
@@ -28,6 +29,6 @@ def author_posts(request, author_id):
 @api_view(['GET'])
 def author_post_detail(request, author_id, post_id):
     """Return details of a specific post by an author"""
-    author = get_object_or_404(Author, author_id=author_id)
-    post = get_object_or_404(Post, id=post_id, author=author)
-    return Response(post.to_dict())
+    post = get_object_or_404(Post, id=post_id)
+    serializer = PostSerializer(post)
+    return Response(serializer.data)

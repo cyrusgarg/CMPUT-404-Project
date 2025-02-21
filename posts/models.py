@@ -4,6 +4,7 @@ from django.contrib.auth.models import User  # Use Django built-in User model / 
 import markdown
 import uuid
 from django.core.exceptions import ValidationError
+from identity.models import Author
 
 # for security issues sinec Django allows all file types by default.
 def validate_image_file_extension(value):
@@ -31,7 +32,8 @@ class Post(models.Model):
 
     #id = models.UUIDField(primary_key=True, editable=False)  # Unique identifier for the post / 帖子唯一标识符（GJ）
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  
-    author = models.ForeignKey(User, on_delete=models.CASCADE)  # Link post to Django user model / 关联到Django用户模型（GJ）
+    #author = models.ForeignKey(User, on_delete=models.CASCADE)  # Link post to Django user model / 关联到Django用户模型（GJ）
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
     title = models.CharField(max_length=255, default="")  # Post title / 帖子标题（GJ）
     description = models.TextField(default="")  # Short description of the post / 帖子简要描述（GJ）
     content = models.TextField(blank=True, null=True)  # Post content / 帖子内容（GJ）
@@ -39,7 +41,6 @@ class Post(models.Model):
     published = models.DateTimeField("published", default=datetime.now)  # Timestamp of post creation / 帖子发布时间戳（GJ）
     visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default='UNLISTED')  # Post visibility settings / 帖子可见性设置（GJ）
     image = models.ImageField(upload_to="post_images/", blank=True, null=True, validators=[validate_image_file_extension])  # Image field
-
 
     def get_formatted_content(self):
         """ 
