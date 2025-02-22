@@ -24,7 +24,7 @@ class PostSerializer(serializers.ModelSerializer):
     likes = serializers.SerializerMethodField()  # Include likes
     image = serializers.ImageField(required=False, allow_null=True)
     #author = serializers.CharField(source='author.username', read_only=True)  # Store author as username string / 将作者存储为用户名字符串（GJ）
-
+     
     class Meta:
         model = Post  # Specify model / 指定模型（GJ）
         fields = [
@@ -34,22 +34,22 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_id(self, obj):
         """Returns the full API URL for the post."""
-        return f"{obj.author.host}/api/authors/{obj.author.author_id}/posts/{obj.id}"
+        return f"{obj.author.author_profile.host}/api/authors/{obj.author.author_profile.author_id}/posts/{obj.id}"
 
     def get_page(self, obj):
         """Returns the HTML page URL for the post."""
-        return f"{obj.author.host}/authors/{obj.author.author_id}/posts/{obj.id}"
+        return f"{obj.author.author_profile.host}/authors/{obj.author.author_profile.author_id}/posts/{obj.id}"
 
     def get_author(self, obj):
         """Returns the author details in the required format."""
         return {
             "type": "author",
-            "id": obj.author.author_id,
-            "host": obj.author.host,
-            "displayName": obj.author.display_name,
-            "github": obj.author.github,
-            "profileImage": obj.author.profile_image.url if obj.author.profile_image else "",
-            "page": obj.author.page
+            "id": obj.author.author_profile.author_id,
+            "host": obj.author.author_profile.host,
+            "displayName": obj.author.author_profile.display_name,
+            "github": obj.author.author_profile.github,
+            "profileImage": obj.author.author_profile.profile_image.url if obj.author.author_profile.profile_image else "",
+            "page": obj.author.author_profile.page
         }
       
     def get_content(self, obj):

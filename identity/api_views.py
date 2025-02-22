@@ -68,7 +68,6 @@ class CustomPagination(PageNumberPagination):
     page_size_query_param = 'size'  # Allows client to set page size via query parameter
 
     
-        
     def get_paginated_response(self, data):
         return Response({
             "type": "posts",
