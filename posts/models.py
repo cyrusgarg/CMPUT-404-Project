@@ -40,7 +40,7 @@ class Post(models.Model):
     contentType = models.CharField(max_length=20, choices=CONTENT_TYPE_CHOICES, default='text/plain')  # Content type (plain or markdown) / 帖子内容类型（纯文本或Markdown）（GJ）
     published = models.DateTimeField("published", default=datetime.now)  # Timestamp of post creation / 帖子发布时间戳（GJ）
     visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default='UNLISTED')  # Post visibility settings / 帖子可见性设置（GJ）
-    image = models.ImageField(upload_to="post_images/", blank=True, null=True, validators=[validate_image_file_extension])  # Image field
+    image = models.TextField()  # To store the base64 string
 
     def get_formatted_content(self):
         """ 

@@ -12,6 +12,8 @@ from .permissions import IsAuthorOrAdmin
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import PostSerializer
+from django.core.files.uploadedfile import InMemoryUploadedFile
+import base64
 
 @login_required
 def index(request):
@@ -93,6 +95,35 @@ def post_detail(request, post_id):
         return HttpResponseForbidden("You do not have permission to view this post.")  # Prevent unauthorized friend-only access / 防止未授权用户访问仅好友可见帖子（GJ）
     return render(request, "posts/post_detail.html", {"post": post, "user": request.user.username})  # Pass user info / 传递用户信息（GJ）
 
+def image_to_base64(image_file):
+  """
+  Converts an image file to a base64 encoded string.
+  """
+  if isinstance(image_file, InMemoryUploadedFile):
+      image_data = image_file.read()  # Read image content
+      file_type = image_file.content_type.split('/')[1]  # Get file type (png, jpeg)
+      base64_data = base64.b64encode(image_data).decode('utf-8')  # Encode as base64
+      return f"data:image/{file_type};base64,{base64_data}"
+  return None
+
+def upload_image(request):
+  """
+  Converts the uploaded image to base64 before saving it in the Post model.
+  """
+  if request.method == 'POST' and request.FILES['image']:
+      image_file = request.FILES['image']
+      base64_image = image_to_base64(image_file)  # Convert to base64
+      if base64_image:
+          post = Post.objects.create(
+              title=request.POST['title'],
+              content=request.POST['content'],
+              description=request.POST['description'],
+              image=base64_image,  # Save the base64 image string
+              author=request.user
+          )
+          return redirect('posts:post_detail', post_id=post.id)
+  return render(request, "posts/upload_image.html")
+
 @login_required
 def create_post(request):
     """
@@ -115,15 +146,19 @@ def create_post(request):
         # Log the uploaded image to see if it's correctly received
         print("Image received: ", image)
 
+        if image:
+            base64_image = image_to_base64(image)  # Convert image to base64
+            # Save the base64 string to the database
+
         post = Post.objects.create(
             #author=request.user,  # Assign the logged-in user as the post author / 设定当前用户为帖子作者（GJ）
-            author=author,
+            author=author.user,
             title=title,
             description=description,
             content=content,
             contentType=contentType,
             visibility=visibility,
-            image=image  # Save the image if provided
+            image=base64_image,
         )
         return redirect("posts:index")  # Redirect to posts index / 创建帖子后跳转到主页（GJ）
     

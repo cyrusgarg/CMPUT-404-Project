@@ -56,12 +56,21 @@ class PostSerializer(serializers.ModelSerializer):
         """Handles content formatting based on contentType (Markdown, Plain Text, Base64 Images)."""
         if obj.contentType == 'text/markdown':
             return markdown.markdown(obj.content, extensions=['extra'])
+        
         elif obj.contentType.startswith('image/'):
-            with open(obj.image.path, "rb") as image_file:
-                encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
-            return f"data:{obj.contentType};base64,{encoded_string}"
-        return obj.content
-    
+          if obj.image:  # Ensure there is an image
+              file_path = obj.image.path
+              content_type = obj.contentType  # Ensure it's in the correct format like "image/png;base64"
+              
+              try:
+                  with open(file_path, "rb") as image_file:
+                      encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+                  return f"data:{content_type};base64,{encoded_string}"
+              except FileNotFoundError:
+                  return None  # Handle missing files gracefully
+
+        return obj.content    # Default to plain text content if no matching contentType
+      
     def get_comments(self, obj):
         """Fetches comments in the required format."""
         return ""

@@ -16,7 +16,7 @@
 
     <!-- display images -->
     {% if post.image %}
-        <img src="{{ post.image.url }}" alt="{{ post.title }} Image" style="max-width: 100%;">
+        <img src="{{ post.image }}" alt="{{ post.title }} Image" style="max-width: 100%;">
     {% else %}
         <p><em>No image available for this post.</em></p>
     {% endif %}
