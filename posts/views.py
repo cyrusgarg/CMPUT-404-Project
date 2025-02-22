@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponseForbidden
+from django.http import JsonResponse, HttpResponseForbidden, HttpResponseNotAllowed
 from .models import Post, Like, Comment
 from django.db import models
 from identity.models import Author 
@@ -144,9 +144,8 @@ def create_post(request):
         # Log the uploaded image to see if it's correctly received
         print("Image received: ", image)
 
-        if image:
-            base64_image = image_to_base64(image)  # Convert image to base64
-            # Save the base64 string to the database
+        # Convert image to base64 if an image is provided; otherwise, set to an empty string.
+        base64_image = image_to_base64(image) if image else ""
 
         post = Post.objects.create(
             author=request.user, 
@@ -292,23 +291,31 @@ def post_likes(request, post_id):
     likes = Like.objects.filter(post=post)
     return render(request, "posts/likes_list.html", {"post": post, "likes": likes})
 
-
-@api_view(["POST"])
-@authentication_classes([SessionAuthentication])
-@permission_classes([IsAuthenticated])
+@login_required
 def add_comment(request, post_id):
-    """
-    Allow users to add comments to a post.
-    """
-    # post = get_object_or_404(Post, id=post_id)
-    # content = request.data.get('content')
-    # if not content:
-    #     return Response({"error": "Content is required."}, status=status.HTTP_400_BAD_REQUEST)
-    
-    # comment = Comment.objects.create(post=post, content=content, author=request.user)
-    # comment.save()
-    
-    # return Response({'message': 'Comment added successfully!'}, status=status.HTTP_201_CREATED)
+    if request.method == "POST":
+        post = Post.objects.get(id=post_id)
+        content = request.POST.get("content")
+        if not content:
+            return JsonResponse({"error": "Content cannot be empty"}, status=400)
+
+        comment = Comment.objects.create(
+            post=post, 
+            user=request.user,  # Ensure user is authenticated
+            content=content
+        )
+
+        return JsonResponse({
+            "message": "Comment added successfully",
+            "comment": {
+                "id": comment.id,
+                "content": comment.content,
+                "author": comment.user.username,
+                "created_at": comment.created_at.strftime("%Y-%m-%d %H:%M:%S")
+            }
+        })
+
+    return JsonResponse({"error": "Invalid request"}, status=400)
 
 @api_view(["GET"])
 @authentication_classes([SessionAuthentication])
@@ -317,7 +324,7 @@ def get_comments(request, post_id):
     """
     Retrieve all comments for a post.
     """
-    # post = get_object_or_404(Post, id=post_id)
-    # comments = Comment.objects.filter(post=post).order_by("-created_at")
-    # serializer = CommentSerializer(comments, many=True)
-    # return Response(serializer.data, status=status.HTTP_200_OK)
+    post = get_object_or_404(Post, id=post_id)
+    comments = Comment.objects.filter(post=post).order_by("-created_at")
+    serializer = CommentSerializer(comments, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
