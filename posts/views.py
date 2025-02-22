@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponseForbidden
+from django.http import JsonResponse, HttpResponseForbidden, HttpResponseNotAllowed
 from .models import Post, Like, Comment
 from django.db import models
 from identity.models import Author 
@@ -291,23 +291,31 @@ def post_likes(request, post_id):
     likes = Like.objects.filter(post=post)
     return render(request, "posts/likes_list.html", {"post": post, "likes": likes})
 
-
-@api_view(["POST"])
-@authentication_classes([SessionAuthentication])
-@permission_classes([IsAuthenticated])
+@login_required
 def add_comment(request, post_id):
-    """
-    Allow users to add comments to a post.
-    """
-    post = get_object_or_404(Post, id=post_id)
-    content = request.data.get('content')
-    if not content:
-        return Response({"error": "Content is required."}, status=status.HTTP_400_BAD_REQUEST)
-    
-    comment = Comment.objects.create(post=post, content=content, author=request.user)
-    comment.save()
-    
-    return Response({'message': 'Comment added successfully!'}, status=status.HTTP_201_CREATED)
+    if request.method == "POST":
+        post = Post.objects.get(id=post_id)
+        content = request.POST.get("content")
+        if not content:
+            return JsonResponse({"error": "Content cannot be empty"}, status=400)
+
+        comment = Comment.objects.create(
+            post=post, 
+            user=request.user,  # Ensure user is authenticated
+            content=content
+        )
+
+        return JsonResponse({
+            "message": "Comment added successfully",
+            "comment": {
+                "id": comment.id,
+                "content": comment.content,
+                "author": comment.user.username,
+                "created_at": comment.created_at.strftime("%Y-%m-%d %H:%M:%S")
+            }
+        })
+
+    return JsonResponse({"error": "Invalid request"}, status=400)
 
 @api_view(["GET"])
 @authentication_classes([SessionAuthentication])
