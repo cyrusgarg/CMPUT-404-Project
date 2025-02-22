@@ -7,6 +7,7 @@ from rest_framework import status
 from identity.models import Author
 from posts.models import Post
 from posts.serializers import PostSerializer
+from django.contrib.auth.models import User
 
 @api_view(['GET'])
 def author_list(request):
@@ -25,7 +26,8 @@ def author_posts(request, author_id):
     """
     Returns paginated posts of a specific author with proper visibility rules.
     """
-    author = get_object_or_404(Author, author_id=author_id)
+    author=get_object_or_404(Author,author_id=author_id)
+    user=author.user
 
     # Define post visibility based on authentication and relationships
     if not request.user.is_authenticated:
@@ -41,7 +43,7 @@ def author_posts(request, author_id):
 
     # Fetch filtered posts based on visibility
     posts = Post.objects.filter(
-        author=author, visibility__in=visibility_filter
+        author=user, visibility__in=visibility_filter
     ).order_by("-published")
 
     # Apply pagination
