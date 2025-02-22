@@ -25,15 +25,13 @@ def index(request):
       管理员可以看到所有帖子，包括已删除的帖子。（GJ）
     """
     user = request.user  # Get the logged-in Django user / 获取当前登录的Django用户（GJ）
-    author = Author.objects.get(user=user) #Convert `User` to `Author`
 
     if user.is_superuser:
         posts = Post.objects.all().order_by('-published')  # Admin can see all posts, ordered by creation date
     else:
-        posts = Post.objects.filter(author=author).exclude(visibility="DELETED").order_by('-published')  # Regular users only see their posts, ordered by creation date 
+        posts = Post.objects.filter(author=user).exclude(visibility="DELETED").order_by('-published')  # Regular users only see their posts, ordered by creation date 
 
-    #return render(request, "posts/index.html", {"posts": posts, "user": user.username})  # Pass username to the template / 传递用户名到模板（GJ）
-    return render(request, "posts/index.html", {"posts": posts, "user": author})
+    return render(request, "posts/index.html", {"posts": posts, "user": user.username})  # Pass username to the template / 传递用户名到模板（GJ）
 
 @login_required
 def view_posts(request):
@@ -51,7 +49,6 @@ def view_posts(request):
       DELETED（已删除）帖子仅管理员可见。（GJ）
     """
     user = request.user 
-    author = Author.objects.get(user=user)  
 
     if user.is_superuser:
         posts = Post.objects.all().order_by('-published') # Admin can see all posts, ordered by creation date
@@ -62,7 +59,7 @@ def view_posts(request):
     else:
         friends_ids = user.friends.all().values_list("id", flat=True)  
         
-    following_ids = Post.objects.filter(author=author).values_list("author_id", flat=True).distinct()
+    following_ids = Post.objects.filter(author=user).values_list("author_id", flat=True).distinct()
 
     #posts = Post.get_visible_posts(user)  # Fetch visible posts for the user / 获取用户可见的帖子（GJ）
     posts = Post.objects.filter(
@@ -110,14 +107,12 @@ def create_post(request):
         visibility = request.POST.get("visibility", "UNLISTED")
         image = request.FILES.get("image")  # Handle uploaded image
         # Retrieve the logged-in author's profile
-        author = Author.objects.get(user=request.user) 
         print(request.user)
         # Log the uploaded image to see if it's correctly received
         print("Image received: ", image)
 
         post = Post.objects.create(
-            #author=request.user,  # Assign the logged-in user as the post author / 设定当前用户为帖子作者（GJ）
-            author=author,
+            author=request.user,  # Assign the logged-in user as the post author / 设定当前用户为帖子作者（GJ）
             title=title,
             description=description,
             content=content,
@@ -144,10 +139,8 @@ def delete_post(request, post_id):
     """
     post = get_object_or_404(Post, id=post_id)
     user = request.user 
-    author = Author.objects.get(user=user)  
-    
-    # if request.user != post.author and not request.user.is_superuser:
-    if author != post.author and not request.user.is_superuser:
+
+    if request.user != post.author and not request.user.is_superuser:
         return HttpResponseForbidden("You do not have permission to delete this post.")  # Prevent unauthorized deletion / 防止未授权删除（GJ）
 
     post.visibility = "DELETED"  # Change visibility to DELETED instead of removing from DB / 更改可见性为 DELETED 而非直接删除（GJ）
@@ -162,11 +155,8 @@ def edit_post(request, post_id):
     仅当用户有权限时，显示帖子编辑页面。（GJ）
     """
     post = get_object_or_404(Post, id=post_id)
-    user = request.user 
-    author = Author.objects.get(user=user)  
 
-    #if request.user != post.author:
-    if author != post.author:
+    if request.user != post.author:
         return HttpResponseForbidden("You do not have permission to edit this post.")  # Only author can edit / 仅作者可以编辑帖子（GJ）
 
     return render(request, "posts/edit_post.html", {"post": post, "user": request.user.username})  # Pass user data to template / 传递用户数据到模板（GJ）
@@ -179,11 +169,8 @@ def update_post(request, post_id):
     处理通过API更新现有帖子。（GJ）
     """
     post = get_object_or_404(Post, id=post_id)
-    user = request.user 
-    author = Author.objects.get(user=user)  
 
-    #if request.user != post.author:
-    if author != post.author:
+    if request.user != post.author:
         return HttpResponseForbidden("You do not have permission to update this post.")  # Only author can update / 仅作者可以更新帖子（GJ）
 
     if request.method == "POST":
@@ -241,6 +228,6 @@ def web_update_post(request, post_id):
 
       post.save()
 
-      return redirect("posts:post_detail", post_id=post.id)
+    return redirect("posts:index")
     
     return redirect("posts:post_detail", post_id=post.id)  # return to the post detail page if form submission fails
