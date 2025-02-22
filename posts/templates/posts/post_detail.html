@@ -16,11 +16,36 @@
 
     <!-- display images -->
     {% if post.image %}
-        <img src="{{ post.image.url }}" alt="{{ post.title }} Image" style="max-width: 100%;">
+        <img src="{{ post.image }}" alt="{{ post.title }} Image" style="max-width: 100%;">
     {% else %}
         <p><em>No image available for this post.</em></p>
     {% endif %}
 
+    <!-- Like button form -->
+    <form action="{% url 'posts:like_post' post.id %}" method="POST">
+        {% csrf_token %}
+        <button type="submit" 
+                class="like-button {% if post.is_liked_by_user %}liked{% else %}unliked{% endif %}">
+            {% if post.is_liked_by_user %}
+                Unlike
+            {% else %}
+                Like
+            {% endif %}
+            ({{ post.likes.count }})
+        </button>
+    </form>
+
+    <a href="{% url 'posts:post_likes' post.id %}" class="likes-list-button">
+        View Likes ({{ post.likes.count }})
+    </a>
+    
+    
+    <!-- Comment form -->
+    <!-- <form id="comment-form" action="{% url 'posts:add_comment' post.id %}" method="POST" class="comment-form">
+        {% csrf_token %}
+        <textarea name="content" required></textarea>
+        <button type="submit">Add Comment</button>
+    </form> -->
 
     {% if post.visibility == "DELETED" %}
         <!-- Show deleted message if the post is marked as deleted / 如果帖子被标记为删除，显示红色警告（GJ） -->
@@ -44,5 +69,62 @@
     {% if post.contentType == "text/markdown" %}
         <script src="{% static 'markdown-renderer.min.js' %}"></script> <!-- Load bundled JS -->
     {%endif%}
+
+     <!-- JavaScript to intercept form submissions and call API endpoints via AJAX -->
+     <script>
+        document.addEventListener("DOMContentLoaded", function() {
+          // Handle like form submission via AJAX
+          const likeForm = document.getElementById("like-form");
+          if (likeForm) {
+            likeForm.addEventListener("submit", function(event) {
+              event.preventDefault(); // Prevent the default form submission
+              const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+              fetch(likeForm.action, {
+                method: "POST",
+                credentials: "same-origin",  // Ensure cookies are sent
+                headers: {
+                  "X-CSRFToken": csrfToken,
+                  "Content-Type": "application/json"
+                }
+              })
+              .then(response => response.json())
+              .then(data => {
+                // Update the like count in the UI
+                document.getElementById("like-count").textContent = data.likes_count;
+              })
+              .catch(error => console.error("Error liking post:", error));
+            });
+          }
+  
+        //   // Handle comment form submission via AJAX
+        //   const commentForm = document.getElementById("comment-form");
+        //   if (commentForm) {
+        //     commentForm.addEventListener("submit", function(event) {
+        //       event.preventDefault(); // Prevent the default form submission
+        //       const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+        //       // Get the comment content from the textarea
+        //       const content = commentForm.querySelector('textarea[name="content"]').value;
+        //       fetch(commentForm.action, {
+        //         method: "POST",
+        //         credentials: "same-origin",  // Ensure cookies are sent
+        //         headers: {
+        //           "X-CSRFToken": csrfToken,
+        //           "Content-Type": "application/json"
+        //         },
+        //         body: JSON.stringify({ content: content })
+        //       })
+        //       .then(response => response.json())
+        //       .then(data => {
+        //         console.log("Comment added:", data);
+        //         // Optionally, update the comment list dynamically here
+        //         // For example, prepend the new comment to a comment list element
+        //         // Clear the textarea after submission
+        //         commentForm.querySelector('textarea[name="content"]').value = "";
+        //       })
+        //       .catch(error => console.error("Error adding comment:", error));
+        //     });
+        //   }
+        });
+      </script>
 </body>
 </html>

@@ -92,3 +92,18 @@ a[href*="posts:index"] {
 a[href*="posts:index"]:hover {
     background: #545b62;
 }
+
+.liked {
+    background-color: #FF0000;  /* Red for liked */
+    color: white;
+}
+.unliked {
+    background-color: #808080;  /* Gray for unliked */
+    color: white;
+}
+.like-button {
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 1em;
+}

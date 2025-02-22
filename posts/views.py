@@ -1,17 +1,21 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponseForbidden
-from .models import Post
+from .models import Post, Like, Comment
 from django.db import models
 from identity.models import Author 
 from django.contrib.auth.models import User  # Import Django User model / 导入Django用户模型（GJ）
 from django.views.decorators.csrf import csrf_exempt
 import json
-from rest_framework.decorators import api_view,permission_classes
+from rest_framework.decorators import api_view,permission_classes, authentication_classes
 from .permissions import IsAuthorOrAdmin
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import PostSerializer
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import SessionAuthentication
+from .serializers import PostSerializer, LikeSerializer, CommentSerializer
+from django.core.files.uploadedfile import InMemoryUploadedFile
+import base64
 
 @login_required
 def index(request):
@@ -90,6 +94,35 @@ def post_detail(request, post_id):
         return HttpResponseForbidden("You do not have permission to view this post.")  # Prevent unauthorized friend-only access / 防止未授权用户访问仅好友可见帖子（GJ）
     return render(request, "posts/post_detail.html", {"post": post, "user": request.user.username})  # Pass user info / 传递用户信息（GJ）
 
+def image_to_base64(image_file):
+  """
+  Converts an image file to a base64 encoded string.
+  """
+  if isinstance(image_file, InMemoryUploadedFile):
+      image_data = image_file.read()  # Read image content
+      file_type = image_file.content_type.split('/')[1]  # Get file type (png, jpeg)
+      base64_data = base64.b64encode(image_data).decode('utf-8')  # Encode as base64
+      return f"data:image/{file_type};base64,{base64_data}"
+  return None
+
+def upload_image(request):
+  """
+  Converts the uploaded image to base64 before saving it in the Post model.
+  """
+  if request.method == 'POST' and request.FILES['image']:
+      image_file = request.FILES['image']
+      base64_image = image_to_base64(image_file)  # Convert to base64
+      if base64_image:
+          post = Post.objects.create(
+              title=request.POST['title'],
+              content=request.POST['content'],
+              description=request.POST['description'],
+              image=base64_image,  # Save the base64 image string
+              author=request.user
+          )
+          return redirect('posts:post_detail', post_id=post.id)
+  return render(request, "posts/upload_image.html")
+
 @login_required
 def create_post(request):
     """
@@ -111,14 +144,18 @@ def create_post(request):
         # Log the uploaded image to see if it's correctly received
         print("Image received: ", image)
 
+        if image:
+            base64_image = image_to_base64(image)  # Convert image to base64
+            # Save the base64 string to the database
+
         post = Post.objects.create(
-            author=request.user,  # Assign the logged-in user as the post author / 设定当前用户为帖子作者（GJ）
+            author=request.user, 
             title=title,
             description=description,
             content=content,
             contentType=contentType,
             visibility=visibility,
-            image=image  # Save the image if provided
+            image=base64_image,
         )
         return redirect("posts:index")  # Redirect to posts index / 创建帖子后跳转到主页（GJ）
     
@@ -231,3 +268,56 @@ def web_update_post(request, post_id):
     return redirect("posts:index")
     
     return redirect("posts:post_detail", post_id=post.id)  # return to the post detail page if form submission fails
+
+@api_view(['POST'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def like_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+
+    # Check if the user already liked the post
+    like, created = Like.objects.get_or_create(user=request.user, post=post)
+    
+    if not created:
+        like.delete()   # If the user already liked, remove the like
+
+    # Dynamically calculate the like count:
+    like_count = Like.objects.filter(post=post).count()
+
+    return redirect('posts:post_detail', post_id=post.id)  # Redirect back to post detail
+
+@login_required
+def post_likes(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    likes = Like.objects.filter(post=post)
+    return render(request, "posts/likes_list.html", {"post": post, "likes": likes})
+
+
+@api_view(["POST"])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def add_comment(request, post_id):
+    """
+    Allow users to add comments to a post.
+    """
+    # post = get_object_or_404(Post, id=post_id)
+    # content = request.data.get('content')
+    # if not content:
+    #     return Response({"error": "Content is required."}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # comment = Comment.objects.create(post=post, content=content, author=request.user)
+    # comment.save()
+    
+    # return Response({'message': 'Comment added successfully!'}, status=status.HTTP_201_CREATED)
+
+@api_view(["GET"])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def get_comments(request, post_id):
+    """
+    Retrieve all comments for a post.
+    """
+    # post = get_object_or_404(Post, id=post_id)
+    # comments = Comment.objects.filter(post=post).order_by("-created_at")
+    # serializer = CommentSerializer(comments, many=True)
+    # return Response(serializer.data, status=status.HTTP_200_OK)

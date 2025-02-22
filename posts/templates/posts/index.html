@@ -50,7 +50,7 @@
 
                 {% if post.image %}
                     <br>
-                    <img src="{{ post.image.url }}" alt="{{ post.title }} Image" style="max-width: 100px;">
+                    <img src="{{ post.image }}" alt="{{ post.title }} Image" style="max-width: 100px;">
                 {% endif %}
 
                 {% if post.visibility == "DELETED" %}

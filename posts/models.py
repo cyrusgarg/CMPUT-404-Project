@@ -40,7 +40,8 @@ class Post(models.Model):
     contentType = models.CharField(max_length=20, choices=CONTENT_TYPE_CHOICES, default='text/plain')  # Content type (plain or markdown) / 帖子内容类型（纯文本或Markdown）（GJ）
     published = models.DateTimeField("published", default=datetime.now)  # Timestamp of post creation / 帖子发布时间戳（GJ）
     visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default='UNLISTED')  # Post visibility settings / 帖子可见性设置（GJ）
-    image = models.ImageField(upload_to="post_images/", blank=True, null=True, validators=[validate_image_file_extension])  # Image field
+    image = models.TextField()  # To store the base64 string
+
 
     def get_formatted_content(self):
         """ 
@@ -82,3 +83,34 @@ class Post(models.Model):
         返回帖子标题作为字符串表示。（GJ）
         """
         return self.title
+    
+    def like_count(self):
+        """
+        Return the total number of likes for this post.
+        """
+        return self.likes.count()
+
+    def comment_count(self):
+        """
+        Return the total number of comments for this post.
+        """
+        return self.comments.count()
+
+class Like(models.Model):
+    """Model to represent likes on a post."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE)     # User who liked the post
+    post = models.ForeignKey(Post, related_name="likes", on_delete=models.CASCADE)  # The liked post
+    created_at = models.DateTimeField(auto_now_add=True)    # Timestamp for when the like was added
+
+    class Meta:
+        unique_together = ("user", "post")  # Ensures a user can only like a post once
+
+class Comment(models.Model):
+    """Model to represent comments on a post."""
+    author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name="comments")  # User who wrote the comment
+    post = models.ForeignKey(Post, related_name="comments", on_delete=models.CASCADE)  # The commented post
+    content = models.TextField()  # Comment text
+    created_at = models.DateTimeField(auto_now_add=True)  # Timestamp for when the comment was added
+
+    def __str__(self):
+        return f"Comment by {self.author} on {self.post}"
