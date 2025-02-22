@@ -2,6 +2,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import status
 from identity.models import Author
@@ -78,3 +79,11 @@ class CustomPagination(PageNumberPagination):
             "count": self.page.paginator.count, # Total number of items across all pages
             "src": data  # Serialized list of posts
         })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])  # Only authenticated users can access
+def auth_test(request):
+    """
+    Simple endpoint to test authentication.
+    """
+    return Response({"message": f"Authentication successful for user {request.user.username}"})

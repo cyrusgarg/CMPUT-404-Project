@@ -9,4 +9,5 @@ urlpatterns = [
     path('<uuid:author_id>/', api_views.author_detail, name='api-author-detail'),
     path('<uuid:author_id>/posts/', api_views.author_posts, name='api-author-posts'),
     path('<uuid:author_id>/posts/<uuid:post_id>/', api_views.author_post_detail, name='api-author-post-detail'),
+    path('api/auth-test/', api_views.auth_test, name='auth-test'),
 ]
