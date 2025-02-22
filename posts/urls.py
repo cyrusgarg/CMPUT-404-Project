@@ -27,5 +27,17 @@ urlpatterns = [
     
     path('<uuid:post_id>/webUpdate/', views.web_update_post, name="web_update_post"),  
 
+    path('<uuid:post_id>/like/', views.like_post, name="like_post"),  
+    # Like a post
+
+    path("<uuid:post_id>/likes/", views.post_likes, name="post_likes"),
+    # List of likes
+
+    path('<uuid:post_id>/comment/', views.add_comment, name="add_comment"),  
+    # # Add a comment
+
+    path('<uuid:post_id>/comments/', views.get_comments, name="get_comments"),
+    # # Retrieve comments
+
 ]
 

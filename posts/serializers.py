@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Post
+from .models import Post, Like, Comment
 from identity.models import Author
 import markdown
 import base64
@@ -180,3 +180,14 @@ class PostSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+class LikeSerializer(serializers.ModelSerializer):
+    """Serializer for Like model to convert data into JSON format."""
+    class Meta:
+        model = Like
+        fields = "__all__"
+
+class CommentSerializer(serializers.ModelSerializer):
+    """Serializer for Comment model to convert data into JSON format."""
+    class Meta:
+        model = Comment
+        fields = "__all__"

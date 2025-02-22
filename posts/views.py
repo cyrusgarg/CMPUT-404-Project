@@ -1,17 +1,19 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponseForbidden
-from .models import Post
+from .models import Post, Like, Comment
 from django.db import models
 from identity.models import Author 
 from django.contrib.auth.models import User  # Import Django User model / 导入Django用户模型（GJ）
 from django.views.decorators.csrf import csrf_exempt
 import json
-from rest_framework.decorators import api_view,permission_classes
+from rest_framework.decorators import api_view,permission_classes, authentication_classes
 from .permissions import IsAuthorOrAdmin
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import PostSerializer
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import SessionAuthentication
+from .serializers import PostSerializer, LikeSerializer, CommentSerializer
 from django.core.files.uploadedfile import InMemoryUploadedFile
 import base64
 
@@ -266,3 +268,56 @@ def web_update_post(request, post_id):
     return redirect("posts:index")
     
     return redirect("posts:post_detail", post_id=post.id)  # return to the post detail page if form submission fails
+
+@api_view(['POST'])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def like_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+
+    # Check if the user already liked the post
+    like, created = Like.objects.get_or_create(user=request.user, post=post)
+    
+    if not created:
+        like.delete()   # If the user already liked, remove the like
+
+    # Dynamically calculate the like count:
+    like_count = Like.objects.filter(post=post).count()
+
+    return redirect('posts:post_detail', post_id=post.id)  # Redirect back to post detail
+
+@login_required
+def post_likes(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    likes = Like.objects.filter(post=post)
+    return render(request, "posts/likes_list.html", {"post": post, "likes": likes})
+
+
+@api_view(["POST"])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def add_comment(request, post_id):
+    """
+    Allow users to add comments to a post.
+    """
+    # post = get_object_or_404(Post, id=post_id)
+    # content = request.data.get('content')
+    # if not content:
+    #     return Response({"error": "Content is required."}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # comment = Comment.objects.create(post=post, content=content, author=request.user)
+    # comment.save()
+    
+    # return Response({'message': 'Comment added successfully!'}, status=status.HTTP_201_CREATED)
+
+@api_view(["GET"])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def get_comments(request, post_id):
+    """
+    Retrieve all comments for a post.
+    """
+    # post = get_object_or_404(Post, id=post_id)
+    # comments = Comment.objects.filter(post=post).order_by("-created_at")
+    # serializer = CommentSerializer(comments, many=True)
+    # return Response(serializer.data, status=status.HTTP_200_OK)

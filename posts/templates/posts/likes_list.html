@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Likes for: {{ post.title }}</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/PostDetail.css' %}">
+</head>
+<body>
+    <h1>Users Who Liked: "{{ post.title }}"</h1>
+    
+    {% if likes %}
+        <ul>
+            {% for like in likes %}
+                <li>
+                    <strong>{{ like.user.username }}</strong>
+                    <!-- Optionally, display more user info if available -->
+                    {% if like.user.email %}
+                        ({{ like.user.email }})
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p><em>No likes yet.</em></p>
+    {% endif %}
+
+    <br>
+    <a href="{% url 'posts:post_detail' post.id %}">Back to Post</a>
+</body>
+</html>
