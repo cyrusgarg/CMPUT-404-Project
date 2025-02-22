@@ -40,7 +40,7 @@ class Post(models.Model):
     contentType = models.CharField(max_length=20, choices=CONTENT_TYPE_CHOICES, default='text/plain')  # Content type (plain or markdown) / 帖子内容类型（纯文本或Markdown）（GJ）
     published = models.DateTimeField("published", default=datetime.now)  # Timestamp of post creation / 帖子发布时间戳（GJ）
     visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default='UNLISTED')  # Post visibility settings / 帖子可见性设置（GJ）
-    image = models.TextField()  # To store the base64 string
+    image = models.TextField(blank=True, null=True)  # To store the base64 string (optional)
 
 
     def get_formatted_content(self):
@@ -107,7 +107,7 @@ class Like(models.Model):
 
 class Comment(models.Model):
     """Model to represent comments on a post."""
-    author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name="comments")  # User who wrote the comment
+    author = models.ForeignKey(User, on_delete=models.CASCADE)   # User who wrote the comment
     post = models.ForeignKey(Post, related_name="comments", on_delete=models.CASCADE)  # The commented post
     content = models.TextField()  # Comment text
     created_at = models.DateTimeField(auto_now_add=True)  # Timestamp for when the comment was added

@@ -96,34 +96,34 @@
             });
           }
   
-        //   // Handle comment form submission via AJAX
-        //   const commentForm = document.getElementById("comment-form");
-        //   if (commentForm) {
-        //     commentForm.addEventListener("submit", function(event) {
-        //       event.preventDefault(); // Prevent the default form submission
-        //       const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
-        //       // Get the comment content from the textarea
-        //       const content = commentForm.querySelector('textarea[name="content"]').value;
-        //       fetch(commentForm.action, {
-        //         method: "POST",
-        //         credentials: "same-origin",  // Ensure cookies are sent
-        //         headers: {
-        //           "X-CSRFToken": csrfToken,
-        //           "Content-Type": "application/json"
-        //         },
-        //         body: JSON.stringify({ content: content })
-        //       })
-        //       .then(response => response.json())
-        //       .then(data => {
-        //         console.log("Comment added:", data);
-        //         // Optionally, update the comment list dynamically here
-        //         // For example, prepend the new comment to a comment list element
-        //         // Clear the textarea after submission
-        //         commentForm.querySelector('textarea[name="content"]').value = "";
-        //       })
-        //       .catch(error => console.error("Error adding comment:", error));
-        //     });
-        //   }
+          // Handle comment form submission via AJAX
+          const commentForm = document.getElementById("comment-form");
+          if (commentForm) {
+            commentForm.addEventListener("submit", function(event) {
+              event.preventDefault(); // Prevent the default form submission
+              const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+              // Get the comment content from the textarea
+              const content = commentForm.querySelector('textarea[name="content"]').value;
+              fetch(commentForm.action, {
+                method: "POST",
+                credentials: "same-origin",  // Ensure cookies are sent
+                headers: {
+                  "X-CSRFToken": csrfToken,
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ content: content })
+              })
+              .then(response => response.json())
+              .then(data => {
+                console.log("Comment added:", data);
+                // Optionally, update the comment list dynamically here
+                // For example, prepend the new comment to a comment list element
+                // Clear the textarea after submission
+                commentForm.querySelector('textarea[name="content"]').value = "";
+              })
+              .catch(error => console.error("Error adding comment:", error));
+            });
+          }
         });
       </script>
 </body>

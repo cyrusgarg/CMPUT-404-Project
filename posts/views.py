@@ -144,9 +144,8 @@ def create_post(request):
         # Log the uploaded image to see if it's correctly received
         print("Image received: ", image)
 
-        if image:
-            base64_image = image_to_base64(image)  # Convert image to base64
-            # Save the base64 string to the database
+        # Convert image to base64 if an image is provided; otherwise, set to an empty string.
+        base64_image = image_to_base64(image) if image else ""
 
         post = Post.objects.create(
             author=request.user, 
@@ -300,15 +299,15 @@ def add_comment(request, post_id):
     """
     Allow users to add comments to a post.
     """
-    # post = get_object_or_404(Post, id=post_id)
-    # content = request.data.get('content')
-    # if not content:
-    #     return Response({"error": "Content is required."}, status=status.HTTP_400_BAD_REQUEST)
+    post = get_object_or_404(Post, id=post_id)
+    content = request.data.get('content')
+    if not content:
+        return Response({"error": "Content is required."}, status=status.HTTP_400_BAD_REQUEST)
     
-    # comment = Comment.objects.create(post=post, content=content, author=request.user)
-    # comment.save()
+    comment = Comment.objects.create(post=post, content=content, author=request.user)
+    comment.save()
     
-    # return Response({'message': 'Comment added successfully!'}, status=status.HTTP_201_CREATED)
+    return Response({'message': 'Comment added successfully!'}, status=status.HTTP_201_CREATED)
 
 @api_view(["GET"])
 @authentication_classes([SessionAuthentication])
@@ -317,7 +316,7 @@ def get_comments(request, post_id):
     """
     Retrieve all comments for a post.
     """
-    # post = get_object_or_404(Post, id=post_id)
-    # comments = Comment.objects.filter(post=post).order_by("-created_at")
-    # serializer = CommentSerializer(comments, many=True)
-    # return Response(serializer.data, status=status.HTTP_200_OK)
+    post = get_object_or_404(Post, id=post_id)
+    comments = Comment.objects.filter(post=post).order_by("-created_at")
+    serializer = CommentSerializer(comments, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)

@@ -34,10 +34,10 @@ urlpatterns = [
     # List of likes
 
     path('<uuid:post_id>/comment/', views.add_comment, name="add_comment"),  
-    # # Add a comment
+    # Add a comment
 
     path('<uuid:post_id>/comments/', views.get_comments, name="get_comments"),
-    # # Retrieve comments
+    # Retrieve comments
 
 ]
 
