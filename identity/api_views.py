@@ -2,11 +2,13 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import status
 from identity.models import Author
 from posts.models import Post
 from posts.serializers import PostSerializer
+from django.contrib.auth.models import User
 
 @api_view(['GET'])
 def author_list(request):
@@ -25,7 +27,8 @@ def author_posts(request, author_id):
     """
     Returns paginated posts of a specific author with proper visibility rules.
     """
-    author = get_object_or_404(Author, author_id=author_id)
+    author=get_object_or_404(Author,author_id=author_id)
+    user=author.user
 
     # Define post visibility based on authentication and relationships
     if not request.user.is_authenticated:
@@ -41,7 +44,7 @@ def author_posts(request, author_id):
 
     # Fetch filtered posts based on visibility
     posts = Post.objects.filter(
-        author=author, visibility__in=visibility_filter
+        author=user, visibility__in=visibility_filter
     ).order_by("-published")
 
     # Apply pagination
@@ -76,3 +79,11 @@ class CustomPagination(PageNumberPagination):
             "count": self.page.paginator.count, # Total number of items across all pages
             "src": data  # Serialized list of posts
         })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])  # Only authenticated users can access
+def auth_test(request):
+    """
+    Simple endpoint to test authentication.
+    """
+    return Response({"message": f"Authentication successful for user {request.user.username}"})
