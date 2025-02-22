@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import status
 from identity.models import Author
@@ -11,6 +11,7 @@ from posts.serializers import PostSerializer
 from django.contrib.auth.models import User
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def author_list(request):
     """Return a list of all authors"""
     authors = Author.objects.all()
@@ -57,12 +58,63 @@ def author_posts(request, author_id):
     # Return paginated response
     return paginator.get_paginated_response(serializer.data)
 
-@api_view(['GET'])
+@api_view(['GET', 'DELETE', 'PUT'])
+@permission_classes([AllowAny])  # Allow unrestricted access initially
 def author_post_detail(request, author_id, post_id):
-    """Return details of a specific post by an author"""
-    post = get_object_or_404(Post, id=post_id)
-    serializer = PostSerializer(post)
-    return Response(serializer.data)
+    """
+    Handles getting, deleting, and updating a specific post by an author 
+    with proper visibility and authorization checks.
+    """
+    # Retrieve the author based on the author_id
+    author = get_object_or_404(Author, author_id=author_id)
+    user = author.user  # Get the User object linked to the Author
+
+    # Retrieve the post
+    post = get_object_or_404(Post, id=post_id, author=user)
+
+    # Handle GET request
+    if request.method == 'GET':
+        if post.visibility == "PUBLIC":
+            # Anyone can access public posts
+            serializer = PostSerializer(post)
+            return Response(serializer.data)
+
+        elif post.visibility == "FRIENDS":
+            if request.user.is_authenticated and (
+                request.user == user or request.user in author.friends.all()
+            ):
+                serializer = PostSerializer(post)
+                return Response(serializer.data)
+            return Response({"detail": "Authentication required for friends-only posts."},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        elif post.visibility == "UNLISTED":
+            # Allow direct access without restrictions
+            serializer = PostSerializer(post)
+            return Response(serializer.data)
+
+        else:
+            return Response({"detail": "You do not have permission to view this post."},
+                            status=status.HTTP_403_FORBIDDEN)
+
+    # Handle DELETE request (Only the author of the post can delete)
+    elif request.method == 'DELETE':
+        if request.user.is_authenticated and request.user == user:
+            post.delete()
+            return Response({"detail": "Post deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"detail": "You do not have permission to delete this post."},
+                        status=status.HTTP_403_FORBIDDEN)
+
+    # Handle PUT request (Only the author of the post can update)
+    elif request.method == 'PUT':
+        if request.user.is_authenticated and request.user == user:
+            serializer = PostSerializer(post, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "You do not have permission to update this post."},
+                        status=status.HTTP_403_FORBIDDEN)
 
 class CustomPagination(PageNumberPagination):
     """
