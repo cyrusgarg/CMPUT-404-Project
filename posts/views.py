@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponseForbidden, HttpResponseNotAllowed
 from .models import Post, Like, Comment
+from identity.models import Following
 from django.db import models
 from identity.models import Author 
 from django.contrib.auth.models import User  # Import Django User model / 导入Django用户模型（GJ）
@@ -40,37 +41,40 @@ def index(request):
 @login_required
 def view_posts(request):
     """
-    Display posts visible to the logged-in user based on visibility rules.
-    显示当前用户可以查看的帖子，遵循可见性规则。（GJ）
+    Display posts visible to the logged-in user based on visibility rules
+    显示当前用户可以查看的帖子，遵循可见性规则（GJ）
 
-    - PUBLIC posts are visible to everyone.
-      PUBLIC（公开）帖子对所有人可见。（GJ）
-    - UNLISTED posts are visible via direct link.
-      UNLISTED（未列出）帖子可通过直接链接访问。（GJ）
-    - FRIENDS posts are visible only to friends.
-      FRIENDS（仅好友可见）帖子仅对好友可见。（GJ）
-    - DELETED posts are visible only to admins.
-      DELETED（已删除）帖子仅管理员可见。（GJ）
+    - PUBLIC posts are visible to everyone
+      PUBLIC（公开）帖子对所有人可见（GJ）
+    - UNLISTED posts are visible via direct link
+      UNLISTED（未列出）帖子可通过直接链接访问（GJ）
+    - FRIENDS posts are visible only to friends
+      FRIENDS（仅好友可见）帖子仅对好友可见（GJ）
+    - DELETED posts are visible only to admins
+      DELETED（已删除）帖子仅管理员可见（GJ）
     """
     user = request.user 
 
     if user.is_superuser:
         posts = Post.objects.all().order_by('-published') # Admin can see all posts, ordered by creation date
         return render(request, "posts/views.html", {"posts": posts, "user": user.username}) # Get the logged-in user / 获取当前用户（GJ）
-    user_friends = getattr(user, 'friends', None) 
-    if user_friends is None:
-        friends_ids = []
-    else:
-        friends_ids = user.friends.all().values_list("id", flat=True)  
-        
-    following_ids = Post.objects.filter(author=user).values_list("author_id", flat=True).distinct()
+    
+    # Get the followers of the current user / 获取当前用户的关注者（即用户关注的对象）（GJ）
+    following_ids = Following.objects.filter(follower=user).values_list("followee_id", flat=True)  
+
+    # Get users who follow the current user / 获取关注当前用户的用户（即谁关注了我）（GJ）
+    followers_ids = Following.objects.filter(followee=user).values_list("follower_id", flat=True)  
+
+    # Users who follow each other are friends/ 互相关注的用户即为好友（friends）（GJ）
+    mutual_friends_ids = set(following_ids).intersection(set(followers_ids))
 
     #posts = Post.get_visible_posts(user)  # Fetch visible posts for the user / 获取用户可见的帖子（GJ）
     posts = Post.objects.filter(
-        models.Q(visibility="PUBLIC") |  # 公开帖子（GJ）
-        models.Q(visibility="FRIENDS", author__id__in=friends_ids) |  # 仅好友可见帖子（GJ）
-        models.Q(visibility="UNLISTED", author__id__in=following_ids) |  # 仅作者或关注者可见（GJ）
-        models.Q(visibility="UNLISTED", author=user)  # 自己的 UNLISTED 也可见（GJ）
+        models.Q(visibility="PUBLIC") |  # public post / 公开帖子（GJ）
+        models.Q(visibility="FRIENDS", author__id__in=mutual_friends_ids) |  # friend-only post / 仅好友可见帖子（GJ）
+        models.Q(visibility="UNLISTED", author__id__in=following_ids) |  # unlist post / 仅作者或关注者可见（GJ）
+        models.Q(visibility="FRIENDS", author=user) | # author can see his friends-only post / 自己的 FRIENDS 也可见（GJ）
+        models.Q(visibility="UNLISTED", author=user)  # author can see his unlisted posts / 自己的 UNLISTED 也可见（GJ）
     ).exclude(visibility="DELETED").order_by('-published')  # Order by creation date
 
     
@@ -86,12 +90,24 @@ def post_detail(request, post_id):
       检查可见性规则，确保用户有权限查看。（GJ）
     """
     post = get_object_or_404(Post, id=post_id)  # Retrieve post or return 404 / 获取帖子或返回404（GJ）
-    print("post_id:",post_id)
-    if post.visibility == "DELETED" and not request.user.is_superuser:
+    user = request.user
+
+   # Get the followers of the current user / 获取当前用户的关注者（即用户关注的对象）（GJ）
+    following_ids = Following.objects.filter(follower=user).values_list("followee_id", flat=True)  
+
+    # Get users who follow the current user / 获取关注当前用户的用户（即谁关注了我）（GJ）
+    followers_ids = Following.objects.filter(followee=user).values_list("follower_id", flat=True)  
+
+    # Users who follow each other are friends/ 互相关注的用户即为好友（friends）（GJ）
+    mutual_friends_ids = set(following_ids).intersection(set(followers_ids))
+
+    if post.visibility == "DELETED" and not user.is_superuser:
         return HttpResponseForbidden("You do not have permission to view this post.")  # Forbidden response if post is deleted / 如果帖子已删除且用户非管理员，则返回403（GJ）
 
-    if post.visibility == "FRIENDS" and request.user != post.author and not request.user in post.author.friends.all():
+    if post.visibility == "FRIENDS" and user != post.author and post.author.id not in mutual_friends_ids:
         return HttpResponseForbidden("You do not have permission to view this post.")  # Prevent unauthorized friend-only access / 防止未授权用户访问仅好友可见帖子（GJ）
+    
+    
     return render(request, "posts/post_detail.html", {"post": post, "user": request.user.username})  # Pass user info / 传递用户信息（GJ）
 
 def image_to_base64(image_file):

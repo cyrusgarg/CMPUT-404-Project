@@ -155,6 +155,7 @@ class PostSerializer(serializers.ModelSerializer):
         Create a new Post instance.
         创建新的帖子实例。（GJ）
         """
+        validated_data.pop('type', None)  # Remove 'type' if present
         return Post.objects.create(**validated_data)
 
     def update(self, instance, validated_data):
@@ -168,7 +169,7 @@ class PostSerializer(serializers.ModelSerializer):
           禁止更改作者字段。（GJ）
         """
         request_user = self.context['request'].user  # Get the current user / 获取当前用户（GJ）
-
+        #validated_data.pop('type', None)  # Remove 'type' if present
         if instance.author != request_user:
             raise serializers.ValidationError("You do not have permission to edit this post.")  # Prevent unauthorized edits / 防止未授权编辑（GJ）
 
