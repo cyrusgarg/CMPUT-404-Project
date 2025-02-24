@@ -15,6 +15,12 @@ class AuthorAPITestCase(TestCase):
         self.user2 = User.objects.create_user(username='user2', password='password123')
         self.author1 = self.user1.author_profile
         self.author2 = self.user2.author_profile
+        self.post = Post.objects.create(
+            author=self.user1,
+            title="Sample Post",
+            content="This is a test post.",
+            visibility="PUBLIC"
+        )
 
     def test_get_all_authors(self):
         """Ensure we can get a list of all authors"""
@@ -45,3 +51,25 @@ class AuthorAPITestCase(TestCase):
             self.assertIn('Not Found', response.content.decode())
         else:
             self.assertIn('Authentication successful for user user1', response.json().get('message', ''))
+    
+    def test_create_post(self):
+        """Ensure an authenticated author can create a post"""
+        self.client.force_authenticate(user=self.user1)
+        post_data = {
+            "title": "New Post",
+            "content": "This is a new test post.",
+            "visibility": "PUBLIC"
+        }
+        response = self.client.post(f'/api/authors/{self.author1.author_id}/posts/', post_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["title"], "New Post")
+
+    def test_create_post_unauthenticated(self):
+        """Ensure an unauthenticated user cannot create a post"""
+        post_data = {
+            "title": "Unauthorized Post",
+            "content": "This should fail.",
+            "visibility": "PUBLIC"
+        }
+        response = self.client.post(f'/api/authors/{self.author1.author_id}/posts/', post_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
