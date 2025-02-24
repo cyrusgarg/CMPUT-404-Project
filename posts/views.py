@@ -38,6 +38,15 @@ def index(request):
 
     return render(request, "posts/index.html", {"posts": posts, "user": user.username})  # Pass username to the template / 传递用户名到模板（GJ）
 
+@api_view(['GET'])
+def get_post_by_fqid(request, post_id):
+    """
+    Retrieve a public post by Fully Qualified ID (FQID).
+    """
+    post = get_object_or_404(Post, id=post_id)  
+    serializer = PostSerializer(post)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
 @login_required
 def view_posts(request):
     """
@@ -222,21 +231,22 @@ def update_post(request, post_id):
     """
     post = get_object_or_404(Post, id=post_id)
 
-    if request.user != post.author:
+    if request.user != post.author and not request.user.is_superuser:
         return HttpResponseForbidden("You do not have permission to update this post.")  # Only author can update / 仅作者可以更新帖子（GJ）
 
     if request.method == "POST":
         data = json.loads(request.body.decode("utf-8"))  # Parse JSON data / 解析JSON数据（GJ）
-        image = request.FILES.get("image")  # Handle uploaded image
-
         post.title = data.get("title", post.title)
         post.description = data.get("description", post.description)
         post.content = data.get("content", post.content)
         post.contentType = data.get("contentType", post.contentType)
         post.visibility = data.get("visibility", post.visibility)
 
+        # If an image is uploaded via multipart/form-data, convert it to base64.
+        image = request.FILES.get("image")
+
         if image:  # Only update if a new image is uploaded
-            post.image = image
+            post.image = image_to_base64(image)
         post.save()
 
         return JsonResponse({"message": "Post updated successfully"})  # Return success response / 返回成功响应（GJ）
@@ -258,6 +268,9 @@ def web_update_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
 
     # Handling Web Form Submission
+    if request.user != post.author and not request.user.is_superuser:
+        return HttpResponseForbidden("You do not have permission to update this post.")
+    
     if request.method == "POST":
       title = request.POST.get("title", post.title)
       description = request.POST.get("description", post.description)
@@ -276,13 +289,13 @@ def web_update_post(request, post_id):
 
       # If a new image is uploaded, update the image
       if image:
-          post.image = image
+          post.image = image_to_base64(image)
 
       post.save()
-
-    return redirect("posts:index")
+      return redirect("posts:post_detail", post_id=post.id)
     
-    return redirect("posts:post_detail", post_id=post.id)  # return to the post detail page if form submission fails
+    # return to the post edit if form submission fails
+    return render(request, "posts/edit_post.html", {"post": post, "user": request.user.username})
 
 @api_view(['POST'])
 @authentication_classes([SessionAuthentication])
@@ -338,10 +351,41 @@ def add_comment(request, post_id):
 @permission_classes([IsAuthenticated])
 def get_comments(request, post_id):
     """
-    Retrieve all comments for a post.
+    Retrieve comments for a post. For friends-only posts, only return comments 
+    if the request user is a friend of the post's author or if the comment was 
+    written by the request user.
     """
     post = get_object_or_404(Post, id=post_id)
-    comments = Comment.objects.filter(post=post).order_by("-created_at")
+    
+    # If the post is friends-only, filter comments.
+    if post.visibility == "FRIENDS":
+        comments = Comment.objects.filter(
+            post=post
+        ).filter(
+            models.Q(user=request.user) | models.Q(user__in=post.author.friends.all())
+        ).order_by("-created_at")
+    else:
+        comments = Comment.objects.filter(post=post).order_by("-created_at")
+    
     serializer = CommentSerializer(comments, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
+@login_required
+def like_comment(request, post_id, comment_id):
+    # Get the comment instance
+    post = get_object_or_404(Post, id=post_id)
+    comment = get_object_or_404(Comment, id=comment_id)
+    
+    # Check if the user has already liked the comment
+    if request.user in comment.likes.all():
+        comment.likes.remove(request.user)
+        comment.like_count -= 1  # Decrease like count
+    else:
+        comment.likes.add(request.user)
+        comment.like_count += 1  # Increase like count
+    
+    # Save the updated like count
+    comment.save()
+
+    # Redirect back to the post detail page
+    return redirect('posts:post_detail', post_id=post.id)

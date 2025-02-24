@@ -1,4 +1,4 @@
-from datetime import datetime
+from django.utils import timezone
 from django.db import models
 from django.contrib.auth.models import User  # Use Django built-in User model / 使用Django内置用户模型（GJ）
 import markdown
@@ -38,7 +38,7 @@ class Post(models.Model):
     description = models.TextField(default="")  # Short description of the post / 帖子简要描述（GJ）
     content = models.TextField(blank=True, null=True)  # Post content / 帖子内容（GJ）
     contentType = models.CharField(max_length=20, choices=CONTENT_TYPE_CHOICES, default='text/plain')  # Content type (plain or markdown) / 帖子内容类型（纯文本或Markdown）（GJ）
-    published = models.DateTimeField("published", default=datetime.now)  # Timestamp of post creation / 帖子发布时间戳（GJ）
+    published = models.DateTimeField("published", default=timezone.now)  # Use timezone-aware datetime
     visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default='UNLISTED')  # Post visibility settings / 帖子可见性设置（GJ）
     image = models.TextField(blank=True, null=True)  # To store the base64 string (optional)
 
@@ -111,6 +111,8 @@ class Comment(models.Model):
     post = models.ForeignKey(Post, related_name="comments", on_delete=models.CASCADE)  # The commented post
     content = models.TextField()  # Comment text
     created_at = models.DateTimeField(auto_now_add=True)  # Timestamp for when the comment was added
+    likes = models.ManyToManyField(User, related_name='comment_likes', blank=True)
+    like_count = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return f"Comment by {self.user.username} on {self.post}"
+        return self.content
