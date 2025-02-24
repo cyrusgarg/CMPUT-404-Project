@@ -4,6 +4,9 @@ from . import views
 app_name = "posts"  # Define namespace for URLs / 定义URL命名空间（GJ）
 
 urlpatterns = [
+    path("fqid/<uuid:post_id>/", views.get_post_by_fqid, name="get_post_by_fqid"),
+    # Retrieve a post by FQID
+
     path("", views.index, name="index"),  
     # Show all posts created by the logged-in user / 显示当前用户创建的所有帖子（GJ）
 
