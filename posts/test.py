@@ -95,6 +95,48 @@ class PostAPITestCase(TestCase):
         self.post.refresh_from_db()
         self.assertEqual(self.post.title, "API Updated Title")
     
+    def test_edit_post_locally(self):
+        """
+        Test that the author can edit a post locally to correct a typo.
+        """
+        url = reverse("posts:web_update_post", kwargs={"post_id": self.post.id})
+        data = {
+            "title": "Sample Post",
+            "description": "A sample description",
+            "content": "Some content with a typo corrected",
+            "contentType": "text/plain",
+            "visibility": "PUBLIC"
+        }
+        response = self.client.post(url, data)
+        
+        # After a successful update, the post should be changed.
+        self.post.refresh_from_db()
+        self.assertEqual(self.post.content, "Some content with a typo corrected")
+    
+    def test_stream_sorted_by_most_recent(self):
+        """
+        Test that the "stream" page is sorted with the most recent posts first.
+        """
+        # Create another post with a later publication date
+        new_post = Post.objects.create(
+            author=self.author,
+            title="New Post",
+            description="A new description",
+            content="Some more content",
+            contentType="text/plain",
+            visibility="PUBLIC"
+        )
+        
+        # Visit the stream page
+        url = reverse("posts:view_posts")
+        response = self.client.get(url)
+        
+        # The most recent post should appear first in the response data
+        posts = response.context["posts"]
+        self.assertEqual(posts[0].title, "New Post")  # New post should be first
+        self.assertEqual(posts[1].title, "Sample Post")  # Old post should be second
+
+    
     def test_delete_post_by_author(self):
         """
         Test that an author can delete (mark as DELETED) their own post.
