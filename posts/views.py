@@ -322,9 +322,41 @@ def add_comment(request, post_id):
 @permission_classes([IsAuthenticated])
 def get_comments(request, post_id):
     """
-    Retrieve all comments for a post.
+    Retrieve comments for a post. For friends-only posts, only return comments 
+    if the request user is a friend of the post's author or if the comment was 
+    written by the request user.
     """
     post = get_object_or_404(Post, id=post_id)
-    comments = Comment.objects.filter(post=post).order_by("-created_at")
+    
+    # If the post is friends-only, filter comments.
+    if post.visibility == "FRIENDS":
+        comments = Comment.objects.filter(
+            post=post
+        ).filter(
+            models.Q(user=request.user) | models.Q(user__in=post.author.friends.all())
+        ).order_by("-created_at")
+    else:
+        comments = Comment.objects.filter(post=post).order_by("-created_at")
+    
     serializer = CommentSerializer(comments, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+@login_required
+def like_comment(request, post_id, comment_id):
+    # Get the comment instance
+    post = get_object_or_404(Post, id=post_id)
+    comment = get_object_or_404(Comment, id=comment_id)
+    
+    # Check if the user has already liked the comment
+    if request.user in comment.likes.all():
+        comment.likes.remove(request.user)
+        comment.like_count -= 1  # Decrease like count
+    else:
+        comment.likes.add(request.user)
+        comment.like_count += 1  # Increase like count
+    
+    # Save the updated like count
+    comment.save()
+
+    # Redirect back to the post detail page
+    return redirect('posts:post_detail', post_id=post.id)

@@ -51,7 +51,19 @@
     <h2>Comments</h2>
     <ul id="comment-list">
         {% for comment in post.comments.all %}
-            <li><strong>{{ comment.user.username }}</strong>: {{ comment.content }} </li>
+            <li>
+                <strong>{{ comment.user.username }}</strong>: {{ comment.content }} 
+                <p>Likes: {{ comment.like_count }}</p>
+                <!-- Like button for comment -->
+                {% if user == comment.post.author or user in comment.post.author.friends.all %}
+                    <form action="{% url 'posts:like_comment' post.id comment.id %}" method="POST">
+                        {% csrf_token %}
+                        <button type="submit" class="like-button {% if comment.is_liked_by_user %}liked{% else %}unliked{% endif %}">
+                            {% if comment.is_liked_by_user %} Unlike {% else %} Like {% endif %}
+                        </button>
+                    </form>
+                {% endif %}
+            </li>
         {% empty %}
             <li><em>No comments yet.</em></li>
         {% endfor %}

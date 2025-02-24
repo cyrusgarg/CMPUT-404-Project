@@ -111,6 +111,8 @@ class Comment(models.Model):
     post = models.ForeignKey(Post, related_name="comments", on_delete=models.CASCADE)  # The commented post
     content = models.TextField()  # Comment text
     created_at = models.DateTimeField(auto_now_add=True)  # Timestamp for when the comment was added
+    likes = models.ManyToManyField(User, related_name='comment_likes', blank=True)
+    like_count = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return f"Comment by {self.user.username} on {self.post}"
+        return self.content

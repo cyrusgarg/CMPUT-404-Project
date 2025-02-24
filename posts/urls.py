@@ -39,5 +39,8 @@ urlpatterns = [
     path('<uuid:post_id>/comments/', views.get_comments, name="get_comments"),
     # Retrieve comments
 
+    path('<uuid:post_id>/comment/like_comment/', views.like_comment, name='like_comment')
+    # Like a comment
+
 ]
 
