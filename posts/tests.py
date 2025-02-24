@@ -73,12 +73,18 @@ class PostVisibilityTestCase(TestCase):
         """
         self.client.login(username="follower", password="test123")
         response = self.client.get(reverse("posts:view_posts"))
-        self.assertContains(response, "Public Post")  # 公开帖子应该可见（GJ）
+        self.assertContains(response, "Public Post")  # Public posts should be visible / 公开帖子应该可见（GJ）
 
         self.client.logout()
         self.client.login(username="random", password="test123")
         response = self.client.get(reverse("posts:view_posts"))
-        self.assertContains(response, "Public Post")  # 随机用户也能看到 PUBLIC 贴（GJ）
+        self.assertContains(response, "Public Post")  # Random users can also see PUBLIC posts / 随机用户也能看到 PUBLIC 贴（GJ）
+
+        self.client.logout()
+        self.client.login(username="admin", password="admin123")
+        response = self.client.get(reverse("posts:view_posts"))
+        self.assertContains(response, "Public Post")  # Administrators should be able to see PUBLIC posts / 管理员应该可以看到 PUBLIC 贴（GJ）
+
 
     def test_unlisted_post_visibility(self):
         """
@@ -87,12 +93,18 @@ class PostVisibilityTestCase(TestCase):
         """
         self.client.login(username="follower", password="test123")
         response = self.client.get(reverse("posts:view_posts"))
-        self.assertContains(response, "Unlisted Post")  # 关注者可以看到 UNLISTED 贴（GJ）
+        self.assertContains(response, "Unlisted Post")  # Followers can see UNLISTED posts / 关注者可以看到 UNLISTED 贴（GJ）
 
         self.client.logout()
         self.client.login(username="random", password="test123")
         response = self.client.get(reverse("posts:view_posts"))
-        self.assertNotContains(response, "Unlisted Post")  # 随机用户不应该看到 UNLISTED 贴（GJ）
+        self.assertNotContains(response, "Unlisted Post")  # Random users should not see UNLISTED posts  / 随机用户不应该看到 UNLISTED 贴（GJ）
+
+        self.client.logout()
+        self.client.login(username="admin", password="admin123")
+        response = self.client.get(reverse("posts:view_posts"))
+        self.assertContains(response, "Unlisted Post") # Administrators should be able to see UNLISTED posts / 管理员应该可以看到 UNLISTED 贴（GJ）
+
 
     def test_unlisted_post_by_link(self):
         """
@@ -101,7 +113,7 @@ class PostVisibilityTestCase(TestCase):
         """
         self.client.login(username="random", password="test123")
         response = self.client.get(reverse("posts:post_detail", args=[self.unlisted_post.id]))
-        self.assertEqual(response.status_code, 200)  # 直接访问链接应该可见（GJ）
+        self.assertEqual(response.status_code, 200)  # Direct access URL should be visible / 直接访问链接应该可见（GJ）
 
     def test_friends_post_visibility(self):
         """
@@ -110,17 +122,23 @@ class PostVisibilityTestCase(TestCase):
         """
         self.client.login(username="friend", password="test123")
         response = self.client.get(reverse("posts:view_posts"))
-        self.assertContains(response, "Friends Only Post")  # 互相关注者可见（GJ）
+        self.assertContains(response, "Friends Only Post")  # Visible to people who follow each other / 互相关注者可见（GJ）
 
         self.client.logout()
         self.client.login(username="follower", password="test123")
         response = self.client.get(reverse("posts:view_posts"))
-        self.assertNotContains(response, "Friends Only Post")  # 单向关注者不可见（GJ）
+        self.assertNotContains(response, "Friends Only Post")  # One-way followers are not visible / 单向关注者不可见（GJ）
 
         self.client.logout()
         self.client.login(username="random", password="test123")
         response = self.client.get(reverse("posts:view_posts"))
-        self.assertNotContains(response, "Friends Only Post")  # 非关注者不可见（GJ）
+        self.assertNotContains(response, "Friends Only Post")  # Not visible to non-followers / 非关注者不可见（GJ）
+
+        self.client.logout()
+        self.client.login(username="admin", password="admin123")
+        response = self.client.get(reverse("posts:view_posts"))
+        self.assertContains(response, "Friends Only Post")  # Admins should be able to see FRIENDS posts / 管理员应该可以看到 FRIENDS 贴（GJ）
+
 
     def test_deleted_post_visibility(self):
         """
@@ -129,12 +147,12 @@ class PostVisibilityTestCase(TestCase):
         """
         self.client.login(username="follower", password="test123")
         response = self.client.get(reverse("posts:view_posts"))
-        self.assertNotContains(response, "Deleted Post")  # 普通用户看不到 DELETED 贴（GJ）
+        self.assertNotContains(response, "Deleted Post")  # Ordinary users cannot see DELETED posts / 普通用户看不到 DELETED 贴（GJ）
 
         self.client.logout()
         self.client.login(username="admin", password="admin123")
         response = self.client.get(reverse("posts:view_posts"))
-        self.assertContains(response, "Deleted Post")  # 管理员应该可以看到 DELETED 贴（GJ）
+        self.assertContains(response, "Deleted Post")  # Admins should be able to see DELETED posts / 管理员应该可以看到 DELETED 贴（GJ）
 
     def test_author_cannot_see_deleted_posts(self):
         """
@@ -143,4 +161,6 @@ class PostVisibilityTestCase(TestCase):
         """
         self.client.login(username="author", password="test123")
         response = self.client.get(reverse("posts:index"))
-        self.assertNotContains(response, "Deleted Post")  # 作者不应该看到 DELETED 贴（GJ）
+        self.assertNotContains(response, "Deleted Post")  # Authors should not see DELETED posts / 作者不应该看到 DELETED 贴（GJ）
+
+        
