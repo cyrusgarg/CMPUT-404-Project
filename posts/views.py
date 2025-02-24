@@ -41,17 +41,17 @@ def index(request):
 @login_required
 def view_posts(request):
     """
-    Display posts visible to the logged-in user based on visibility rules.
-    显示当前用户可以查看的帖子，遵循可见性规则。（GJ）
+    Display posts visible to the logged-in user based on visibility rules
+    显示当前用户可以查看的帖子，遵循可见性规则（GJ）
 
-    - PUBLIC posts are visible to everyone.
-      PUBLIC（公开）帖子对所有人可见。（GJ）
-    - UNLISTED posts are visible via direct link.
-      UNLISTED（未列出）帖子可通过直接链接访问。（GJ）
-    - FRIENDS posts are visible only to friends.
-      FRIENDS（仅好友可见）帖子仅对好友可见。（GJ）
-    - DELETED posts are visible only to admins.
-      DELETED（已删除）帖子仅管理员可见。（GJ）
+    - PUBLIC posts are visible to everyone
+      PUBLIC（公开）帖子对所有人可见（GJ）
+    - UNLISTED posts are visible via direct link
+      UNLISTED（未列出）帖子可通过直接链接访问（GJ）
+    - FRIENDS posts are visible only to friends
+      FRIENDS（仅好友可见）帖子仅对好友可见（GJ）
+    - DELETED posts are visible only to admins
+      DELETED（已删除）帖子仅管理员可见（GJ）
     """
     user = request.user 
 
