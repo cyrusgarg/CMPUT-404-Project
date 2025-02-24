@@ -1,11 +1,12 @@
 from django.test import TestCase
 from django.contrib.auth.models import User
-from identity.models import Author
 from rest_framework.test import APIClient
 from rest_framework import status
 import uuid
 from rest_framework.authtoken.models import Token
 from posts.models import Post
+from identity.models import Author, GitHubActivity
+from django.utils.timezone import now
 
 class AuthorAPITestCase(TestCase):
     def setUp(self):
@@ -73,3 +74,59 @@ class AuthorAPITestCase(TestCase):
         }
         response = self.client.post(f'/api/authors/{self.author1.author_id}/posts/', post_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+
+class GitHubActivityTestCase(TestCase):
+    def setUp(self):
+        """Set up test users and authors"""
+        self.user1 = User.objects.create_user(username='user1', password='password123')
+        self.author1 = self.user1.author_profile
+
+    def test_create_github_activity(self):
+        """Ensure an author's GitHub activity is correctly recorded"""
+        github_event = GitHubActivity.objects.create(
+            author=self.author1,
+            event_id="evt_12345",
+            event_type="PushEvent",
+            payload={"repo": "user1/sample-repo", "message": "Initial commit"},
+            created_at=now()
+        )
+
+        self.assertEqual(GitHubActivity.objects.count(), 1)
+        self.assertEqual(github_event.author, self.author1)
+        self.assertEqual(github_event.event_type, "PushEvent")
+        self.assertEqual(github_event.payload["repo"], "user1/sample-repo")
+
+    def test_prevent_duplicate_github_events(self):
+        """Ensure duplicate GitHub events are not stored"""
+        GitHubActivity.objects.create(
+            author=self.author1,
+            event_id="evt_12345",
+            event_type="PushEvent",
+            payload={"repo": "user1/sample-repo", "message": "Initial commit"},
+            created_at=now()
+        )
+
+        with self.assertRaises(Exception):
+            GitHubActivity.objects.create(
+                author=self.author1,
+                event_id="evt_12345",  # Same event ID (should fail)
+                event_type="PushEvent",
+                payload={"repo": "user1/sample-repo", "message": "Duplicate commit"},
+                created_at=now()
+            )
+
+    def test_retrieve_github_activity_for_author(self):
+        """Ensure GitHub activity can be retrieved for a specific author"""
+        GitHubActivity.objects.create(
+            author=self.author1,
+            event_id="evt_12345",
+            event_type="PushEvent",
+            payload={"repo": "user1/sample-repo", "message": "Initial commit"},
+            created_at=now()
+        )
+
+        activities = GitHubActivity.objects.filter(author=self.author1)
+        self.assertEqual(len(activities), 1)
+        self.assertEqual(activities[0].event_type, "PushEvent")
