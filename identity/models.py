@@ -75,11 +75,13 @@ class GitHubActivity(models.Model):
         return f"{self.author} - {self.event_type} at {self.created_at}"
 
 class Following(models.Model):
+    # represents a following relationship, i.e. follower is following followee
     follower = models.ForeignKey(User, on_delete=models.CASCADE, related_name="follower")  
     followee = models.ForeignKey(User, on_delete=models.CASCADE, related_name="followee")
     created_at = models.DateTimeField(auto_now_add=True)
 
 class FollowRequests(models.Model):
+    # represents a follow request, i.e. sender requested to follow receiver
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sender")  
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name="receiver")
     created_at = models.DateTimeField(auto_now_add=True)

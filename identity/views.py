@@ -95,26 +95,34 @@ def github_webhook(request):
         return HttpResponseBadRequest("Error processing webhook: " + str(e))
 
 def follow(request):
+    # query user DB to get the sender and receiver
     sender = get_object_or_404(User, username=request.POST["sender"])
     receiver = get_object_or_404(User, username=request.POST["receiver"])
+
+    # ensure database is consistent
     if(not FollowRequests.objects.filter(sender=sender, receiver=receiver).exists() and not Following.objects.filter(follower=sender, followee=receiver).exists()):
         FollowRequests.objects.create(sender=sender, receiver=receiver)
         return redirect(reverse('identity:author-profile', kwargs={'username': receiver.username}))
     return HttpResponse("Error in sending a follow request")
 
 def unfollow(request):
+    # query user DB to get the follower and followee
     follower = get_object_or_404(User, username=request.POST.get('follower'))
     followee = get_object_or_404(User, username=request.POST.get('followee'))
     follow = Following.objects.filter(follower=follower, followee=followee)
+
+    # ensure database is consistent
     if(follow.exists()):
         follow.delete()
         return redirect(reverse('identity:author-profile', kwargs={'username': followee.username}))
     return HttpResponse("Error during unfollowing")
 
 def accept(request):
+    # query user DB to get the sender and receiver
     sender = get_object_or_404(User, username=request.POST["sender"])
     receiver = get_object_or_404(User, username=request.POST["receiver"])
     
+    # ensure database is consistent
     request = FollowRequests.objects.filter(sender=sender, receiver=receiver)
     if(request.exists() and not Following.objects.filter(follower=sender, followee=receiver).exists()):
         request.delete()
@@ -123,9 +131,12 @@ def accept(request):
     return HttpResponse("Error in accepting the follow request")
 
 def decline(request):
+    # query user DB to get the sender and receiver
     sender = get_object_or_404(User, username=request.POST["sender"])
     receiver = get_object_or_404(User, username=request.POST["receiver"])
     request = FollowRequests.objects.filter(sender=sender, receiver=receiver)
+
+    # ensure database is consistent
     if(request.exists()):
         request.delete()
         return redirect(reverse('identity:requests', kwargs={'username': receiver.username}))

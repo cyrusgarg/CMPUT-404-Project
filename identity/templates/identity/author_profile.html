@@ -4,6 +4,7 @@
 <div class="profile-container">
     <h1>{{ author.display_name }}</h1>
 
+    <!-- Show appropriate follow button depending on current user and existing follow relationship -->
     {% if is_current_user %}
         <form action="/authors/{{ author.user.username }}/requests/" method="get">
             <button type="submit">Show Follow Requests</button>
