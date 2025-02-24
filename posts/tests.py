@@ -1,9 +1,15 @@
 from django.test import TestCase
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
-from posts.models import Post
+from posts.models import Post, Like, Comment
 from identity.models import Following
+from rest_framework import status
+from rest_framework.test import APIClient
 import uuid
+
+import json
+from io import BytesIO
 
 class PostVisibilityTestCase(TestCase):
     """
@@ -65,6 +71,14 @@ class PostVisibilityTestCase(TestCase):
             content="Deleted content",
             visibility="DELETED"
         )
+
+        # Initialize the API client and log in as the author by default.
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.author)
+        self.client.force_authenticate(user=self.follower)
+        self.client.force_authenticate(user=self.friend)
+        self.client.force_authenticate(user=self.non_follower)
+        self.client.force_authenticate(user=self.admin)
 
     def test_public_post_visibility(self):
         """
