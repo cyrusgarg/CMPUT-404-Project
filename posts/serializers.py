@@ -189,6 +189,39 @@ class LikeSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     """Serializer for Comment model to convert data into JSON format."""
+    
+    type = serializers.CharField(default="comment")
+    id = serializers.SerializerMethodField()
+    author = serializers.SerializerMethodField()
+    post = serializers.SerializerMethodField()
+    page = serializers.SerializerMethodField()
+    published = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
+    likes = serializers.SerializerMethodField()
+
     class Meta:
         model = Comment
-        fields = "__all__"
+        fields = ["type", "id", "post", "page", "published", "contentType", "comment", "author", "likes"]
+
+    def get_id(self, obj):
+        return obj.get_absolute_url()
+
+    def get_post(self, obj):
+        return f"{obj.post.author.author_profile.host}/api/authors/{obj.post.author.author_profile.author_id}/posts/{obj.post.id}"
+
+    def get_page(self, obj):
+        return f"{obj.post.author.author_profile.host}/authors/{obj.post.author.author_profile.author_id}/posts/{obj.post.id}"
+
+    def get_author(self, obj):
+        return obj.user.author_profile.to_dict()  # Use the `to_dict()` method
+
+    def get_likes(self, obj):
+        """Retrieve likes on this comment."""
+        return {
+            "type": "likes",
+            "id": obj.get_like_url(),
+            "page": f"{obj.get_absolute_url()}/likes",
+            "page_number": 1,
+            "size": 50,
+            "count": obj.likes.count(),
+            "src": [like.author_profile.to_dict() for like in obj.likes.all()]  # Serialize likes
+        }
