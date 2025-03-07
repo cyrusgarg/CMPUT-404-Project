@@ -173,11 +173,13 @@ class CommentPagination(PageNumberPagination):
     """
     page_size_query_param = 'size'
 
-    def get_paginated_response(self, data):
+    def get_paginated_response(self, data,post):
+        """Returns paginated response with additional `page` and `id` fields."""
+        post_author = post.author.author_profile
         return Response({
             "type": "comments",
-            "page": f"{self.request.build_absolute_uri()}",
-            "id": f"{self.request.build_absolute_uri()}",
+            "page": f"{post_author.host}/authors/{post_author.author_id}/posts/{post.id}",
+            "id": f"{post_author.host}/api/authors/{post_author.author_id}/posts/{post.id}/comments",
             "page_number": self.page.number,
             "size": self.page.paginator.per_page,
             "count": self.page.paginator.count,
@@ -186,22 +188,61 @@ class CommentPagination(PageNumberPagination):
 
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def author_commented(request, author_id):
     """
     GET: Get all comments made by an author.
     POST: Post a new comment on a post.
     """
     author = get_object_or_404(Author, author_id=author_id)
-    user = author.user  # Convert Author to User
+    # user = request.user if request.user.is_authenticated else Non
+    user = author.user  # Convert Author to User 
 
     if request.method == "GET":
         comments = Comment.objects.filter(user=user).order_by('-created_at')
-        paginator = CommentPagination()
-        paginated_comments = paginator.paginate_queryset(comments, request)
-        serializer = CommentSerializer(paginated_comments, many=True)
+        if not comments.exists():
+            return Response({
+                "type": "comments",
+                "page": "",
+                "id": "",
+                "page_number": 1,
+                "size": 0,
+                "count": 0,
+                "src": []
+            })
+        filtered_comments = []
+        for comment in comments:
+            post = comment.post
 
-        return paginator.get_paginated_response(serializer.data)
+            # PUBLIC: Always include
+            if post.visibility == "PUBLIC":
+                filtered_comments.append(comment)
+
+            # UNLISTED: Include for any authenticated user (as it's accessible via direct link)
+            elif post.visibility == "UNLISTED":
+                filtered_comments.append(comment)
+
+            # FRIENDS: Include only if the request user is a friend of the post author
+            elif post.visibility == "FRIENDS":
+                # if user and (user == post.author or user in post.author.author_profile.friends.all()):
+                filtered_comments.append(comment)
+
+        if not filtered_comments:
+            return Response({
+                "type": "comments",
+                "page": "",
+                "id": "",
+                "page_number": 1,
+                "size": 0,
+                "count": 0,
+                "src": []
+            })
+
+        paginator = CommentPagination()
+        paginated_comments = paginator.paginate_queryset(filtered_comments, request)
+        serializer = CommentSerializer(paginated_comments, many=True)
+        post = filtered_comments[0].post
+        return paginator.get_paginated_response(serializer.data,post)
 
     elif request.method == "POST":
         data = json.loads(request.body.decode("utf-8"))

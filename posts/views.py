@@ -331,7 +331,6 @@ def add_comment(request, post_id):
             user=request.user,  # Ensure user is authenticated
             content=content
         )
-
         return JsonResponse({
             "message": "Comment added successfully",
             "comment": {

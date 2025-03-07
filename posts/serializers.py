@@ -195,12 +195,14 @@ class CommentSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
     post = serializers.SerializerMethodField()
     page = serializers.SerializerMethodField()
-    published = serializers.DateTimeField(format="%Y-%m-%dT%H:%M:%S%z")
+    published=serializers.SerializerMethodField()
+    contentType = serializers.SerializerMethodField()
+    comment=serializers.SerializerMethodField()
     likes = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
-        fields = ["type", "id", "post", "page", "published", "contentType", "comment", "author", "likes"]
+        fields = ["type","author", "comment","contentType", "published","id", "post", "page","likes"]
 
     def get_id(self, obj):
         return obj.get_absolute_url()
@@ -213,6 +215,15 @@ class CommentSerializer(serializers.ModelSerializer):
 
     def get_author(self, obj):
         return obj.user.author_profile.to_dict()  # Use the `to_dict()` method
+    
+    def get_contentType(self,obj):
+        return obj.post.contentType
+    
+    def get_published(self,obj):
+        return obj.created_at.strftime("%Y-%m-%dT%H:%M:%S%z")
+
+    def get_comment(self,obj):
+        return obj.content
 
     def get_likes(self, obj):
         """Retrieve likes on this comment."""
