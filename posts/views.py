@@ -86,7 +86,6 @@ def view_posts(request):
         models.Q(visibility="UNLISTED", author=user)  # author can see his unlisted posts / 自己的 UNLISTED 也可见（GJ）
     ).exclude(visibility="DELETED").order_by('-published')  # Order by creation date
 
-    
     return render(request, "posts/views.html", {"posts": posts, "user": user.username})  # Render the posts page / 渲染帖子页面（GJ）
 
 @login_required
@@ -115,8 +114,7 @@ def post_detail(request, post_id):
 
     if post.visibility == "FRIENDS" and user != post.author and post.author.id not in mutual_friends_ids:
         return HttpResponseForbidden("You do not have permission to view this post.")  # Prevent unauthorized friend-only access / 防止未授权用户访问仅好友可见帖子（GJ）
-    
-    
+        
     return render(request, "posts/post_detail.html", {"post": post, "user": request.user.username})  # Pass user info / 传递用户信息（GJ）
 
 def image_to_base64(image_file):
@@ -333,7 +331,6 @@ def add_comment(request, post_id):
             user=request.user,  # Ensure user is authenticated
             content=content
         )
-
         return JsonResponse({
             "message": "Comment added successfully",
             "comment": {

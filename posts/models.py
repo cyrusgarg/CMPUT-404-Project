@@ -30,9 +30,7 @@ class Post(models.Model):
         ("DELETED", "Deleted")  # Deleted post, only visible to admins / 已删除的帖子，仅管理员可见（GJ）
     ]
 
-    #id = models.UUIDField(primary_key=True, editable=False)  # Unique identifier for the post / 帖子唯一标识符（GJ）
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  
-    #author = models.ForeignKey(User, on_delete=models.CASCADE)  # Link post to Django user model / 关联到Django用户模型（GJ）
     author = models.ForeignKey(User, on_delete=models.CASCADE)  
     title = models.CharField(max_length=255, default="")  # Post title / 帖子标题（GJ）
     description = models.TextField(default="")  # Short description of the post / 帖子简要描述（GJ）
@@ -107,6 +105,7 @@ class Like(models.Model):
 
 class Comment(models.Model):
     """Model to represent comments on a post."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE)   # User who wrote the comment
     post = models.ForeignKey(Post, related_name="comments", on_delete=models.CASCADE)  # The commented post
     content = models.TextField()  # Comment text
@@ -114,5 +113,37 @@ class Comment(models.Model):
     likes = models.ManyToManyField(User, related_name='comment_likes', blank=True)
     like_count = models.PositiveIntegerField(default=0)
 
+    def get_absolute_url(self):
+        """Returns the full API URL for this comment."""
+        author = self.user.author_profile  # Get the corresponding Author profile
+        return f"{author.host}/api/authors/{author.author_id}/commented/{self.id}"
+
+    def get_like_url(self):
+        """Returns the full API URL for likes on this comment."""
+        return f"{self.get_absolute_url()}/likes"
+
+    def to_dict(self):
+        """Formats the comment into the required JSON structure."""
+        author = self.user.author_profile  # Get the Author profile from User
+        return {
+            "type": "comment",
+            "id": self.get_absolute_url(),
+            "post": f"{self.post.author.author_profile.host}/api/authors/{self.post.author.author_profile.author_id}/posts/{self.post.id}",
+            "page": f"{self.post.author.author_profile.host}/authors/{self.post.author.author_profile.author_id}/posts/{self.post.id}",
+            "published": self.created_at.isoformat(),
+            "contentType": self.post.contentType,
+            "comment": self.content,
+            "author": author.to_dict(),
+            "likes": {
+                "type": "likes",
+                "id": self.get_like_url(),
+                "page": f"{self.get_absolute_url()}/likes",
+                "page_number": 1,
+                "size": 50,
+                "count": self.likes.count(),
+                "src": []  # Will be populated in the serializer
+            }
+        }
+
     def __str__(self):
-        return self.content
+         return f"Comment by {self.user.username} on {self.post.title}"

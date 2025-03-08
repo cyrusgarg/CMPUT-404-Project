@@ -6,9 +6,10 @@ from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import status
 from identity.models import Author
-from posts.models import Post
-from posts.serializers import PostSerializer
+from posts.models import Post,Comment
+from posts.serializers import PostSerializer, CommentSerializer
 from django.contrib.auth.models import User
+import json
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -165,3 +166,152 @@ def auth_test(request):
     Simple endpoint to test authentication.
     """
     return Response({"message": f"Authentication successful for user {request.user.username}"})
+
+class CommentPagination(PageNumberPagination):
+    """
+    Custom pagination response matching the required format for comments.
+    """
+    page_size_query_param = 'size'
+
+    def get_paginated_response(self, data,post):
+        """Returns paginated response with additional `page` and `id` fields."""
+        post_author = post.author.author_profile
+        return Response({
+            "type": "comments",
+            "page": f"{post_author.host}/authors/{post_author.author_id}/posts/{post.id}",
+            "id": f"{post_author.host}/api/authors/{post_author.author_id}/posts/{post.id}/comments",
+            "page_number": self.page.number,
+            "size": self.page.paginator.per_page,
+            "count": self.page.paginator.count,
+            "src": data  # Serialized list of comments
+        })
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
+def author_commented(request, author_id):
+    """
+    GET: Get all comments made by an author.
+    POST: Post a new comment on a post.
+    """
+    author = get_object_or_404(Author, author_id=author_id)
+    # user = request.user if request.user.is_authenticated else Non
+    user = author.user  # Convert Author to User 
+
+    if request.method == "GET":
+        comments = Comment.objects.filter(user=user).order_by('-created_at')
+        if not comments.exists():
+            return Response({
+                "type": "comments",
+                "page": "",
+                "id": "",
+                "page_number": 1,
+                "size": 0,
+                "count": 0,
+                "src": []
+            })
+        filtered_comments = []
+        for comment in comments:
+            post = comment.post
+
+            # PUBLIC: Always include
+            if post.visibility == "PUBLIC":
+                filtered_comments.append(comment)
+
+            # UNLISTED: Include for any authenticated user (as it's accessible via direct link)
+            elif post.visibility == "UNLISTED":
+                filtered_comments.append(comment)
+
+            # FRIENDS: Include only if the request user is a friend of the post author
+            elif post.visibility == "FRIENDS":
+                # if user and (user == post.author or user in post.author.author_profile.friends.all()):
+                filtered_comments.append(comment)
+
+        if not filtered_comments:
+            return Response({
+                "type": "comments",
+                "page": "",
+                "id": "",
+                "page_number": 1,
+                "size": 0,
+                "count": 0,
+                "src": []
+            })
+
+        paginator = CommentPagination()
+        paginated_comments = paginator.paginate_queryset(filtered_comments, request)
+        serializer = CommentSerializer(paginated_comments, many=True)
+        post = filtered_comments[0].post
+        return paginator.get_paginated_response(serializer.data,post)
+
+    elif request.method == "POST":
+        data = json.loads(request.body.decode("utf-8"))
+        
+        # Validate if the post exists
+        post = get_object_or_404(Post, id=data.get("post_id"))
+
+        comment = Comment.objects.create(
+            user=user,
+            post=post,
+            content=data.get("comment", ""),
+        )
+
+        return Response(CommentSerializer(comment).data, status=status.HTTP_201_CREATED)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_comment(request, author_id, comment_id):
+    """
+    GET: Retrieve a specific comment made by an author.
+    """
+    author = get_object_or_404(Author, author_id=author_id)
+    user = author.user  # Convert Author to User
+    comment = get_object_or_404(Comment, id=comment_id, user=user)
+
+    serializer = CommentSerializer(comment)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+    
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def like_comment(request, author_id, comment_id):
+    """Allow an authenticated user to like/unlike a comment."""
+    comment = get_object_or_404(Comment, id=comment_id)
+    user = request.user
+
+    if user in comment.likes.all():
+        comment.likes.remove(user)
+        comment.like_count -= 1
+    else:
+        comment.likes.add(user)
+        comment.like_count += 1
+
+    comment.save()
+
+    return Response({"message": "Like status updated", "like_count": comment.like_count})
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_comment_likes(request, author_id, comment_id):
+    """Retrieve all likes on a specific comment."""
+    comment = get_object_or_404(Comment, id=comment_id)
+    likes = [like.author_profile.to_dict() for like in comment.likes.all()]
+
+    return Response({
+        "type": "likes",
+        "id": f"{comment.get_like_url()}",
+        "page": f"{comment.get_absolute_url()}/likes",
+        "page_number": 1,
+        "size": 50,
+        "count": comment.likes.count(),
+        "src": likes,
+    })
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_comment_by_id(request, comment_id):
+    """
+    GET: Retrieve a comment by its global ID.
+    """
+    comment = get_object_or_404(Comment, id=comment_id)
+    serializer = CommentSerializer(comment)
+    return Response(serializer.data, status=status.HTTP_200_OK)

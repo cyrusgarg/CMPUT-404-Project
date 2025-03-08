@@ -14,8 +14,10 @@ Run the following command under root directory to update and collect all the sta
 To create a new post 
 "rm db.sqlite3
 rm -rf posts/migrations  #clean the db and mig file first
+rm -rf identity/migrations
 python manage.py makemigrations 
 python manage.py makemigrations posts
+python manage.py makemigrations identity
 python manage.py migrate #then do the migtate
 python manage.py createsuperuser       #create the super admin
 python manage.py runserver
