@@ -10,7 +10,8 @@ from posts.models import Post,Comment,Like
 from posts.serializers import PostSerializer, CommentSerializer,LikeSerializer
 from django.contrib.auth.models import User
 from identity.models import Following
-import json
+import json, urllib.parse
+from django.db.models import Q
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -475,12 +476,12 @@ def get_like_by_fqid(request, like_fqid):
     """
     Retrieve a single like by its Fully Qualified ID (FQID).
     """
-    decoded_fqid = urllib.parse.unquote(post_fqid)
-    print("decoded_fqid:", decoded_fqid)
-    return Response("Hi")
-    like = Like.objects.filter(models.Q(fqid=decoded_fqid))
-    #like = get_object_or_404(Like, id=like_id)
-
+    decoded_fqid = urllib.parse.unquote(like_fqid)
+    #print("decoded_fqid:", decoded_fqid)
+    
+    #like = Like.objects.filter(Q(fqid=decoded_fqid))
+    like = get_object_or_404(Like, fqid=decoded_fqid)
+     
     serializer = LikeSerializer(like)
 
     return Response(serializer.data, status=status.HTTP_200_OK)
