@@ -206,4 +206,32 @@ class PostAPITestCase(TestCase):
         
         self.assertEqual(response.status_code, 200)
         comments = response.data
-        self.assertTrue(any(comment["content"] == comment_text for comment in comments))
+        self.assertTrue(any(comment["comment"] == comment_text for comment in comments))
+
+    def test_like_comment_toggle(self):
+        """
+        Test liking a comment and then unliking it.
+        """
+        # Create a comment on the post.
+        comment = Comment.objects.create(
+            post=self.post, 
+            user=self.author, 
+            content="Test comment"
+        )
+        
+        # Construct the URL for the like_comment view.
+        url = reverse("posts:like_comment", kwargs={"post_id": self.post.id, "comment_id": comment.id})
+        
+        # First, like the comment.
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content.decode())
+        self.assertTrue(data.get("liked"))
+        self.assertEqual(data.get("like_count"), 1)
+        
+        # Then, unlike the comment (toggle off).
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content.decode())
+        self.assertFalse(data.get("liked"))
+        self.assertEqual(data.get("like_count"), 0)

@@ -3,6 +3,7 @@
 <head>
     <title>{{ post.title }}</title>
     {% load static %}
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <link rel="stylesheet" type="text/css" href="{% static 'css/PostDetail.css' %}">
 </head>
 <body>
@@ -50,24 +51,22 @@
     <!-- Comment list -->
     <h2>Comments</h2>
     <ul id="comment-list">
-        {% for comment in post.comments.all %}
-            <li>
-                <strong>{{ comment.user.username }}</strong>: {{ comment.content }} 
-                <p>Likes: {{ comment.like_count }}</p>
+        {% for comment in comments %}
+            <li data-comment-id="{{ comment.id }}">
+                <strong>{{ comment.user.username }}</strong>: {{ comment.content }}
+                <p>Likes: <span class="like-count">{{ comment.like_count }}</span></p>
                 <!-- Like button for comment -->
-                {% if user == comment.post.author or user in comment.post.author.friends.all %}
-                    <form action="{% url 'posts:like_comment' post.id comment.id %}" method="POST">
-                        {% csrf_token %}
-                        <button type="submit" class="like-button {% if comment.is_liked_by_user %}liked{% else %}unliked{% endif %}">
-                            {% if comment.is_liked_by_user %} Unlike {% else %} Like {% endif %}
-                        </button>
-                    </form>
-                {% endif %}
+                <form action="{% url 'posts:like_comment' post.id comment.id %}" method="POST" class="like-comment-form">
+                    {% csrf_token %}
+                    <button type="submit" class="like-button {% if comment.is_liked_by_user %}liked{% else %}unliked{% endif %}">
+                        {% if comment.is_liked_by_user %}Liked{% else %}Like{% endif %}
+                    </button>
+                </form>
             </li>
         {% empty %}
             <li><em>No comments yet.</em></li>
         {% endfor %}
-    </ul>
+    </ul>    
 
     {% if post.visibility == "DELETED" %}
         <!-- Show deleted message if the post is marked as deleted / 如果帖子被标记为删除，显示红色警告（GJ） -->
@@ -92,48 +91,102 @@
         <script src="{% static 'markdown-renderer.min.js' %}"></script> <!-- Load bundled JS -->
     {%endif%}
 
-     <!-- JavaScript to dynamically update the comment list -->
+     <!-- JavaScript to dynamically update the comment list and handle like-comment form -->
      <script>
         document.addEventListener("DOMContentLoaded", function() {
-          const commentForm = document.getElementById("comment-form");
-          if (commentForm) {
-            commentForm.addEventListener("submit", function(event) {
-              event.preventDefault();
-              // Create FormData object from the form
-              const formData = new FormData(commentForm);
-              
-              fetch(commentForm.action, {
-                method: "POST",
-                credentials: "same-origin",
-                body: formData
-              })
-              .then(response => response.json())
-              .then(data => {
-                console.log("Comment added:", data);
-                
-                const commentList = document.getElementById("comment-list");
-                
-                // Remove any li elements that say "No comments yet."
-                commentList.querySelectorAll("li").forEach(li => {
-                  if (li.textContent.includes("No comments yet.")) {
-                    li.remove();
-                  }
+            // Function to attach AJAX event listeners to all like-comment forms.
+            function attachLikeCommentListeners() {
+                const likeForms = document.querySelectorAll('.like-comment-form');
+                likeForms.forEach(form => {
+                    // Remove any existing event listeners if necessary before attaching
+                    form.addEventListener("submit", function(e) {
+                        e.preventDefault(); // Prevent default form submission
+                        const url = form.action;
+                        const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]').value;
+                        
+                        fetch(url, {
+                            method: "POST",
+                            credentials: "same-origin",
+                            headers: {
+                                "X-CSRFToken": csrfToken,
+                                "Accept": "application/json",
+                            },
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            // Locate the parent list item and update like count
+                            const commentItem = form.closest('li');
+                            const likeCountElem = commentItem.querySelector('.like-count');
+                            likeCountElem.textContent = data.like_count;
+                            // Update button text and styling
+                            const button = form.querySelector('button');
+                            if (data.liked) {
+                                button.textContent = "Liked";
+                                button.classList.remove("unliked");
+                                button.classList.add("liked");
+                            } else {
+                                button.textContent = "Like";
+                                button.classList.remove("liked");
+                                button.classList.add("unliked");
+                            }
+                        })
+                        .catch(error => console.error("Error:", error));
+                    });
                 });
-                
-                // If the response contains a comment object, add it to the list
-                if (data.comment) {
-                  const newComment = document.createElement("li");
-                  newComment.innerHTML = `<strong>${data.comment.author}</strong>: ${data.comment.content}`;
-                  commentList.prepend(newComment);
-                }
-                
-                // Clear the textarea after submission
-                commentForm.querySelector('textarea[name="content"]').value = "";
-              })
-              .catch(error => console.error("Error adding comment:", error));
-            });
-          }
+            }
+            
+            // Initially attach listeners to existing like-comment forms.
+            attachLikeCommentListeners();
+
+            // Handle comment form submission via AJAX
+            const commentForm = document.getElementById("comment-form");
+            if (commentForm) {
+                commentForm.addEventListener("submit", function(event) {
+                    event.preventDefault();
+                    // Create FormData object from the form
+                    const formData = new FormData(commentForm);
+                    
+                    fetch(commentForm.action, {
+                        method: "POST",
+                        credentials: "same-origin",
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log("Comment added:", data);
+                        
+                        const commentList = document.getElementById("comment-list");
+                        
+                        // Remove any li elements that say "No comments yet."
+                        commentList.querySelectorAll("li").forEach(li => {
+                            if (li.textContent.includes("No comments yet.")) {
+                                li.remove();
+                            }
+                        });
+                        
+                        if (data.comment) {
+                            const newComment = document.createElement("li");
+                            newComment.setAttribute("data-comment-id", data.comment.id);
+                            newComment.innerHTML = `
+                                <strong>${data.comment.author}</strong>: ${data.comment.content}
+                                <p>Likes: <span class="like-count">0</span></p>
+                                <form action="/posts/{{ post.id }}/comment/${data.comment.id}/like/" method="POST" class="like-comment-form">
+                                    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                                    <button type="submit" class="like-button unliked">Like</button>
+                                </form>
+                            `;
+                            commentList.prepend(newComment);
+                            // Re-attach event listeners for newly added like-comment forms.
+                            attachLikeCommentListeners();
+                        }
+                        
+                        // Clear the textarea after submission
+                        commentForm.querySelector('textarea[name="content"]').value = "";
+                    })
+                    .catch(error => console.error("Error adding comment:", error));
+                });
+            }
         });
-      </script>      
+    </script>      
 </body>
 </html>
