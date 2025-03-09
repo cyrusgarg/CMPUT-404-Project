@@ -366,6 +366,30 @@ def inbox_like(request, author_id):
 
     return Response({"message": "Like received successfully."}, status=status.HTTP_201_CREATED)
 
+class LikePagination(PageNumberPagination):
+    """
+    Custom pagination for Likes.
+    Ensures proper structure with page number, size, and count.
+    """
+    page_size_query_param = "size"  # Allow dynamic page size via query parameters
+    page_size = 5  # Default page size
+    max_page_size = 50  # Limit max likes per request
+
+    def get_paginated_response(self, data,post):
+        """
+        Returns a paginated response structured as per the spec.
+        """
+        post_author = post.author.author_profile
+        return Response({
+            "type": "likes",
+            "page": f"{post_author.host}/authors/{post_author.author_id}/posts/{post.id}",
+            "id": f"{post_author.host}/api/authors/{post_author.author_id}/posts/{post.id}/likes",
+            "page_number": self.page.number,
+            "size": self.page.paginator.per_page,
+            "count": self.page.paginator.count,
+            "src": data,
+        })
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def post_likes(request, author_id, post_id):
@@ -375,22 +399,18 @@ def post_likes(request, author_id, post_id):
     author = get_object_or_404(Author, author_id=author_id)
     post = get_object_or_404(Post, id=post_id, author=author.user)
 
-    if post.visibility not in ["PUBLIC", "UNLISTED"] and request.user != post.author:
+    #if post.visibility not in ["PUBLIC", "UNLISTED"] and request.user != post.author:
+    if post.visibility not in ["PUBLIC", "UNLISTED"]:
         return Response({"detail": "You do not have permission to view likes on this post."},
                         status=status.HTTP_403_FORBIDDEN)
 
-    likes = Like.objects.filter(post=post).order_by("-created_at")[:5]  # Limit to latest 5
-    serializer = LikeSerializer(likes, many=True)
+    likes = Like.objects.filter(post=post).order_by("-created_at")  
+    paginator = LikePagination()
+    paginated_likes = paginator.paginate_queryset(likes, request)
 
-    return Response({
-        "type": "likes",
-        "page": f"{author.host}/authors/{author_id}/posts/{post_id}",
-        "id": f"{author.host}/api/authors/{author_id}/posts/{post_id}/likes",
-        "page_number": 1,
-        "size": 5,
-        "count": likes.count(),
-        "src": serializer.data
-    })
+    serializer = LikeSerializer(paginated_likes, many=True)
+
+    return paginator.get_paginated_response(serializer.data,post)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -401,15 +421,10 @@ def comment_likes(request, author_id, post_id, comment_id):
     author = get_object_or_404(Author, author_id=author_id)
     comment = get_object_or_404(Comment, id=comment_id, post__id=post_id, user=author.user)
 
-    likes = Like.objects.filter(comment=comment).order_by("-created_at")[:5]  # Limit to latest 5
-    serializer = LikeSerializer(likes, many=True)
+    likes = Like.objects.filter(comment=comment).order_by("-created_at")
+    paginator = LikePagination()
+    paginated_likes = paginator.paginate_queryset(likes, request)
 
-    return Response({
-        "type": "likes",
-        "page": f"{author.host}/authors/{author_id}/posts/{post_id}/comments/{comment_id}",
-        "id": f"{author.host}/api/authors/{author_id}/posts/{post_id}/comments/{comment_id}/likes",
-        "page_number": 1,
-        "size": 5,
-        "count": likes.count(),
-        "src": serializer.data
-    })
+    serializer = LikeSerializer(paginated_likes, many=True)
+
+    return paginator.get_paginated_response(serializer.data,post)
