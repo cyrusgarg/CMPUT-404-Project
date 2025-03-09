@@ -5,5 +5,6 @@ app_name = 'api_posts'
 
 urlpatterns = [
     # API endpoints
-    path('<uuid:post_id>/', api_views.get_post_by_fqid, name='api-posts')
+    path('<uuid:post_id>/', api_views.get_post_by_fqid, name='api-posts'),
+    path('<uuid:post_id>/likes', api_views.local_post_likes, name='local_post_likes')
 ]

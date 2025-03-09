@@ -6,9 +6,10 @@ from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import status
 from identity.models import Author
-from posts.models import Post,Comment
-from posts.serializers import PostSerializer, CommentSerializer
+from posts.models import Post,Comment,Like
+from posts.serializers import PostSerializer, CommentSerializer,LikeSerializer
 from django.contrib.auth.models import User
+from identity.models import Following
 import json
 
 @api_view(['GET'])
@@ -167,6 +168,17 @@ def auth_test(request):
     """
     return Response({"message": f"Authentication successful for user {request.user.username}"})
 
+def get_mutual_friend_list(user):
+    # Get the followers of the current user / 获取当前用户的关注者（即用户关注的对象）（GJ）
+    following_ids = Following.objects.filter(follower=user).values_list("followee_id", flat=True)  
+
+    # Get users who follow the current user / 获取关注当前用户的用户（即谁关注了我）（GJ）
+    followers_ids = Following.objects.filter(followee=user).values_list("follower_id", flat=True)  
+
+    # Users who follow each other are friends/ 互相关注的用户即为好友（friends）（GJ）
+    mutual_friends_ids = set(following_ids).intersection(set(followers_ids))
+    return mutual_friends_ids
+
 class CommentPagination(PageNumberPagination):
     """
     Custom pagination response matching the required format for comments.
@@ -197,7 +209,7 @@ def author_commented(request, author_id):
     author = get_object_or_404(Author, author_id=author_id)
     # user = request.user if request.user.is_authenticated else Non
     user = author.user  # Convert Author to User 
-
+    
     if request.method == "GET":
         comments = Comment.objects.filter(user=user).order_by('-created_at')
         if not comments.exists():
@@ -224,8 +236,10 @@ def author_commented(request, author_id):
 
             # FRIENDS: Include only if the request user is a friend of the post author
             elif post.visibility == "FRIENDS":
-                # if user and (user == post.author or user in post.author.author_profile.friends.all()):
-                filtered_comments.append(comment)
+                mutual_friends_ids= get_mutual_friend_list(post.author)
+                #if user and (user == post.author or user in post.author.author_profile.friends.all()):
+                if user and (user == post.author or user.id in mutual_friends_ids):
+                    filtered_comments.append(comment)
 
         if not filtered_comments:
             return Response({
@@ -245,10 +259,13 @@ def author_commented(request, author_id):
         return paginator.get_paginated_response(serializer.data,post)
 
     elif request.method == "POST":
-        data = json.loads(request.body.decode("utf-8"))
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON format"}, status=400)
         
         # Validate if the post exists
-        post = get_object_or_404(Post, id=data.get("post_id"))
+        post = get_object_or_404(Post, id=data.get("post"))
 
         comment = Comment.objects.create(
             user=user,
@@ -315,3 +332,103 @@ def get_comment_by_id(request, comment_id):
     comment = get_object_or_404(Comment, id=comment_id)
     serializer = CommentSerializer(comment)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def inbox_like(request, author_id):
+    """
+    POST: Accepts a remote like object and processes it.
+    """
+    author = get_object_or_404(Author, author_id=author_id)
+    data = request.data
+
+    if data.get("type") != "like":
+        return Response({"error": "Invalid object type."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Extract author details
+    liker_author_url = data["author"]["id"]
+    liker = Author.objects.filter(author_id=liker_author_url.split("/")[-1]).first()
+
+    if not liker:
+        return Response({"error": "Liker author not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Determine if this is a post or comment like
+    object_url = data.get("object")
+    #TODO: need to put the constraint that same user will not send the like what he already liked
+    if(object_url.split("/")[-2]=="posts"):
+        post = Post.objects.filter(id=object_url.split("/")[-1]).first()
+        Like.objects.create(user=liker.user, post=post)
+    elif(object_url.split("/")[-2]=="commented"):
+        comment = Comment.objects.filter(id=object_url.split("/")[-1]).first()
+        Like.objects.create(user=liker.user, comment=comment)
+    else:
+        return Response({"error": "Invalid object reference."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # if post:
+        
+    # elif comment:
+    return Response({"message": "Like received successfully."}, status=status.HTTP_201_CREATED)
+
+class LikePagination(PageNumberPagination):
+    """
+    Custom pagination for Likes.
+    Ensures proper structure with page number, size, and count.
+    """
+    page_size_query_param = "size"  # Allow dynamic page size via query parameters
+    page_size = 5  # Default page size
+    max_page_size = 50  # Limit max likes per request
+
+    def get_paginated_response(self, data,post):
+        """
+        Returns a paginated response structured as per the spec.
+        """
+        post_author = post.author.author_profile
+        return Response({
+            "type": "likes",
+            "page": f"{post_author.host}/authors/{post_author.author_id}/posts/{post.id}",
+            "id": f"{post_author.host}/api/authors/{post_author.author_id}/posts/{post.id}/likes",
+            "page_number": self.page.number,
+            "size": self.page.paginator.per_page,
+            "count": self.page.paginator.count,
+            "src": data,
+        })
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def post_likes(request, author_id, post_id):
+    """
+    GET: Return all likes for a specific post, following visibility rules.
+    """
+    author = get_object_or_404(Author, author_id=author_id)
+    post = get_object_or_404(Post, id=post_id, author=author.user)
+
+    #if post.visibility not in ["PUBLIC", "UNLISTED"] and request.user != post.author:
+    if post.visibility not in ["PUBLIC", "UNLISTED"]:
+        return Response({"detail": "You do not have permission to view likes on this post."},
+                        status=status.HTTP_403_FORBIDDEN)
+
+    likes = Like.objects.filter(post=post).order_by("-created_at")  
+    paginator = LikePagination()
+    paginated_likes = paginator.paginate_queryset(likes, request)
+
+    serializer = LikeSerializer(paginated_likes, many=True)
+
+    return paginator.get_paginated_response(serializer.data,post)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def comment_likes(request, author_id, post_id, comment_id):
+    """
+    GET: Return all likes for a specific comment.
+    """
+    author = get_object_or_404(Author, author_id=author_id)
+    post = get_object_or_404(Post, id=post_id, author=author.user)
+    comment = get_object_or_404(Comment, id=comment_id, post__id=post_id, user=author.user)
+
+    likes = Like.objects.filter(comment=comment).order_by("-created_at")
+    paginator = LikePagination()
+    paginated_likes = paginator.paginate_queryset(likes, request)
+
+    serializer = LikeSerializer(paginated_likes, many=True)
+
+    return paginator.get_paginated_response(serializer.data,post)
