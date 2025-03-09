@@ -16,4 +16,7 @@ urlpatterns = [
     path('<uuid:author_id>/posts/<uuid:post_id>/likes', api_views.post_likes, name='post_likes'),
     path('<uuid:author_id>/posts/<uuid:post_id>/comments/<uuid:comment_id>/likes', api_views.comment_likes, name='comment_likes'),
     path('commented/<uuid:comment_id>/', api_views.get_comment_by_id, name='get_comment_by_id'),
+    path('<uuid:author_id>/liked', api_views.get_author_likes, name='api-author-liked'),
+    path('<uuid:author_id>/liked/<uuid:like_id>', api_views.get_single_like, name='api-single-like'),
+    path('liked/<uuid:like_id>', api_views.get_single_like_by_fqid, name='api-liked-fqid'),
 ]
