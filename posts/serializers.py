@@ -182,10 +182,30 @@ class PostSerializer(serializers.ModelSerializer):
         return instance
 
 class LikeSerializer(serializers.ModelSerializer):
-    """Serializer for Like model to convert data into JSON format."""
+    """
+    Serializer for Like model, ensuring response matches API expectations.
+    """
+    type = serializers.CharField(default="like")
+    id = serializers.SerializerMethodField()
+    author = serializers.SerializerMethodField()
+    object = serializers.SerializerMethodField()
+    published = serializers.DateTimeField(source="created_at", format="%Y-%m-%dT%H:%M:%S%z")
+
     class Meta:
         model = Like
-        fields = "__all__"
+        fields = ["type", "author", "published", "id","object"]
+
+    def get_id(self, obj):
+        """Returns the full API URL for the like."""
+        return obj.get_id()
+
+    def get_author(self, obj):
+        """Returns the author details in the required format."""
+        return obj.user.author_profile.to_dict()
+
+    def get_object(self, obj):
+        """Returns the liked object (post or comment)."""
+        return obj.get_object_url()
 
 class CommentSerializer(serializers.ModelSerializer):
     """Serializer for Comment model to convert data into JSON format."""

@@ -96,12 +96,32 @@ class Post(models.Model):
 
 class Like(models.Model):
     """Model to represent likes on a post."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE)     # User who liked the post
-    post = models.ForeignKey(Post, related_name="likes", on_delete=models.CASCADE)  # The liked post
+    post = models.ForeignKey("Post", related_name="likes", on_delete=models.CASCADE, null=True, blank=True)  # Post likes
+    comment = models.ForeignKey("Comment", related_name="comment_likes", on_delete=models.CASCADE, null=True, blank=True)  # Comment likes
     created_at = models.DateTimeField(auto_now_add=True)    # Timestamp for when the like was added
 
     class Meta:
         unique_together = ("user", "post")  # Ensures a user can only like a post once
+    
+    def __str__(self):
+        return f"{self.user.username} liked {'Post' if self.post else 'Comment'}"
+    
+    def get_object_url(self):
+        """Return the URL of the object liked (post or comment)."""
+        if self.post:
+            author = self.post.author.author_profile
+            return f"{author.host}/api/authors/{author.author_id}/posts/{self.post.id}"
+        if self.comment:
+            author = self.comment.user.author_profile
+            return f"{author.host}/api/authors/{author.author_id}/posts/{self.comment.post.id}/comments/{self.comment.id}"
+        return ""
+
+    def get_id(self):
+        """Return the full API URL for this like."""
+        author = self.user.author_profile
+        return f"{author.host}/api/authors/{author.author_id}/liked/{self.id}"
 
 class Comment(models.Model):
     """Model to represent comments on a post."""
@@ -110,7 +130,7 @@ class Comment(models.Model):
     post = models.ForeignKey(Post, related_name="comments", on_delete=models.CASCADE)  # The commented post
     content = models.TextField()  # Comment text
     created_at = models.DateTimeField(auto_now_add=True)  # Timestamp for when the comment was added
-    likes = models.ManyToManyField(User, related_name='comment_likes', blank=True)
+    likes = models.ManyToManyField(User, related_name='comment_likes_users', blank=True)
     like_count = models.PositiveIntegerField(default=0)
 
     def get_absolute_url(self):
