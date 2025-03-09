@@ -100,6 +100,7 @@ class Like(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)     # User who liked the post
     post = models.ForeignKey("Post", related_name="likes", on_delete=models.CASCADE, null=True, blank=True)  # Post likes
     comment = models.ForeignKey("Comment", related_name="comment_likes", on_delete=models.CASCADE, null=True, blank=True)  # Comment likes
+    fqid = models.URLField(blank=True, null=True)  # Store FQID for remote objects
     created_at = models.DateTimeField(auto_now_add=True)    # Timestamp for when the like was added
 
     class Meta:
@@ -110,6 +111,8 @@ class Like(models.Model):
     
     def get_object_url(self):
         """Return the URL of the object liked (post or comment)."""
+        if self.fqid:
+            return self.fqid  # Return the stored remote FQID
         if self.post:
             author = self.post.author.author_profile
             return f"{author.host}/api/authors/{author.author_id}/posts/{self.post.id}"

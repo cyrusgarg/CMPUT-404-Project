@@ -471,11 +471,15 @@ def get_single_like(request, author_id, like_id):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def get_single_like_by_fqid(request, like_id):
+def get_like_by_fqid(request, like_fqid):
     """
     Retrieve a single like by its Fully Qualified ID (FQID).
     """
-    like = get_object_or_404(Like, id=like_id)
+    decoded_fqid = urllib.parse.unquote(post_fqid)
+    print("decoded_fqid:", decoded_fqid)
+    return Response("Hi")
+    like = Like.objects.filter(models.Q(fqid=decoded_fqid))
+    #like = get_object_or_404(Like, id=like_id)
 
     serializer = LikeSerializer(like)
 
