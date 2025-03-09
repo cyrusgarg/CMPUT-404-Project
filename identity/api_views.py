@@ -7,7 +7,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework import status
 from identity.models import Author
 from posts.models import Post,Comment,Like
-from posts.serializers import PostSerializer, CommentSerializer
+from posts.serializers import PostSerializer, CommentSerializer,LikeSerializer
 from django.contrib.auth.models import User
 from identity.models import Following
 import json
@@ -347,23 +347,26 @@ def inbox_like(request, author_id):
 
     # Extract author details
     liker_author_url = data["author"]["id"]
-    liker = Author.objects.filter(id=liker_author_url).first()
+    liker = Author.objects.filter(author_id=liker_author_url.split("/")[-1]).first()
 
     if not liker:
         return Response({"error": "Liker author not found."}, status=status.HTTP_400_BAD_REQUEST)
 
     # Determine if this is a post or comment like
     object_url = data.get("object")
-    post = Post.objects.filter(id=object_url.split("/")[-1]).first()
-    comment = Comment.objects.filter(id=object_url.split("/")[-1]).first()
-
-    if post:
+    #TODO: need to put the constraint that same user will not send the like what he already liked
+    if(object_url.split("/")[-2]=="posts"):
+        post = Post.objects.filter(id=object_url.split("/")[-1]).first()
         Like.objects.create(user=liker.user, post=post)
-    elif comment:
+    elif(object_url.split("/")[-2]=="commented"):
+        comment = Comment.objects.filter(id=object_url.split("/")[-1]).first()
         Like.objects.create(user=liker.user, comment=comment)
     else:
         return Response({"error": "Invalid object reference."}, status=status.HTTP_400_BAD_REQUEST)
 
+    # if post:
+        
+    # elif comment:
     return Response({"message": "Like received successfully."}, status=status.HTTP_201_CREATED)
 
 class LikePagination(PageNumberPagination):
@@ -419,6 +422,7 @@ def comment_likes(request, author_id, post_id, comment_id):
     GET: Return all likes for a specific comment.
     """
     author = get_object_or_404(Author, author_id=author_id)
+    post = get_object_or_404(Post, id=post_id, author=author.user)
     comment = get_object_or_404(Comment, id=comment_id, post__id=post_id, user=author.user)
 
     likes = Like.objects.filter(comment=comment).order_by("-created_at")
