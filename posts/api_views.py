@@ -60,3 +60,38 @@ def get_post_by_fqid(request, post_id):
 
     # Default fallback
     return Response({"detail": "Post not found or inaccessible."}, status=status.HTTP_404_NOT_FOUND)
+
+
+# @api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+# def like_post(request, author_id, post_id):
+#     """
+#     POST: Allow authenticated user to like a post.
+#     """
+#     author = get_object_or_404(Author, author_id=author_id)
+#     post = get_object_or_404(Post, id=post_id, author=author.user)
+
+#     if Like.objects.filter(user=request.user, post=post).exists():
+#         return Response({"detail": "You have already liked this post."}, status=status.HTTP_400_BAD_REQUEST)
+
+#     like = Like.objects.create(user=request.user, post=post)
+#     serializer = LikeSerializer(like)
+
+#     return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+# @api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+# def like_comment(request, author_id, post_id, comment_id):
+#     """
+#     POST: Allow authenticated user to like a comment.
+#     """
+#     author = get_object_or_404(Author, author_id=author_id)
+#     comment = get_object_or_404(Comment, id=comment_id, post__id=post_id, user=author.user)
+
+#     if Like.objects.filter(user=request.user, comment=comment).exists():
+#         return Response({"detail": "You have already liked this comment."}, status=status.HTTP_400_BAD_REQUEST)
+
+#     like = Like.objects.create(user=request.user, comment=comment)
+#     serializer = LikeSerializer(like)
+
+#     return Response(serializer.data, status=status.HTTP_201_CREATED)

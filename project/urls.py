@@ -24,8 +24,8 @@ urlpatterns = [
     #path('api/authors/', include('authors.urls')),  # Include author-related API (including inbox)
     path('authors/', include('identity.urls', namespace='identity')),
     path('api/authors/', include('identity.api_urls', namespace='identity_api')),
-    path('api/commented/',include('identity.api_urls',namespace='comments_api')),
     path('api/posts/', include('posts.api_urls',namespace='posts_api')),  # Keep post-related API separate
+    path('api/',include('identity.api_urls',namespace='comments_api')),
     path('admin/', admin.site.urls),
 ]
 

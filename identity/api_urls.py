@@ -12,5 +12,8 @@ urlpatterns = [
     path('api/auth-test/', api_views.auth_test, name='auth-test'),
     path('<uuid:author_id>/commented/', api_views.author_commented, name='author_commented'),
     path('<uuid:author_id>/commented/<uuid:comment_id>/', api_views.get_comment, name='get_comment'),
-    path('<uuid:comment_id>/', api_views.get_comment_by_id, name='get_comment_by_id'),
+    path('<uuid:author_id>/inbox', api_views.inbox_like, name='inbox_like'),
+    path('<uuid:author_id>/posts/<uuid:post_id>/likes', api_views.post_likes, name='post_likes'),
+    path('<uuid:author_id>/posts/<uuid:post_id>/comments/<uuid:comment_id>/likes', api_views.comment_likes, name='comment_likes'),
+    path('commented/<uuid:comment_id>/', api_views.get_comment_by_id, name='get_comment_by_id'),
 ]
