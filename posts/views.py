@@ -109,13 +109,21 @@ def post_detail(request, post_id):
     # Users who follow each other are friends/ 互相关注的用户即为好友（friends）（GJ）
     mutual_friends_ids = set(following_ids).intersection(set(followers_ids))
 
+    post.is_liked_by_user = post.likes.filter(id=user.id).exists()
+    # Re-fetch comments and set liked status for each one
+    comments = list(post.comments.all())
+    for comment in comments:
+        # Ensure we have the latest state from the DB
+        comment.refresh_from_db()
+        comment.is_liked_by_user = comment.likes.filter(id=user.id).exists()
+
     if post.visibility == "DELETED" and not user.is_superuser:
         return HttpResponseForbidden("You do not have permission to view this post.")  # Forbidden response if post is deleted / 如果帖子已删除且用户非管理员，则返回403（GJ）
 
     if post.visibility == "FRIENDS" and user != post.author and post.author.id not in mutual_friends_ids:
         return HttpResponseForbidden("You do not have permission to view this post.")  # Prevent unauthorized friend-only access / 防止未授权用户访问仅好友可见帖子（GJ）
         
-    return render(request, "posts/post_detail.html", {"post": post, "user": request.user.username})  # Pass user info / 传递用户信息（GJ）
+    return render(request, "posts/post_detail.html", {"post": post, "user": request.user.username, "comments": comments}) 
 
 def image_to_base64(image_file):
   """
@@ -369,20 +377,26 @@ def get_comments(request, post_id):
 
 @login_required
 def like_comment(request, post_id, comment_id):
-    # Get the comment instance
-    post = get_object_or_404(Post, id=post_id)
+    # Retrieve the comment using the comment_id from the URL
     comment = get_object_or_404(Comment, id=comment_id)
-    
-    # Check if the user has already liked the comment
-    if request.user in comment.likes.all():
-        comment.likes.remove(request.user)
-        comment.like_count -= 1  # Decrease like count
+    user = request.user
+
+    if comment.likes.filter(pk=user.pk).exists():
+        comment.likes.remove(user)
+        liked = False
     else:
-        comment.likes.add(request.user)
-        comment.like_count += 1  # Increase like count
-    
-    # Save the updated like count
+        comment.likes.add(user)
+        liked = True
+
+    # Update the like_count field
+    comment.like_count = comment.likes.count()
     comment.save()
 
-    # Redirect back to the post detail page
-    return redirect('posts:post_detail', post_id=post.id)
+    # Return a JSON response with the updated like details
+    return JsonResponse({
+        "type": "like",
+        "comment": comment.get_absolute_url(),
+        "liked": liked,
+        "like_count": comment.like_count,
+        "author": request.user.author_profile.to_dict()  # Assumes every user has an author_profile
+    })
