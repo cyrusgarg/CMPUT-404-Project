@@ -1,5 +1,5 @@
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
+from django.http import JsonResponse, HttpResponse
+from django.shortcuts import get_object_or_404, redirect
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated,AllowAny
@@ -10,8 +10,13 @@ from posts.models import Post,Comment,Like
 from posts.serializers import PostSerializer, CommentSerializer,LikeSerializer
 from django.contrib.auth.models import User
 from identity.models import Following
-import json, urllib.parse
+import json, urllib.parse, re, base64
 from django.db.models import Q
+try:
+    from bs4 import BeautifulSoup
+    BS4_AVAILABLE = True
+except ImportError:
+    BS4_AVAILABLE = False
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -546,3 +551,97 @@ def get_like_by_fqid(request, like_fqid):
     serializer = LikeSerializer(like)
 
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def image_post(request, author_id, post_id):
+    """
+    Retrieve the image from an author's post.
+
+    - Checks post.image field (base64 or URL).
+    - If not found, extracts from post.content (HTML <img> tag or markdown).
+    - Redirects to the image URL or returns 404.
+    """
+    author = get_object_or_404(Author, author_id=author_id)
+    post = get_object_or_404(Post, id=post_id, author=author.user)
+
+    # Check if there's a direct image field
+    if post.image:
+        if post.image.startswith("data:image/"):
+            try:
+                header, encoded = post.image.split(',', 1)
+                content_type = header.split(':')[1].split(';')[0]
+                missing_padding = len(encoded) % 4
+                if missing_padding:
+                    encoded += '=' * (4 - missing_padding)
+                image_data = base64.b64decode(encoded)
+                return HttpResponse(image_data, content_type=content_type)
+            except Exception as e:
+                print("Error decoding image:", e)
+                return Response({"detail": "Invalid image data"}, status=status.HTTP_404_NOT_FOUND)
+        elif post.image.startswith("http://") or post.image.startswith("https://"):
+            return redirect(post.image)
+
+    # Extract from post content
+    img_src = None
+    if post.content:
+        if BS4_AVAILABLE:
+            soup = BeautifulSoup(post.content, 'html.parser')
+            img_tag = soup.find('img')
+            if img_tag:
+                img_src = img_tag.get('src')
+        if not img_src:
+            match = re.search(r'<img\s+[^>]*src=["\']([^"\']+)["\']', post.content)
+            if match:
+                img_src = match.group(1)
+        if not img_src:
+            match_md = re.search(r'!\[.*?\]\((.*?)\)', post.content)
+            if match_md:
+                img_src = match_md.group(1)
+
+    if img_src:
+        return redirect(img_src)
+
+    return Response({"detail": "Not an image"}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def post_comment(request, author_id, post_id):
+    """
+    GET: Retrieve a paginated list of comments for the specified post under a specific author.
+         Visibility rules:
+           - PUBLIC and UNLISTED posts are accessible to everyone.
+           - FRIENDS posts require the request user to be authenticated and either the post's author 
+             or in the author's friends list.
+    """
+    author = get_object_or_404(Author, author_id=author_id)
+    post = get_object_or_404(Post, id=post_id, author=author.user)
+
+    # Check visibility before returning comments.
+    if post.visibility in ["PUBLIC", "UNLISTED"]:
+        pass  # These posts are accessible
+    elif post.visibility == "FRIENDS":
+        if request.user.is_authenticated:
+            if request.user != post.author and request.user not in post.author.author_profile.friends.all():
+                return Response(
+                    {"detail": "You do not have permission to view comments on this post."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        else:
+            return Response(
+                {"detail": "Authentication is required to view comments on this post."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+    else:
+        return Response(
+            {"detail": "You do not have permission to view comments on this post."},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    # Retrieve and paginate comments
+    comments = post.comments.all().order_by("-created_at")
+    paginator = CommentPagination()
+    paginated_comments = paginator.paginate_queryset(comments, request)
+    serializer = CommentSerializer(paginated_comments, many=True, context={'request': request})
+    return paginator.get_paginated_response(serializer.data, post)
