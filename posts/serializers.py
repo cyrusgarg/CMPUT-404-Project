@@ -74,66 +74,48 @@ class PostSerializer(serializers.ModelSerializer):
       
     def get_comments(self, obj):
         """Fetches comments in the required format."""
-        return ""
-        comments = obj.comments.order_by('-published')[:5]  # Fetch latest 5 comments
+        request = self.context.get("request")
+        if request is None:
+            return {"type": "Comments", "id": obj.id, "page": obj.id, "page_number": 1, "size": 0, "count": 0, "src": []}
+
+        comments = Comment.objects.filter(post=obj).order_by("-created_at")  # Get likes for the comment
+        
+        paginator = CommentLikePagination()
+        paginated_comments = paginator.paginate_queryset(comments, request)
+        serializer = CommentSerializer(paginated_comments, many=True, context=self.context)
+        
         return {
             "type": "comments",
-            "page": self.get_page(obj),
-            "id": f"{self.get_id(obj)}/comments",
-            "page_number": 1,
-            "size": 5,
-            "count": obj.comments.count(),
-            "src": [
-                {
-                    "type": "comment",
-                    "id": comment.get_id(),
-                    "author": {
-                        "type": "author",
-                        "id": comment.author.id,
-                        "page": comment.author.page,
-                        "host": comment.author.host,
-                        "displayName": comment.author.display_name,
-                        "github": comment.author.github,
-                        "profileImage": comment.author.profile_image.url if comment.author.profile_image else "",
-                    },
-                    "comment": comment.text,
-                    "contentType": "text/markdown",
-                    "published": comment.published.isoformat()
-                }
-                for comment in comments
-            ]
+            "id": f"{obj.author.author_profile.host}/api/authors/{obj.author.author_profile.author_id}/posts/{obj.id}/likes",
+            "page": f"{obj.author.author_profile.host}/api/authors/{obj.author.author_profile.author_id}/posts/{obj.id}/likes",
+            "page_number": paginator.page.number if paginator.page else 1,
+            "size": paginator.page.paginator.per_page if paginator.page else 50,
+            "count": comments.count(),
+            "src": serializer.data  # Include paginated like objects
         }
 
     def get_likes(self, obj):
         """Fetches likes for the post."""
-        return ""
-        likes = obj.likes.order_by('-published')[:5]  # Fetch latest 5 likes
+        request = self.context.get("request")
+        if request is None:
+            return {"type": "likes", "id": obj.id, "page": obj.id, "page_number": 1, "size": 0, "count": 0, "src": []}
+
+        likes = Like.objects.filter(post=obj).order_by("-created_at")  # Get likes for the comment
+        
+        paginator = CommentLikePagination()
+        paginated_likes = paginator.paginate_queryset(likes, request)
+        serializer = LikeSerializer(paginated_likes, many=True, context=self.context)
+        
         return {
             "type": "likes",
-            "page": self.get_page(obj),
-            "id": f"{self.get_id(obj)}/likes",
-            "page_number": 1,
-            "size": 5,
-            "count": obj.likes.count(),
-            "src": [
-                {
-                    "type": "like",
-                    "id": like.get_id(),
-                    "author": {
-                        "type": "author",
-                        "id": like.author.id,
-                        "page": like.author.page,
-                        "host": like.author.host,
-                        "displayName": like.author.display_name,
-                        "github": like.author.github,
-                        "profileImage": like.author.profile_image.url if like.author.profile_image else "",
-                    },
-                    "published": like.published.isoformat(),
-                    "object": self.get_id(obj)
-                }
-                for like in likes
-            ]
+            "id": f"{obj.author.author_profile.host}/api/authors/{obj.author.author_profile.author_id}/posts/{obj.id}/likes",
+            "page": f"{obj.author.author_profile.host}/api/authors/{obj.author.author_profile.author_id}/posts/{obj.id}/likes",
+            "page_number": paginator.page.number if paginator.page else 1,
+            "size": paginator.page.paginator.per_page if paginator.page else 50,
+            "count": likes.count(),
+            "src": serializer.data  # Include paginated like objects
         }
+        
     
     def validate_visibility(self, value):
         """
@@ -257,14 +239,14 @@ class CommentSerializer(serializers.ModelSerializer):
         paginator = CommentLikePagination()
         paginated_likes = paginator.paginate_queryset(likes, request)
         serializer = LikeSerializer(paginated_likes, many=True, context=self.context)
-        
+        #print("count:",likes.count())
         return {
             "type": "likes",
             "id": f"{obj.post.author.author_profile.host}/api/authors/{obj.user.author_profile.author_id}/commented/{obj.id}/likes",
             "page": f"{obj.post.author.author_profile.host}/api/authors/{obj.user.author_profile.author_id}/commented/{obj.id}/likes",
             "page_number": paginator.page.number if paginator.page else 1,
             "size": paginator.page.paginator.per_page if paginator.page else 50,
-            "count": obj.likes.count(),
+            "count": likes.count(),
             "src": serializer.data  # Include paginated like objects
         }
         
