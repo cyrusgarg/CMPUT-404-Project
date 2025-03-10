@@ -355,20 +355,36 @@ def inbox_like(request, author_id):
 
     # Determine if this is a post or comment like
     object_url = data.get("object")
-    #TODO: need to put the constraint that same user will not send the like what he already liked
-    if(object_url.split("/")[-2]=="posts"):
-        post = Post.objects.filter(id=object_url.split("/")[-1]).first()
+    object_type = object_url.split("/")[-2]  # Extract 'posts' or 'commented'
+    object_id = object_url.split("/")[-1]  # Extract the UUID
+
+    if object_type == "posts":
+        post = Post.objects.filter(id=object_id).first()
+        if not post:
+            return Response({"error": "Post not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Prevent duplicate likes on the post
+        if Like.objects.filter(user=liker.user, post=post).exists():
+            return Response({"error": "You have already liked this post."}, status=status.HTTP_400_BAD_REQUEST)
+
         Like.objects.create(user=liker.user, post=post)
-    elif(object_url.split("/")[-2]=="commented"):
-        comment = Comment.objects.filter(id=object_url.split("/")[-1]).first()
+
+    elif object_type == "commented":
+        comment = Comment.objects.filter(id=object_id).first()
+        if not comment:
+            return Response({"error": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Prevent duplicate likes on the comment
+        if Like.objects.filter(user=liker.user, comment=comment).exists():
+            return Response({"error": "You have already liked this comment."}, status=status.HTTP_400_BAD_REQUEST)
+
         Like.objects.create(user=liker.user, comment=comment)
+
     else:
         return Response({"error": "Invalid object reference."}, status=status.HTTP_400_BAD_REQUEST)
 
-    # if post:
-        
-    # elif comment:
     return Response({"message": "Like received successfully."}, status=status.HTTP_201_CREATED)
+
 
 class LikePagination(PageNumberPagination):
     """
@@ -403,16 +419,16 @@ def post_likes(request, author_id, post_id):
     author = get_object_or_404(Author, author_id=author_id)
     post = get_object_or_404(Post, id=post_id, author=author.user)
 
-    #if post.visibility not in ["PUBLIC", "UNLISTED"] and request.user != post.author:
+    #if post.visibility not in ["PUBLIC", "UNLISTED"] and request.user != post.author
     if post.visibility not in ["PUBLIC", "UNLISTED"]:
         return Response({"detail": "You do not have permission to view likes on this post."},
                         status=status.HTTP_403_FORBIDDEN)
 
-    likes = Like.objects.filter(post=post).order_by("-created_at")  
+    likes = Like.objects.filter(post=post).exclude(user=post.author).order_by("-created_at")  
     paginator = LikePagination()
     paginated_likes = paginator.paginate_queryset(likes, request)
 
-    serializer = LikeSerializer(paginated_likes, many=True)
+    serializer = LikeSerializer(paginated_likes, many=True,context={"request": request})
 
     return paginator.get_paginated_response(serializer.data,post)
 
@@ -426,7 +442,7 @@ def comment_likes(request, author_id, post_id, comment_id):
     post = get_object_or_404(Post, id=post_id, author=author.user)
     comment = get_object_or_404(Comment, id=comment_id, post__id=post_id, user=author.user)
 
-    likes = Like.objects.filter(comment=comment).order_by("-created_at")
+    likes = Like.objects.filter(comment=comment).exclude(user=post.author).order_by("-created_at")
     paginator = LikePagination()
     paginated_likes = paginator.paginate_queryset(likes, request)
 
@@ -485,7 +501,7 @@ def get_author_likes_by_fqid(request, author_fqid):
     """
     Retrieve a list of things an author has liked.
     """
-    #TODO: may not work right now as author doesnot has fqid
+    #TODO: may not work right now as author does not has fqid
     decoded_fqid = urllib.parse.unquote(author_fqid)
     author = get_object_or_404(Author, fqid=decoded_fqid)
     
