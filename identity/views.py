@@ -11,6 +11,12 @@ from .models import Author, GitHubActivity, Following, FollowRequests
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic.edit import UpdateView
+from django.urls import reverse_lazy
+from django.contrib import messages
+from .models import Author
+from .forms import AuthorProfileForm
 
 class AuthorProfileView(DetailView):
     model = Author
@@ -141,3 +147,16 @@ def decline(request):
         request.delete()
         return redirect(reverse('identity:requests', kwargs={'username': receiver.username}))
     return HttpResponse("Error in declining the follow request")
+
+class AuthorProfileEditView(LoginRequiredMixin, UpdateView):
+    model = Author
+    form_class = AuthorProfileForm
+    template_name = 'identity/author_edit_profile.html'
+    
+    def get_object(self, queryset=None):
+        # Get the current user's author profile
+        return self.request.user.author_profile
+    
+    def get_success_url(self):
+        messages.success(self.request, "Your profile has been updated successfully!")
+        return reverse_lazy('identity:author-profile', kwargs={'username': self.request.user.username})

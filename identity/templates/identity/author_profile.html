@@ -4,33 +4,65 @@
 <div class="profile-container">
     <h1>{{ author.display_name }}</h1>
 
-    <!-- Show appropriate follow button depending on current user and existing follow relationship -->
-    {% if is_current_user %}
-        <form action="/authors/{{ author.user.username }}/requests/" method="get">
-            <button type="submit">Show Follow Requests</button>
-        </form>
-    {% else %}
-        {% if is_follow_requested %}
-            <p>Follow request sent!</p> 
+    <div class="profile-actions">
+        {% if user.is_authenticated and user.author_profile.author_id == author.author_id %}
+            <a href="{% url 'identity:edit-profile' %}" class="profile-button">Edit Profile</a>
+        {% endif %}
+
+        {% if is_current_user %}
+            <form action="/authors/{{ author.user.username }}/requests/" method="get" style="display: inline-block;">
+                <button type="submit" class="profile-button">Show Follow Requests</button>
+            </form>
         {% else %}
-            {% if is_following %}
-                <form action="/authors/unfollow" method="post">
-                    {% csrf_token %}
-                    <input type="hidden" name="follower" value="{{ request.user.username }}">
-                    <input type="hidden" name="followee" value="{{ author.user.username }}">
-                    <button type="submit">Unfollow</button>
-                </form>
+            {% if is_follow_requested %}
+                <p>Follow request sent!</p> 
             {% else %}
-                <form action="/authors/follow" method="post">
-                    {% csrf_token %}
-                    <input type="hidden" name="sender" value="{{ request.user.username }}">
-                    <input type="hidden" name="receiver" value="{{ author.user.username }}">
-                    <button type="submit">Follow</button>
-                </form>
+                {% if is_following %}
+                    <form action="/authors/unfollow" method="post" style="display: inline-block;">
+                        {% csrf_token %}
+                        <input type="hidden" name="follower" value="{{ request.user.username }}">
+                        <input type="hidden" name="followee" value="{{ author.user.username }}">
+                        <button type="submit" class="profile-button secondary">Unfollow</button>
+                    </form>
+                {% else %}
+                    <form action="/authors/follow" method="post" style="display: inline-block;">
+                        {% csrf_token %}
+                        <input type="hidden" name="sender" value="{{ request.user.username }}">
+                        <input type="hidden" name="receiver" value="{{ author.user.username }}">
+                        <button type="submit" class="profile-button">Follow</button>
+                    </form>
+                {% endif %}
             {% endif %}
         {% endif %}
-    {% endif %}
+    </div>
     
+    <!-- CSS styles for the buttons -->
+    <style>
+        .profile-button {
+            display: inline-block;
+            padding: 8px 15px;
+            background-color: #4361ee;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            box-shadow: 0 2px 6px rgba(67, 97, 238, 0.2);
+            margin-right: 10px;
+            cursor: pointer;
+            font-family: inherit; /* Ensures consistent font */
+        }
+        
+        .profile-button.secondary {
+            background-color: #6c757d;
+            box-shadow: 0 2px 6px rgba(108, 117, 125, 0.2);
+        }
+    </style>
+    
+    <div style="clear: both; margin-bottom: 20px;"></div>
+    
+    <!-- Rest of the template remains unchanged -->
     {% if author.profile_image %}
         <img src="{{ author.profile_image.url }}" alt="{{ author.display_name }}" class="profile-image">
     {% endif %}
@@ -54,7 +86,7 @@
 
 <div class="action-links">
     <p><a href="{% url 'posts:index' %}">Create/View Posts</a></p>
-    <p><a href="{% url 'posts:view_posts' %}">View Other People’s Posts</a></p>
+    <p><a href="{% url 'posts:view_posts' %}">View Other People's Posts</a></p>
 </div>
 
 <!-- Public Posts Section -->
@@ -79,5 +111,4 @@
         <p>No public posts available.</p>
     {% endif %}
 </div>
-
 {% endblock %}

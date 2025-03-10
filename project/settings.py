@@ -45,7 +45,8 @@ INSTALLED_APPS = [
     'posts',
     'identity',
     'rest_framework',
-    'rest_framework.authtoken'
+    'rest_framework.authtoken',
+    'widget_tweaks',
 ]
 
 MEDIA_URL = '/media/'

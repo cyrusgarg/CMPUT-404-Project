@@ -7,10 +7,10 @@ urlpatterns = [
     # Web views
     path('', views.AuthorListView.as_view(), name='author-list'),
     # shows all authors
+    path('edit-profile/', views.AuthorProfileEditView.as_view(), name='edit-profile'),
 
     path('<str:username>/', views.AuthorProfileView.as_view(), name='author-profile'),
     # shows an author's profile page
-
     path('posts/', include('posts.urls', namespace='posts')),
     path('webhook/github/', views.github_webhook, name='github-webhook'),
 
