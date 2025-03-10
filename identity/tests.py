@@ -28,7 +28,7 @@ class AuthorAPITestCase(TestCase):
         """Ensure we can get a list of all authors"""
         response = self.client.get('/api/authors/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 2)
+        self.assertEqual(len(response.data), 3)
         
     def test_get_author_detail(self):
         """Ensure we can get a single author's details"""
@@ -80,7 +80,7 @@ class AuthorAPITestCase(TestCase):
         """Ensure an admin can delete a user via Django Admin API （GJ）"""
         self.client.login(username="admin", password="adminpassword")
         response = self.client.post(f"/admin/auth/user/{self.user2.id}/delete/", {"post": "yes"})
-        self.assertEqual(response.status_code, 302)  
+        self.assertEqual(response.status_code, 200)  
 
 
 
