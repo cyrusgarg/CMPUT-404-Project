@@ -404,6 +404,24 @@ def comment_likes(request, author_id, post_id, comment_id):
 
     return paginator.get_paginated_response(serializer.data,post)
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def comment_likes(request, author_id, post_id, comment_id):
+    """
+    GET: Return all likes for a specific comment.
+    """
+    author = get_object_or_404(Author, author_id=author_id)
+    post = get_object_or_404(Post, id=post_id, author=author.user)
+    comment = get_object_or_404(Comment, id=comment_id, post__id=post_id, user=author.user)
+
+    likes = Like.objects.filter(comment=comment).exclude(user=post.author).order_by("-created_at")
+    paginator = LikePagination()
+    # paginated_likes = paginator.paginate_queryset(likes, request)
+
+    #serializer = LikeSerializer(paginated_likes, many=True)
+
+    #return paginator.get_paginated_response(serializer.data,post)
+
 def commentLikes(likes,post):
     paginator = LikePagination()
     # paginated_likes = paginator.paginate_queryset(likes, request)
