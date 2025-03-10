@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import status
-from identity.models import Author
+from identity.models import Author, Following, Friendship
 from posts.models import Post,Comment,Like
 from posts.serializers import PostSerializer, CommentSerializer,LikeSerializer
 from django.contrib.auth.models import User
@@ -44,14 +44,19 @@ def author_posts(request, author_id):
     user = author.user
 
     if request.method == 'GET':
+
+        is_follower = Following.objects.filter(follower=request.user, followee=user).exists()
+        is_friend = Friendship.objects.filter(user1=request.user, user2=user).exists() or \
+                    Friendship.objects.filter(user1=user, user2=request.user).exists()
+
         # Visibility filters based on authentication and relationships
         if not request.user.is_authenticated:
             visibility_filter = ["PUBLIC"]
         elif request.user == author.user:  # Author of the posts
             visibility_filter = ["PUBLIC", "FRIENDS", "UNLISTED"]
-        elif request.user in author.friends.all():  # Friend
+        elif is_friend:  # Mutual friendship
             visibility_filter = ["PUBLIC", "FRIENDS", "UNLISTED"]
-        elif request.user in author.followers.all():  # Follower
+        elif is_follower:  # Following but not friends
             visibility_filter = ["PUBLIC", "UNLISTED"]
         else:
             visibility_filter = ["PUBLIC"]

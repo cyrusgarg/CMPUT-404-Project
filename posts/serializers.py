@@ -23,14 +23,14 @@ class PostSerializer(serializers.ModelSerializer):
     content = serializers.SerializerMethodField()  # Convert Markdown/Base64 images
     comments = serializers.SerializerMethodField()  # Include comments
     likes = serializers.SerializerMethodField()  # Include likes
-    image = serializers.ImageField(required=False, allow_null=True)
+    
     #author = serializers.CharField(source='author.username', read_only=True)  # Store author as username string / 将作者存储为用户名字符串（GJ）
      
     class Meta:
         model = Post  # Specify model / 指定模型（GJ）
         fields = [
             "type","title","id","description","page","contentType", "content", 
-             "author", "comments", "likes","published", "visibility", "image" 
+             "author", "comments", "likes","published", "visibility"
         ]  # Define the fields to be serialized / 定义需要序列化的字段（GJ）
 
     def get_id(self, obj):
