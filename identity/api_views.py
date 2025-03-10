@@ -198,7 +198,7 @@ def author_commented(request, author_id):
     POST: Post a new comment on a post.
     """
     author = get_object_or_404(Author, author_id=author_id)
-    # user = request.user if request.user.is_authenticated else Non
+    user = request.user if request.user.is_authenticated else Non
     user = author.user  # Convert Author to User 
     
     if request.method == "GET":
