@@ -36,7 +36,11 @@ class UserSignUpForm(UserCreationForm):
             author.bio = self.cleaned_data['bio']
             author.github_username = self.cleaned_data['github_username']
             author.github = self.cleaned_data['github']
-            author.is_approved = False  # Set as not approved by default
+            
+            # Auto-approve if approval is not required
+            from django.conf import settings
+            author.is_approved = not settings.REQUIRE_AUTHOR_APPROVAL
+            
             author.save()
         
         return user

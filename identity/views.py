@@ -172,13 +172,22 @@ class AuthorProfileEditView(LoginRequiredMixin, UpdateView):
 class UserSignUpView(CreateView):
     form_class = UserSignUpForm
     template_name = 'identity/signup.html'
-    success_url = reverse_lazy('login')  # Redirect to login page after successful registration
+    success_url = reverse_lazy('login')
     
     def form_valid(self, form):
         response = super().form_valid(form)
-        messages.success(self.request, 
-            "Your account has been created but requires admin approval before you can log in. "
-            )
+        
+        # Import settings to check if approval is required
+        from django.conf import settings
+        
+        # Show appropriate message based on approval requirement
+        if getattr(settings, 'REQUIRE_AUTHOR_APPROVAL', True):
+            messages.success(self.request, 
+                "Your account has been created but requires admin approval before you can log in.")
+        else:
+            messages.success(self.request, 
+                "Your account has been created successfully! You can now log in.")
+        
         return response
     
 class CustomLoginView(LoginView):
@@ -193,11 +202,16 @@ class CustomLoginView(LoginView):
         
     def form_valid(self, form):
         user = form.get_user()
-        # Check if user has an author profile and if it's approved
-        if hasattr(user, 'author_profile') and not user.author_profile.is_approved:
-            # If not approved, add error message and redirect to waiting page
-            messages.error(self.request, "Your account is pending admin approval.")
-            return redirect('identity:waiting_approval')
+        # Import settings to check if approval is required
+        from django.conf import settings
+        
+        # Only check approval if it's required
+        if getattr(settings, 'REQUIRE_AUTHOR_APPROVAL', True):
+            # Check if user has an author profile and if it's approved
+            if hasattr(user, 'author_profile') and not user.author_profile.is_approved:
+                # If not approved, add error message and redirect to waiting page
+                messages.error(self.request, "Your account is pending admin approval.")
+                return redirect('identity:waiting_approval')
         # If approved or admin user, proceed with login
         return super().form_valid(form)
     
