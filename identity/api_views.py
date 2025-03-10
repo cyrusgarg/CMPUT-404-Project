@@ -762,25 +762,43 @@ def inbox(request, author_id):
     elif obj_type == "follow":
         # Process a follow request.
         # Extract the sender's URL from the incoming follow object.
-        sender_author_url = data.get("author", {}).get("id")
+        actor_data = data.get("actor")
+        if not actor_data:
+            return Response({"error": "Missing actor data in follow request."}, status=status.HTTP_400_BAD_REQUEST)
+        sender_author_url = actor_data.get("id")
         if not sender_author_url:
-            return Response({"error": "Missing sender author information in follow request."},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Missing sender author id in follow request."}, status=status.HTTP_400_BAD_REQUEST)
         sender = Author.objects.filter(author_id=sender_author_url.rstrip("/").split("/")[-1]).first()
         if not sender:
             return Response({"error": "Sender author not found."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check if a follow request already exists or the users are already following.
+        object_data = data.get("object")
+        if not object_data:
+            return Response({"error": "Missing object data in follow request."}, status=status.HTTP_400_BAD_REQUEST)
+        target_author_url = object_data.get("id")
+        if not target_author_url:
+            return Response({"error": "Missing target author id in follow request."}, status=status.HTTP_400_BAD_REQUEST)
+        # Ensure that the target in the request matches the inbox owner.
+        if target_author_url.rstrip("/").split("/")[-1] != str(author.author_id):
+            return Response({"error": "Target author does not match inbox author."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if a follow request already exists or the sender is already following.
         if FollowRequests.objects.filter(sender=sender.user, receiver=author.user).exists() or \
-           Following.objects.filter(follower=sender.user, followee=author.user).exists():
+        Following.objects.filter(follower=sender.user, followee=author.user).exists():
             return Response({"error": "Follow request already exists or sender is already following."},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        FollowRequests.objects.create(sender=sender.user, receiver=author.user)
-        return Response({"message": "Follow request received successfully."}, status=status.HTTP_201_CREATED)
+        # Create the follow request.
+        follow_request = FollowRequests.objects.create(sender=sender.user, receiver=author.user)
 
-    else:
-        return Response({"error": "Invalid object type."}, status=status.HTTP_400_BAD_REQUEST)
+        # Construct the follow object to return.
+        follow_data = {
+            "type": "follow",
+            "summary": f"{sender.display_name} wants to follow {author.display_name}",
+            "actor": sender.to_dict(),
+            "object": author.to_dict()
+        }
+        return Response(follow_data, status=status.HTTP_201_CREATED)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
