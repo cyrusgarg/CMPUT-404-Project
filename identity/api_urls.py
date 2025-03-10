@@ -23,5 +23,7 @@ urlpatterns = [
     path('<uuid:author_id>/posts/<uuid:post_id>/image', api_views.image_post, name='image_post'),
     path('<uuid:author_id>/posts/<uuid:post_id>/comments', api_views.post_comment, name='post_comment'),
     path('<uuid:author_id>/inbox', api_views.inbox, name='inbox'),
-
+    path('<uuid:author_id>/followers', api_views.followers, name='followers'),
+    path('<uuid:author_id>/followers/<uuid:follower_id>', api_views.follower, name='follower'),
+    
 ]

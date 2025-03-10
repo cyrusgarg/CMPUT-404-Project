@@ -9,7 +9,7 @@ from identity.models import Author
 from posts.models import Post,Comment,Like
 from posts.serializers import PostSerializer, CommentSerializer,LikeSerializer
 from django.contrib.auth.models import User
-from identity.models import Following, FollowRequests
+from identity.models import Following, FollowRequests, Friendship
 import json, urllib.parse, re, base64
 from django.db.models import Q
 try:
@@ -687,3 +687,81 @@ def inbox(request, author_id):
 
     else:
         return Response({"error": "Invalid object type."}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def followers(request, author_id):
+    """
+    GET: Return a list of followers for the author with given author_id
+    """
+    # get author, it's followers and then convert it into a json response
+    author = get_object_or_404(Author, author_id=author_id)
+    follows = Following.objects.filter(followee=author.user).order_by('-created_at')
+    followers = [get_object_or_404(Author, user=follow.follower) for follow in follows]
+    return Response({
+        "type":"followers",
+        "followers":[author.to_dict() for author in followers]
+    })
+
+@api_view(['DELETE', 'PUT','GET'])
+@permission_classes([AllowAny])
+def follower(request, author_id, follower_id):
+    """
+    DELETE: Remove author with folllower_id as a follower of author with author_id
+    PUT: Add author with follower_id as a follower of author with author_id
+    GET: Return if author with follower_id is following author with author_id
+    """
+    # if delete and put then ensure user is authenticated
+    if request.method in ['DELETE', 'PUT'] and not request.user.is_authenticated:
+        return Response({"detail": "Authentication required"}, status=403)
+
+    # get follower and followee
+    author = get_object_or_404(Author, author_id=author_id)
+    follower = get_object_or_404(Author, author_id=follower_id)
+    follow = Following.objects.filter(follower=follower.user, followee=author.user)
+        
+    # handle appropriate methods
+    if request.method == 'GET':
+
+        # send follower's author object if follow exists, 404 otherwise
+        if follow.exists() :
+            return Response(follower.to_dict())
+        return Response({"detail": "Follow relationship does not exist"}, status=404)
+
+    elif request.method == 'PUT':
+
+        # user can only create a follow relationship between them and some other user
+        if request.user != follower.user:
+            return Response({"detail":"Cannot create follow relationship for other users"}, status=403)
+
+        if follow.exists():
+            return Response({"detail":"Follow relationship already exists"}, status=200)
+
+        Following.objects.create(follower=follower.user, followee=author.user)
+
+        # check if a corresponding friendship relationship needs to be created
+        user1, user2 = sorted([follower.user, author.user], key=lambda user: user.id)
+        if(Following.objects.filter(follower=author.user, followee=follower.user).exists() and not Friendship.objects.filter(user1=user1, user2=user2)):
+            Friendship.objects.create(user1=user1, user2=user2)
+            
+        return Response({"detail":"Follow relationship created"}, status=200)
+
+    elif request.method == 'DELETE':
+
+        # user can only remove it's own followers
+        if request.user != author.user:
+            return Response({"detail":"Cannot delete follow relationship for other users"}, status=403)
+
+        # if follow relationship exists then delete, 404 otherwise
+        if follow.exists():
+            follow.delete()
+
+            # remove the corresponding friendship if it exists
+            user1, user2 = sorted([follower.user, author.user], key=lambda user: user.id)
+            friendship = Friendship.objects.filter(user1=user1, user2=user2)
+            if(friendship.exists()):
+                friendship.delete()
+                
+            return Response({"detail":"Follow relationship deleted"}, status=200)
+        else:
+            return Response({"detail":"Follow relationship does not exist"}, status=404)

@@ -85,3 +85,9 @@ class FollowRequests(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sender")  
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name="receiver")
     created_at = models.DateTimeField(auto_now_add=True)
+
+class Friendship(models.Model):
+    # represents a friendship between two users
+    user1 = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user1")
+    user2 = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user2")
+    created_at = models.DateTimeField(auto_now_add=True)

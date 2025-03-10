@@ -7,7 +7,7 @@ from identity.models import Author
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.dateparse import parse_datetime
-from .models import Author, GitHubActivity, Following, FollowRequests
+from .models import Author, GitHubActivity, Following, FollowRequests, Friendship
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.contrib import messages
@@ -120,6 +120,13 @@ def unfollow(request):
     # ensure database is consistent
     if(follow.exists()):
         follow.delete()
+
+        # check if there is a corresponding friendship that needs to be deleted
+        user1, user2 = sorted([follower, followee], key=lambda user: user.id)
+        friendship = Friendship.objects.filter(user1=user1, user2=user2)
+        if(friendship.exists()):
+            friendship.delete()
+
         return redirect(reverse('identity:author-profile', kwargs={'username': followee.username}))
     return HttpResponse("Error during unfollowing")
 
@@ -133,6 +140,12 @@ def accept(request):
     if(request.exists() and not Following.objects.filter(follower=sender, followee=receiver).exists()):
         request.delete()
         Following.objects.create(follower=sender, followee=receiver)
+
+        # check if there is a corresponding friendship to be created
+        user1, user2 = sorted([sender, receiver], key=lambda user: user.id)
+        if(Following.objects.filter(follower=receiver, followee=sender).exists() and not Friendship.objects.filter(user1=user1, user2=user2)):
+            Friendship.objects.create(user1=user1, user2=user2)
+
         return redirect(reverse('identity:requests', kwargs={'username': receiver.username}))
     return HttpResponse("Error in accepting the follow request")
 
