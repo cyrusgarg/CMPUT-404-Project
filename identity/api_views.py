@@ -15,49 +15,6 @@ from django.db.models import Q
 from .id_mapping import get_uuid_for_numeric_id
 from rest_framework.views import APIView
 
-class AuthorListView(APIView):
-    permission_classes = [AllowAny]
-    
-    def get(self, request):
-        """Return a paginated list of all authors"""
-        authors = Author.objects.all()
-        
-        # Apply pagination
-        paginator = AuthorPagination()
-        paginated_authors = paginator.paginate_queryset(authors, request)
-        
-        # Serialize the paginated queryset
-        serialized_authors = [author.to_dict() for author in paginated_authors]
-        
-        # Return the paginated response
-        return paginator.get_paginated_response(serialized_authors)
-
-class AuthorDetailView(APIView):
-    permission_classes = [AllowAny]
-    
-    def get(self, request, pk):
-        """
-        Return details of a specific author
-        
-        The pk parameter can be a numeric ID instead of a UUID
-        """
-        # Convert numeric ID to UUID if it's a numeric ID
-        try:
-            # Check if pk is numeric
-            numeric_id = int(pk)
-            uuid_str = get_uuid_for_numeric_id(numeric_id)
-            
-            if uuid_str is None:
-                return Response({"error": "Author not found"}, status=404)
-                
-            # Find the author using the UUID
-            author = get_object_or_404(Author, author_id=uuid_str)
-        except ValueError:
-            # If pk is not a numeric ID (e.g., it's already a UUID string),
-            # use it directly to find the author
-            author = get_object_or_404(Author, author_id=pk)
-        
-        return Response(author.to_dict())
 
 @api_view(['GET', 'POST'])
 @permission_classes([AllowAny])  # Allow any user to access, then control with logic
@@ -560,7 +517,7 @@ class AuthorPagination(PageNumberPagination):
     Custom pagination response matching the required format for authors.
     """
     page_size_query_param = 'size'
-    page_size = 3  # Default page size set to 3
+    page_size = 1  # Default page size set to 3
     max_page_size = 100  # Maximum allowed page size
 
     def get_paginated_response(self, data):
@@ -573,6 +530,51 @@ class AuthorPagination(PageNumberPagination):
             "previous": self.get_previous_link(),  # Link to previous page
             "src": data  # Serialized list of authors
         })
+    
+
+class AuthorListView(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        """Return a paginated list of all authors"""
+        authors = Author.objects.all()
+        
+        # Apply pagination
+        paginator = AuthorPagination()
+        paginated_authors = paginator.paginate_queryset(authors, request)
+        
+        # Serialize the paginated queryset
+        serialized_authors = [author.to_dict() for author in paginated_authors]
+        
+        # Return the paginated response
+        return paginator.get_paginated_response(serialized_authors)
+
+class AuthorDetailView(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request, pk):
+        """
+        Return details of a specific author
+        
+        The pk parameter can be a numeric ID instead of a UUID
+        """
+        # Convert numeric ID to UUID if it's a numeric ID
+        try:
+            # Check if pk is numeric
+            numeric_id = int(pk)
+            uuid_str = get_uuid_for_numeric_id(numeric_id)
+            
+            if uuid_str is None:
+                return Response({"error": "Author not found"}, status=404)
+                
+            # Find the author using the UUID
+            author = get_object_or_404(Author, author_id=uuid_str)
+        except ValueError:
+            # If pk is not a numeric ID (e.g., it's already a UUID string),
+            # use it directly to find the author
+            author = get_object_or_404(Author, author_id=pk)
+        
+        return Response(author.to_dict())
 
 @api_view(['GET'])
 @permission_classes([AllowAny])

@@ -27,7 +27,7 @@ class Author(models.Model):
     @property
     def page(self):
         """Return the URL of the user's HTML profile page"""
-        return f"{self.host}/authors/{self.author_id}"
+        return f"{self.host}/authors/{self.display_name[1]}"
     
     def get_absolute_url(self):
         return reverse('identity:author-profile', kwargs={'pk': self.author_id})
