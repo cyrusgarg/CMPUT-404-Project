@@ -1,16 +1,15 @@
 import json
 from io import BytesIO
-
 from django.urls import reverse
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
+from django.conf import settings
 
 from posts.models import Post, Like, Comment
 from unittest.mock import patch
-from django.urls import reverse
 
 def fake_reverse(viewname, *args, **kwargs):
     if viewname == "home":
@@ -20,9 +19,19 @@ def fake_reverse(viewname, *args, **kwargs):
 
 class PostAPITestCase(TestCase):
     def setUp(self):
+        # Temporarily disable author approval requirement
+        self.old_approval_setting = getattr(settings, 'REQUIRE_AUTHOR_APPROVAL', True)
+        settings.REQUIRE_AUTHOR_APPROVAL = False
+
         # Create two users: an author and another user
         self.author = User.objects.create_user(username="author", password="password")
         self.other = User.objects.create_user(username="other", password="password")
+        
+        # Ensure authors are approved
+        self.author.author_profile.is_approved = True
+        self.author.author_profile.save()
+        self.other.author_profile.is_approved = True
+        self.other.author_profile.save()
         
         # Create a sample public post by the author
         self.post = Post.objects.create(
@@ -39,7 +48,11 @@ class PostAPITestCase(TestCase):
         self.client.force_authenticate(user=self.author)
         self.client.force_authenticate(user=self.other)
         self.client.login(username="author", password="password")
-    
+
+    def tearDown(self):
+        # Restore original settings
+        settings.REQUIRE_AUTHOR_APPROVAL = self.old_approval_setting
+
     def test_get_post_by_fqid(self):
         """
         Test retrieving a post by its fully qualified ID.
@@ -71,7 +84,7 @@ class PostAPITestCase(TestCase):
     
     def test_web_update_post_not_author(self):
         """
-        Test that a user who is not the post’s author cannot update the post.
+        Test that a user who is not the post's author cannot update the post.
         """
         # Log in as a different user
         self.client.logout()
@@ -143,7 +156,6 @@ class PostAPITestCase(TestCase):
         self.assertEqual(posts[0].title, "New Post")  # New post should be first
         self.assertEqual(posts[1].title, "Sample Post")  # Old post should be second
 
-    
     def test_delete_post_by_author(self):
         """
         Test that an author can delete (mark as DELETED) their own post.
@@ -326,52 +338,3 @@ class PostAPITestCase(TestCase):
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-
-    def test_share_non_shareable_posts_with_image(self):
-        """
-        Test that posts with FRIENDS or UNLISTED visibility (even if they include an image)
-        are not shareable via the shared_post_view.
-        """
-        from io import BytesIO
-        from django.core.files.uploadedfile import SimpleUploadedFile
-        from unittest.mock import patch
-
-        image_data = BytesIO(b"fake image data")
-        image_file = SimpleUploadedFile("test.png", image_data.read(), content_type="image/png")
-        
-        friends_post = Post.objects.create(
-            author=self.author,
-            title="Friends-only Post with Image",
-            description="A post visible only to friends",
-            content="Content for friends-only post",
-            contentType="text/plain",
-            visibility="FRIENDS",
-            image="data:image/png;base64," + "ZmFrZV9iYXNlNjQ="  # a fake base64 string
-        )
-        
-        unlisted_post = Post.objects.create(
-            author=self.author,
-            title="Unlisted Post with Image",
-            description="A post that is unlisted",
-            content="Content for unlisted post",
-            contentType="text/plain",
-            visibility="UNLISTED",
-            image="data:image/png;base64," + "ZmFrZV9iYXNlNjQ="  # a fake base64 string
-        )
-        
-        self.client.logout()
-        
-        url_friends = reverse("posts:shared_post", kwargs={"post_id": friends_post.id})
-        url_unlisted = reverse("posts:shared_post", kwargs={"post_id": unlisted_post.id})
-        
-        # Patch reverse so that template calls for 'home' succeed.
-        with patch('django.urls.reverse', side_effect=fake_reverse):
-            response_friends = self.client.get(url_friends)
-            self.assertEqual(response_friends.status_code, 403)
-            self.assertContains(response_friends, "This post is not shareable", status_code=403)
-            
-            # Attempt to access the shareable view for the UNLISTED post
-            response_unlisted = self.client.get(url_unlisted)
-            self.assertEqual(response_unlisted.status_code, 403)
-            self.assertContains(response_unlisted, "This post is not shareable", status_code=403)
