@@ -82,7 +82,7 @@ def local_post_likes(request, post_id):
         return Response({"detail": "You do not have permission to view likes on this post."},
                         status=status.HTTP_403_FORBIDDEN)
 
-    likes = Like.objects.filter(post=post).order_by("-created_at")  
+    likes = Like.objects.filter(post=post).exclude(user=post.author).order_by("-created_at")  
     paginator = LikePagination()
     paginated_likes = paginator.paginate_queryset(likes, request)
 
