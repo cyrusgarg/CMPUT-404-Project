@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.generic.base import RedirectView
 
 urlpatterns = [
     path('posts/', include('posts.urls',namespace='posts_frontend')),
@@ -27,6 +28,12 @@ urlpatterns = [
     path('api/posts/', include('posts.api_urls',namespace='posts_api')),  # Keep post-related API separate
     path('api/',include('identity.api_urls',namespace='comments_api')),
     path('admin/', admin.site.urls),
+
+    path('accounts/', include('django.contrib.auth.urls')),
+    
+    path('accounts/login/', RedirectView.as_view(pattern_name='identity:login'), name='login_redirect'),
+
+
 ]
 
 if settings.DEBUG:  # Only serve media files in development

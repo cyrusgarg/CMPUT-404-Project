@@ -18,7 +18,8 @@ class Author(models.Model):
     author_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     host = models.URLField(default=settings.SITE_URL)
     github = models.URLField(blank=True)
-    
+    is_approved = models.BooleanField(default=False)
+
     @property
     def id(self):
         """Return the full API URL for the author"""
@@ -65,7 +66,14 @@ def save_user_author(sender, instance, **kwargs):
 
 @admin.register(Author)
 class AuthorAdmin(admin.ModelAdmin):
-    list_display = ['display_name', 'user']
+    list_display = ['display_name', 'user', 'is_approved']
+    list_filter = ['is_approved']
+    actions = ['approve_authors']
+    
+    def approve_authors(self, request, queryset):
+        queryset.update(is_approved=True)
+        self.message_user(request, f"{queryset.count()} authors have been approved.")
+    approve_authors.short_description = "Approve selected authors"
 
 class GitHubActivity(models.Model):
     author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name='github_activities')

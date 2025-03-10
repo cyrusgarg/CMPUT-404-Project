@@ -9,6 +9,8 @@ urlpatterns = [
     # shows all authors
     path('edit-profile/', views.AuthorProfileEditView.as_view(), name='edit-profile'),
 
+    path('signup/', views.UserSignUpView.as_view(), name='signup'),
+    
     path('<str:username>/', views.AuthorProfileView.as_view(), name='author-profile'),
     # shows an author's profile page
     path('posts/', include('posts.urls', namespace='posts')),
@@ -22,10 +24,11 @@ urlpatterns = [
 
     path('<str:username>/requests/', views.Requests.as_view(), name='requests'),
     # view your follow requests
+    path('login/', views.CustomLoginView.as_view(), name='login'),
 
     path('accept', views.accept, name='accept'),
     # accept a follow request
-
+    path('waiting-approval/', views.waiting_approval_view, name='waiting_approval'),
     path('decline', views.decline, name='decline'),
     # decline a follow request
 

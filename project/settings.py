@@ -26,7 +26,9 @@ SECRET_KEY = 'django-insecure-p+fs8ix*o6!*l_ry%vp_*33&0$*$z(8n0p3ag_11+*(d+domu0
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'posts:index'  # Redirect to posts view after login
+LOGOUT_REDIRECT_URL = 'login'  # Redirect to login after logout
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 #ALLOWED_HOSTS = []
