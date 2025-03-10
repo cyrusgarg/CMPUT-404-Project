@@ -215,7 +215,7 @@ def author_commented(request, author_id):
     POST: Post a new comment on a post.
     """
     author = get_object_or_404(Author, author_id=author_id)
-    user = request.user if request.user.is_authenticated else Non
+    # user = request.user if request.user.is_authenticated else Non
     user = author.user  # Convert Author to User 
     
     if request.method == "GET":
@@ -282,7 +282,6 @@ def author_commented(request, author_id):
         )
 
         return Response(CommentSerializer(comment,context={"request": request}).data, status=status.HTTP_201_CREATED)
-
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_comment(request, author_id, comment_id):
@@ -569,7 +568,6 @@ def author_list(request):
     
     # Return paginated response
     return paginator.get_paginated_response([author.to_dict() for author in paginated_authors])
-=======
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def image_post(request, author_id, post_id):
