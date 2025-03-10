@@ -186,15 +186,19 @@ class CustomLoginView(LoginView):
     
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
+        # Add bootstrap classes to form fields
         for field_name, field in form.fields.items():
             field.widget.attrs['class'] = 'form-control'
         return form
         
     def form_valid(self, form):
         user = form.get_user()
+        # Check if user has an author profile and if it's approved
         if hasattr(user, 'author_profile') and not user.author_profile.is_approved:
+            # If not approved, add error message and redirect to waiting page
             messages.error(self.request, "Your account is pending admin approval.")
             return redirect('identity:waiting_approval')
+        # If approved or admin user, proceed with login
         return super().form_valid(form)
     
 def waiting_approval_view(request):

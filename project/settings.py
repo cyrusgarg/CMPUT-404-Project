@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-p+fs8ix*o6!*l_ry%vp_*33&0$*$z(8n0p3ag_11+*(d+domu0
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-LOGIN_URL = 'login'
+LOGIN_URL = 'identity:login'
 LOGIN_REDIRECT_URL = 'posts:index'  # Redirect to posts view after login
 LOGOUT_REDIRECT_URL = 'login'  # Redirect to login after logout
 MEDIA_URL = "/media/"
@@ -62,6 +62,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'identity.middleware.AuthorApprovalMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
