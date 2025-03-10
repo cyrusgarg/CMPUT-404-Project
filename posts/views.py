@@ -400,3 +400,37 @@ def like_comment(request, post_id, comment_id):
         "like_count": comment.like_count,
         "author": request.user.author_profile.to_dict()  # Assumes every user has an author_profile
     })
+
+def shared_post_view(request, post_id):
+    """
+    Public view for accessing shared posts.
+    This view doesn't require login for PUBLIC or UNLISTED posts.
+    """
+    post = get_object_or_404(Post, id=post_id)
+    
+    # Only allow viewing of PUBLIC or UNLISTED posts through this route
+    if post.visibility not in ["PUBLIC", "UNLISTED"]:
+        return HttpResponseForbidden("This post is not publicly available.")
+    
+    # Check if user is logged in
+    is_logged_in = request.user.is_authenticated
+    is_liked = False
+    
+    # If user is logged in, check if they liked the post
+    if is_logged_in:
+        is_liked = post.likes.filter(id=request.user.id).exists()
+    
+    # Get comments for the post
+    comments = post.comments.all()
+    
+    # For logged in users, set liked status for each comment
+    if is_logged_in:
+        for comment in comments:
+            comment.is_liked_by_user = comment.likes.filter(id=request.user.id).exists()
+    
+    return render(request, "posts/shared_post.html", {
+        "post": post,
+        "comments": comments,
+        "is_logged_in": is_logged_in,
+        "is_liked": is_liked
+    })

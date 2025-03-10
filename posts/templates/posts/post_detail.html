@@ -83,7 +83,17 @@
             <button type="submit">Delete</button>
         </form>
     {% endif %}
-
+    
+    {% if post.visibility == "PUBLIC" or post.visibility == "UNLISTED" %}
+    <div class="share-section">
+        <p><strong>Share this post:</strong></p>
+        <div class="share-link-container">
+            <input type="text" id="share-link" value="{{ request.scheme }}://{{ request.get_host }}{% url 'posts:shared_post' post.id %}" readonly>
+            <button id="copy-link-btn" onclick="copyShareLink()">Copy Link</button>
+        </div>
+        <p id="copy-confirmation" style="display: none; color: green;">Link copied to clipboard!</p>
+    </div>
+    {% endif %}
     <br>
     <!-- Back to posts list / 返回帖子列表（GJ） -->
     <a href="{% url 'posts:index' %}">Back to Posts</a>
@@ -188,5 +198,23 @@
             }
         });
     </script>      
+
+    <script>
+        function copyShareLink() {
+            var shareLink = document.getElementById("share-link");
+            shareLink.select();
+            shareLink.setSelectionRange(0, 99999); /* For mobile devices */
+            document.execCommand("copy");
+            
+            // Show confirmation message
+            var confirmation = document.getElementById("copy-confirmation");
+            confirmation.style.display = "block";
+            
+            // Hide confirmation after 3 seconds
+            setTimeout(function() {
+                confirmation.style.display = "none";
+            }, 3000);
+        }
+    </script>
 </body>
 </html>
