@@ -111,8 +111,8 @@ class Like(models.Model):
     
     def get_object_url(self):
         """Return the URL of the object liked (post or comment)."""
-        if self.fqid:
-            return self.fqid  # Return the stored remote FQID
+        # if self.fqid:
+        #     return self.fqid  # Return the stored remote FQID
         if self.post:
             author = self.post.author.author_profile
             return f"{author.host}/api/authors/{author.author_id}/posts/{self.post.id}"

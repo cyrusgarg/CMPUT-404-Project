@@ -472,6 +472,31 @@ def get_single_like(request, author_id, like_id):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+def get_author_likes_by_fqid(request, author_fqid):
+    """
+    Retrieve a list of things an author has liked.
+    """
+    #TODO: may not work right now as author doesnot has fqid
+    decoded_fqid = urllib.parse.unquote(author_fqid)
+    author = get_object_or_404(Author, fqid=decoded_fqid)
+    
+    # Retrieve all likes made by this author
+    likes = Like.objects.filter(user=author.user).order_by('-created_at')
+
+    # Get a post that this author has liked
+    liked_post = Post.objects.filter(likes__user=author.user).distinct().order_by('-published')[0]
+
+    # Paginate the likes using the custom LikePagination
+    paginator = LikePagination()
+    paginated_likes = paginator.paginate_queryset(likes, request)
+
+    # Serialize paginated data
+    serializer = LikeSerializer(paginated_likes, many=True)
+
+    return paginator.get_paginated_response(serializer.data,liked_post)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
 def get_like_by_fqid(request, like_fqid):
     """
     Retrieve a single like by its Fully Qualified ID (FQID).
