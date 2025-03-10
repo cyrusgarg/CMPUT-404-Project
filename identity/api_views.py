@@ -184,18 +184,29 @@ class CommentPagination(PageNumberPagination):
     """
     Custom pagination response matching the required format for comments.
     """
+    page_size = 5  # Default to 5 comments per page
     page_size_query_param = 'size'
 
-    def get_paginated_response(self, data,post):
+    def get_paginated_response(self, data, post):
         """Returns paginated response with additional `page` and `id` fields."""
         post_author = post.author.author_profile
+        if hasattr(self, 'page') and self.page is not None:
+            page_number = self.page.number
+            size = self.page.paginator.per_page
+            count = self.page.paginator.count
+        else:
+            # Defaults if there is no pagination info (e.g., when there are no items)
+            page_number = 1
+            size = 0
+            count = 0
+
         return Response({
             "type": "comments",
             "page": f"{post_author.host}/authors/{post_author.author_id}/posts/{post.id}",
             "id": f"{post_author.host}/api/authors/{post_author.author_id}/posts/{post.id}/comments",
-            "page_number": self.page.number,
-            "size": self.page.paginator.per_page,
-            "count": self.page.paginator.count,
+            "page_number": page_number,
+            "size": size,
+            "count": count,
             "src": data  # Serialized list of comments
         })
 

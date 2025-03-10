@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponseForbidden
 from .models import Post,Like
-from identity.api_views import LikePagination
+from identity.api_views import LikePagination, CommentPagination
 from django.db import models
 from identity.models import Author 
 from django.contrib.auth.models import User  # Import Django User model / 导入Django用户模型（GJ）
@@ -13,7 +13,7 @@ from rest_framework.permissions import AllowAny
 from .permissions import IsAuthorOrAdmin
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import PostSerializer,LikeSerializer
+from .serializers import PostSerializer,LikeSerializer, CommentSerializer
 
 
 @api_view(['GET'])
@@ -123,3 +123,63 @@ def local_post_likes(request, post_id):
 #     serializer = LikeSerializer(like)
 
 #     return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
+def post_comments(request, post_id):
+    """
+    GET: Retrieve a paginated list of comments for the specified post.
+         Visibility rules:
+           - PUBLIC and UNLISTED posts are accessible to everyone.
+           - FRIENDS posts require the request user to be authenticated and either the post's author 
+             or in the author's friends list.
+    POST: Allows an authenticated user to add a new comment to the specified post.
+    """
+    post = get_object_or_404(Post, id=post_id)
+
+    if request.method == 'GET':
+        # Check visibility before returning comments.
+        if post.visibility in ["PUBLIC", "UNLISTED"]:
+            pass  # These posts are accessible
+        elif post.visibility == "FRIENDS":
+            if request.user.is_authenticated:
+                if request.user != post.author and request.user not in post.author.author_profile.friends.all():
+                    return Response(
+                        {"detail": "You do not have permission to view comments on this post."},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            else:
+                return Response(
+                    {"detail": "Authentication is required to view comments on this post."},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+        else:
+            return Response(
+                {"detail": "You do not have permission to view comments on this post."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Retrieve and paginate comments
+        comments = post.comments.all().order_by("-created_at")
+        paginator = CommentPagination()
+        paginated_comments = paginator.paginate_queryset(comments, request)
+        serializer = CommentSerializer(paginated_comments, many=True, context={'request': request})
+        return paginator.get_paginated_response(serializer.data, post)
+
+    elif request.method == 'POST':
+        # Only authenticated users can create a comment
+        if not request.user.is_authenticated:
+            return Response(
+                {"detail": "Authentication is required to post a comment."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+        except json.JSONDecodeError:
+            return Response({"error": "Invalid JSON format."}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = CommentSerializer(data=data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save(user=request.user, post=post)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
