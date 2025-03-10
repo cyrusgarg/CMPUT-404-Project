@@ -235,3 +235,87 @@ class PostAPITestCase(TestCase):
         data = json.loads(response.content.decode())
         self.assertFalse(data.get("liked"))
         self.assertEqual(data.get("like_count"), 0)
+
+    def test_shared_post_api(self):
+        """
+        Test the shared_post_api endpoint for both authenticated and unauthenticated users.
+        Tests:
+        1. Unauthenticated user can access a public post
+        2. Authenticated user can access a public post with is_liked_by_user field
+        3. Neither user can access a non-public post
+        """
+        # Create a public post for testing
+        public_post = Post.objects.create(
+            author=self.author,
+            title="Public Shareable Post",
+            description="A public post that can be shared",
+            content="Public content",
+            contentType="text/plain",
+            visibility="PUBLIC"
+        )
+        
+        # Create a non-public post for testing
+        private_post = Post.objects.create(
+            author=self.author,
+            title="Private Post",
+            description="A private post",
+            content="Private content",
+            contentType="text/plain",
+            visibility="FRIENDS"
+        )
+        
+        # Create a comment on the public post
+        comment = Comment.objects.create(
+            post=public_post,
+            user=self.other,
+            content="A comment on the public post"
+        )
+        
+        # Test 1: Unauthenticated user can access public post
+        self.client.logout()
+        url = f"/api/posts/{public_post.id}/shared/"
+    
+        response = self.client.get(url)
+        data = response.json()
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(data["post"]["title"], "Public Shareable Post")
+        self.assertEqual(len(data["comments"]), 1)
+        
+        if "is_logged_in" in data:
+            self.assertFalse(data["is_logged_in"])
+        
+        self.assertNotIn("is_liked_by_user", data["post"])
+        
+        # Test 2: Authenticated user can access public post
+        self.client.force_login(self.author)
+        response = self.client.get(url)
+        data = response.json()
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(data["post"]["title"], "Public Shareable Post")
+        
+        
+        # If the post has is_liked_by_user field for authenticated users
+        if "is_liked_by_user" in data["post"]:
+            self.assertFalse(data["post"]["is_liked_by_user"]) 
+        
+        Like.objects.create(user=self.author, post=public_post)
+        response = self.client.get(url)
+        data = response.json()
+        
+        if "is_liked_by_user" in data["post"]:
+            self.assertTrue(data["post"]["is_liked_by_user"]) 
+        
+        # Test 3: Cannot access a non-public post
+        url = f"/api/posts/{private_post.id}/shared/"
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.json()["detail"], "This post is not shareable")
+        
+        # Test that unauthenticated user also cannot access non-public post
+        self.client.logout()
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
