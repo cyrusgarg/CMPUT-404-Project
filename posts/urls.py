@@ -45,7 +45,7 @@ urlpatterns = [
     path('<uuid:post_id>/comment/<uuid:comment_id>/like/', views.like_comment, name='like_comment'),
     # Like a comment
     path('share/<uuid:post_id>/', views.shared_post_view, name='shared_post'),
-
+    # Share a public post
 
 ]
 
