@@ -66,7 +66,7 @@ def author_posts(request, author_id):
         paginated_posts = paginator.paginate_queryset(posts, request)
 
         # Serialize posts
-        serializer = PostSerializer(paginated_posts, many=True)
+        serializer = PostSerializer(paginated_posts, many=True,context={'request': request})
 
         # Return paginated response
         return paginator.get_paginated_response(serializer.data)
@@ -122,21 +122,21 @@ def author_post_detail(request, author_id, post_id):
     if request.method == 'GET':
         if post.visibility == "PUBLIC":
             # Anyone can access public posts
-            serializer = PostSerializer(post)
+            serializer = PostSerializer(post,context={'request': request})
             return Response(serializer.data)
 
         elif post.visibility == "FRIENDS":
             if request.user.is_authenticated and (
                 request.user == user or request.user in author.friends.all()
             ):
-                serializer = PostSerializer(post)
+                serializer = PostSerializer(post,context={'request': request})
                 return Response(serializer.data)
             return Response({"detail": "Authentication required for friends-only posts."},
                             status=status.HTTP_403_FORBIDDEN)
 
         elif post.visibility == "UNLISTED":
             # Allow direct access without restrictions
-            serializer = PostSerializer(post)
+            serializer = PostSerializer(post,context={'request': request})
             return Response(serializer.data)
 
         else:
@@ -195,6 +195,7 @@ class CommentPagination(PageNumberPagination):
     def get_paginated_response(self, data, post):
         """Returns paginated response with additional `page` and `id` fields."""
         post_author = post.author.author_profile
+
         if hasattr(self, 'page') and self.page is not None:
             page_number = self.page.number
             size = self.page.paginator.per_page

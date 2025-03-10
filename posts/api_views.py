@@ -42,7 +42,7 @@ def get_post_by_fqid(request, post_id):
 
     # Handle visibility logic
     if post.visibility == "PUBLIC":
-        serializer = PostSerializer(post)
+        serializer = PostSerializer(post,context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif post.visibility == "FRIENDS":
@@ -50,7 +50,7 @@ def get_post_by_fqid(request, post_id):
         if request.user.is_authenticated:
             author = post.author.author_profile  # Get the Author profile from the User
             if request.user in author.friends.all() or request.user == post.author:
-                serializer = PostSerializer(post)
+                serializer = PostSerializer(post,context={'request': request})
                 return Response(serializer.data, status=status.HTTP_200_OK)
             else:
                 return Response({"detail": "You do not have permission to view this post."},
@@ -61,13 +61,13 @@ def get_post_by_fqid(request, post_id):
 
     elif post.visibility == "UNLISTED":
         # Allow access if a user knows the post ID (direct link access)
-        serializer = PostSerializer(post)
+        serializer = PostSerializer(post,context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif post.visibility == "DELETED":
         # Only superusers (admins) can view deleted posts
         if request.user.is_superuser:
-            serializer = PostSerializer(post)
+            serializer = PostSerializer(post,context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             return Response({"detail": "You do not have permission to view this post."},
