@@ -12,6 +12,7 @@ class AuthorAPITestCase(TestCase):
     def setUp(self):
         """Set up test users and authors"""
         self.client = APIClient()
+        self.admin_user = User.objects.create_superuser(username='admin', password='adminpassword')
         self.user1 = User.objects.create_user(username='user1', password='password123')
         self.user2 = User.objects.create_user(username='user2', password='password123')
         self.author1 = self.user1.author_profile
@@ -74,6 +75,12 @@ class AuthorAPITestCase(TestCase):
         }
         response = self.client.post(f'/api/authors/{self.author1.author_id}/posts/', post_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_delete_user_via_admin(self):
+        """Ensure an admin can delete a user via Django Admin API （GJ）"""
+        self.client.login(username="admin", password="adminpassword")
+        response = self.client.post(f"/admin/auth/user/{self.user2.id}/delete/", {"post": "yes"})
+        self.assertEqual(response.status_code, 302)  
 
 
 
