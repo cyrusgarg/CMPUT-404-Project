@@ -5,8 +5,8 @@ app_name = 'identity'
 
 urlpatterns = [
     # API endpoints
-    path('', api_views.author_list, name='api-author-list'),
-    path('<uuid:author_id>/', api_views.author_detail, name='api-author-detail'),
+    path('', api_views.AuthorListView.as_view(), name='author-list'),
+    path('<int:pk>/', api_views.AuthorDetailView.as_view(), name='author-detail'),
     path('<uuid:author_id>/posts/', api_views.author_posts, name='api-author-posts'),
     path('<uuid:author_id>/posts/<uuid:post_id>/', api_views.author_post_detail, name='api-author-post-detail'),
     path('api/auth-test/', api_views.auth_test, name='auth-test'),
