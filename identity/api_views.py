@@ -729,26 +729,30 @@ def inbox(request, author_id):
                 return Response({"error": "Post not found."}, status=status.HTTP_404_NOT_FOUND)
             if Like.objects.filter(user=liker.user, post=post).exists():
                 return Response({"error": "You have already liked this post."}, status=status.HTTP_400_BAD_REQUEST)
-            Like.objects.create(user=liker.user, post=post)
+            like_instance = Like.objects.create(user=liker.user, post=post)
         elif ref_type in ["comments", "comment"]:
             comment = Comment.objects.filter(id=ref_id).first()
             if not comment:
                 return Response({"error": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
             if Like.objects.filter(user=liker.user, comment=comment).exists():
                 return Response({"error": "You have already liked this comment."}, status=status.HTTP_400_BAD_REQUEST)
-            Like.objects.create(user=liker.user, comment=comment)
+            like_instance = Like.objects.create(user=liker.user, comment=comment)
         else:
             return Response({"error": "Invalid object reference."}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({"message": "Like received successfully."}, status=status.HTTP_201_CREATED)
+        serializer = LikeSerializer(like_instance, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     elif obj_type == "comment":
         # Process a comment object using CommentSerializer.
-        serializer = CommentSerializer(data=data)
+        data = dict(request.data)
+        data.pop("type", None)  # Remove the extra "type" field if present
+        serializer = CommentSerializer(data=data, context={'request': request, 'inbox_author': author})
         if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "Comment received successfully."}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            comment_instance = serializer.save()
+            # Optionally, re-serialize the saved comment if we need any changes
+            response_serializer = CommentSerializer(comment_instance, context={'request': request})
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
     elif obj_type == "follow":
         # Process a follow request.

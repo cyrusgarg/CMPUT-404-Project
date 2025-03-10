@@ -193,7 +193,7 @@ class LikeSerializer(serializers.ModelSerializer):
 class CommentSerializer(serializers.ModelSerializer):
     """Serializer for Comment model to convert data into JSON format."""
     
-    type = serializers.CharField(default="comment")
+    type = serializers.CharField(default="comment", read_only=True)
     id = serializers.SerializerMethodField()
     author = serializers.SerializerMethodField()
     post = serializers.SerializerMethodField()
@@ -249,7 +249,43 @@ class CommentSerializer(serializers.ModelSerializer):
             "count": likes.count(),
             "src": serializer.data  # Include paginated like objects
         }
+    
+    def create(self, validated_data):
+        # Example: extract post id from the request data or context
+        request = self.context.get("request")
+        post_url = request.data.get("post")  # or use another key like "post_id"
+        if not post_url:
+            raise serializers.ValidationError("Post information is required.")
         
+        # Extract the post id from the URL (adjust the logic as needed)
+        post_id = post_url.rstrip("/").split("/")[-1]
+        try:
+            post_instance = Post.objects.get(id=post_id)
+        except Post.DoesNotExist:
+            raise serializers.ValidationError("Post not found.")
+
+        validated_data["post"] = post_instance
+        
+        # Set the user (from remote author or context)
+        remote_author_data = request.data.get("author", {})
+        remote_author_id = remote_author_data.get("id")
+        if remote_author_id:
+            remote_author_serial = remote_author_id.rstrip("/").split("/")[-1]
+            local_author = Author.objects.filter(author_id=remote_author_serial).first()
+            if local_author:
+                validated_data["user"] = local_author.user
+            else:
+                raise serializers.ValidationError("Remote author not found.")
+        else:
+            inbox_author = self.context.get("inbox_author")
+            if inbox_author:
+                validated_data["user"] = inbox_author.user
+            else:
+                raise serializers.ValidationError("Author information is missing.")
+        
+        return Comment.objects.create(**validated_data)
+
+            
 
 class CommentLikePagination(PageNumberPagination):
     """
