@@ -171,7 +171,7 @@ def shared_post_api(request, post_id):
     
     return Response(response_data, status=status.HTTP_200_OK)
 
-  def post_comments(request, post_id):
+def post_comments(request, post_id):
     """
     GET: Retrieve a paginated list of comments for the specified post.
          Visibility rules:
