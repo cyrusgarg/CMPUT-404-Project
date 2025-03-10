@@ -659,11 +659,14 @@ def inbox(request, author_id):
 
     elif obj_type == "comment":
         # Process a comment object using CommentSerializer.
-        serializer = CommentSerializer(data=data)
+        data = dict(request.data)
+        data.pop("type", None)  # Remove the extra "type" field if present
+        serializer = CommentSerializer(data=data, context={'request': request, 'inbox_author': author})
         if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "Comment received successfully."}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            comment_instance = serializer.save()
+            # Optionally, re-serialize the saved comment if we need any changes
+            response_serializer = CommentSerializer(comment_instance, context={'request': request})
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
     elif obj_type == "follow":
         # Process a follow request.
