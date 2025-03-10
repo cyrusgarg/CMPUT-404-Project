@@ -116,3 +116,43 @@ def local_post_likes(request, post_id):
 #     serializer = LikeSerializer(like)
 
 #     return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def shared_post_api(request, post_id):
+    """
+    API endpoint for accessing shared posts.
+    This endpoint doesn't require login for PUBLIC posts.
+    """
+    post = get_object_or_404(Post, id=post_id)
+    
+    if post.visibility != "PUBLIC":
+        return Response(
+            {"detail": "This post is not shareable"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    is_logged_in = request.user.is_authenticated
+    
+    post_serializer = PostSerializer(post)
+    post_data = post_serializer.data
+    
+    if is_logged_in:
+        post_data['is_liked_by_user'] = post.likes.filter(id=request.user.id).exists()
+    
+    comments = post.comments.all()
+    
+    if is_logged_in:
+        for comment in comments:
+            comment.is_liked_by_user = comment.likes.filter(id=request.user.id).exists()
+    
+    from .serializers import CommentSerializer  # Import at the top of your file
+    comment_serializer = CommentSerializer(comments, many=True)
+    
+    response_data = {
+        "post": post_data,
+        "comments": comment_serializer.data,
+        "is_logged_in": is_logged_in
+    }
+    
+    return Response(response_data, status=status.HTTP_200_OK)

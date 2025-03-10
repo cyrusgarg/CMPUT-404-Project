@@ -46,6 +46,7 @@ urlpatterns = [
     # Like a comment
     path('share/<uuid:post_id>/', views.shared_post_view, name='shared_post'),
 
+
 ]
 
 
