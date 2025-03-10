@@ -255,7 +255,7 @@ def author_commented(request, author_id):
 
         paginator = CommentPagination()
         paginated_comments = paginator.paginate_queryset(filtered_comments, request)
-        serializer = CommentSerializer(paginated_comments, many=True)
+        serializer = CommentSerializer(paginated_comments, many=True,context={"request": request})
         post = filtered_comments[0].post
         return paginator.get_paginated_response(serializer.data,post)
 
@@ -274,7 +274,7 @@ def author_commented(request, author_id):
             content=data.get("comment", ""),
         )
 
-        return Response(CommentSerializer(comment).data, status=status.HTTP_201_CREATED)
+        return Response(CommentSerializer(comment,context={"request": request}).data, status=status.HTTP_201_CREATED)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -286,7 +286,7 @@ def get_comment(request, author_id, comment_id):
     user = author.user  # Convert Author to User
     comment = get_object_or_404(Comment, id=comment_id, user=user)
 
-    serializer = CommentSerializer(comment)
+    serializer = CommentSerializer(comment, context={"request": request})
     return Response(serializer.data, status=status.HTTP_200_OK)
     
 @api_view(['POST'])
@@ -331,7 +331,7 @@ def get_comment_by_id(request, comment_id):
     GET: Retrieve a comment by its global ID.
     """
     comment = get_object_or_404(Comment, id=comment_id)
-    serializer = CommentSerializer(comment)
+    serializer = CommentSerializer(comment,context={"request": request})
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
@@ -433,6 +433,15 @@ def comment_likes(request, author_id, post_id, comment_id):
     serializer = LikeSerializer(paginated_likes, many=True)
 
     return paginator.get_paginated_response(serializer.data,post)
+
+def commentLikes(likes,post):
+    paginator = LikePagination()
+    paginated_likes = paginator.paginate_queryset(likes, request)
+
+    serializer = LikeSerializer(paginated_likes, many=True)
+
+    return paginator.get_paginated_response(serializer.data,post)
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
