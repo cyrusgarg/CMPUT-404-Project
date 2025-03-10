@@ -7,9 +7,11 @@ from identity.models import Following
 from rest_framework import status
 from rest_framework.test import APIClient
 import uuid
+from django.conf import settings
 
 import json
 from io import BytesIO
+
 
 class PostVisibilityTestCase(TestCase):
     """
@@ -22,12 +24,27 @@ class PostVisibilityTestCase(TestCase):
         Set up test users and posts.
         初始化测试用户和帖子。（GJ）
         """
+
+        self.old_approval_setting = getattr(settings, 'REQUIRE_AUTHOR_APPROVAL', True)
+        settings.REQUIRE_AUTHOR_APPROVAL = False
+
         self.author = User.objects.create_user(username="author", password="test123")
         self.follower = User.objects.create_user(username="follower", password="test123")
         self.friend = User.objects.create_user(username="friend", password="test123")
         self.non_follower = User.objects.create_user(username="random", password="test123")
         self.admin = User.objects.create_superuser(username="admin", password="admin123")
 
+        # Ensure authors are approved
+        self.author.author_profile.is_approved = True
+        self.author.author_profile.save()
+        self.follower.author_profile.is_approved = True
+        self.follower.author_profile.save()
+        self.friend.author_profile.is_approved = True
+        self.friend.author_profile.save()
+        self.non_follower.author_profile.is_approved = True
+        self.non_follower.author_profile.save()
+        self.admin.author_profile.is_approved = True
+        self.admin.author_profile.save()
         # `follower` 关注 `author`
         Following.objects.create(follower=self.follower, followee=self.author)
 
