@@ -6,6 +6,7 @@ from django.dispatch import receiver
 from django.urls import reverse
 from django.conf import settings
 from django.contrib import admin
+from .id_mapping import get_numeric_id_for_author
 
 class Author(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='author_profile')
@@ -17,7 +18,8 @@ class Author(models.Model):
     author_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     host = models.URLField(default=settings.SITE_URL)
     github = models.URLField(blank=True)
-    
+    is_approved = models.BooleanField(default=False)
+
     @property
     def id(self):
         """Return the full API URL for the author"""
@@ -26,20 +28,24 @@ class Author(models.Model):
     @property
     def page(self):
         """Return the URL of the user's HTML profile page"""
-        return f"{self.host}/authors/{self.author_id}"
+        first_name = self.display_name.split(" ", 1)[0].lower()
+        return f"{self.host}/authors/{first_name}"
     
     def get_absolute_url(self):
         return reverse('identity:author-profile', kwargs={'pk': self.author_id})
     
     def to_dict(self):
+        numeric_id = get_numeric_id_for_author(self.author_id)
+        base_url = self.host
         return {
             "type": "author",
-            "id": self.id,
+            "id": f"{base_url}/api/authors/{numeric_id}",
             "host": self.host,
             "displayName": self.display_name,
             "github": self.github,
             "profileImage": self.profile_image.url if self.profile_image else "",
-            "page": self.page
+            "page": self.page,
+            "url": f"{base_url}/authors/{numeric_id}"
         }
     github_username = models.CharField(max_length=100, blank=True, null=True)
 
@@ -60,7 +66,14 @@ def save_user_author(sender, instance, **kwargs):
 
 @admin.register(Author)
 class AuthorAdmin(admin.ModelAdmin):
-    list_display = ['display_name', 'user']
+    list_display = ['display_name', 'user', 'is_approved']
+    list_filter = ['is_approved']
+    actions = ['approve_authors']
+    
+    def approve_authors(self, request, queryset):
+        queryset.update(is_approved=True)
+        self.message_user(request, f"{queryset.count()} authors have been approved.")
+    approve_authors.short_description = "Approve selected authors"
 
 class GitHubActivity(models.Model):
     author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name='github_activities')

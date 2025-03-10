@@ -12,24 +12,14 @@ from django.contrib.auth.models import User
 from identity.models import Following, FollowRequests, Friendship
 import json, urllib.parse, re, base64
 from django.db.models import Q
+from .id_mapping import get_uuid_for_numeric_id
+from rest_framework.views import APIView
+
 try:
     from bs4 import BeautifulSoup
     BS4_AVAILABLE = True
 except ImportError:
     BS4_AVAILABLE = False
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def author_list(request):
-    """Return a list of all authors"""
-    authors = Author.objects.all()
-    return Response([author.to_dict() for author in authors])
-
-@api_view(['GET'])
-def author_detail(request, author_id):
-    """Return details of a specific author"""
-    author = get_object_or_404(Author, author_id=author_id)
-    return Response(author.to_dict())
 
 @api_view(['GET', 'POST'])
 @permission_classes([AllowAny])  # Allow any user to access, then control with logic
@@ -292,7 +282,6 @@ def author_commented(request, author_id):
         )
 
         return Response(CommentSerializer(comment,context={"request": request}).data, status=status.HTTP_201_CREATED)
-
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_comment(request, author_id, comment_id):
@@ -427,11 +416,11 @@ def comment_likes(request, author_id, post_id, comment_id):
 
     likes = Like.objects.filter(comment=comment).exclude(user=post.author).order_by("-created_at")
     paginator = LikePagination()
-    paginated_likes = paginator.paginate_queryset(likes, request)
+    # paginated_likes = paginator.paginate_queryset(likes, request)
 
-    serializer = LikeSerializer(paginated_likes, many=True)
+    #serializer = LikeSerializer(paginated_likes, many=True)
 
-    return paginator.get_paginated_response(serializer.data,post)
+    #return paginator.get_paginated_response(serializer.data,post)
 
 def commentLikes(likes,post):
     paginator = LikePagination()
@@ -519,6 +508,84 @@ def get_like_by_fqid(request, like_fqid):
 
     return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+
+class AuthorPagination(PageNumberPagination):
+    """
+    Custom pagination response matching the required format for authors.
+    """
+    page_size_query_param = 'size'
+    page_size = 1  # Default page size set to 3
+    max_page_size = 100  # Maximum allowed page size
+
+    def get_paginated_response(self, data):
+        return Response({
+            "type": "authors",
+            "page_number": self.page.number,
+            "size": self.page.paginator.per_page,
+            "count": self.page.paginator.count,
+            "next": self.get_next_link(),  # Link to next page
+            "previous": self.get_previous_link(),  # Link to previous page
+            "src": data  # Serialized list of authors
+        })
+    
+
+class AuthorListView(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        """Return a paginated list of all authors"""
+        authors = Author.objects.all()
+        
+        # Apply pagination
+        paginator = AuthorPagination()
+        paginated_authors = paginator.paginate_queryset(authors, request)
+        
+        # Serialize the paginated queryset
+        serialized_authors = [author.to_dict() for author in paginated_authors]
+        
+        # Return the paginated response
+        return paginator.get_paginated_response(serialized_authors)
+
+class AuthorDetailView(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request, pk):
+        """
+        Return details of a specific author
+        
+        The pk parameter can be a numeric ID instead of a UUID
+        """
+        # Convert numeric ID to UUID if it's a numeric ID
+        try:
+            # Check if pk is numeric
+            numeric_id = int(pk)
+            uuid_str = get_uuid_for_numeric_id(numeric_id)
+            
+            if uuid_str is None:
+                return Response({"error": "Author not found"}, status=404)
+                
+            # Find the author using the UUID
+            author = get_object_or_404(Author, author_id=uuid_str)
+        except ValueError:
+            # If pk is not a numeric ID (e.g., it's already a UUID string),
+            # use it directly to find the author
+            author = get_object_or_404(Author, author_id=pk)
+        
+        return Response(author.to_dict())
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def author_list(request):
+    """Return a paginated list of all authors"""
+    authors = Author.objects.all()
+    
+    # Apply pagination
+    paginator = AuthorPagination()
+    paginated_authors = paginator.paginate_queryset(authors, request)
+    
+    # Return paginated response
+    return paginator.get_paginated_response([author.to_dict() for author in paginated_authors])
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def image_post(request, author_id, post_id):
