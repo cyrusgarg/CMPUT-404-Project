@@ -10,7 +10,8 @@ from posts.models import Post,Comment,Like
 from posts.serializers import PostSerializer, CommentSerializer,LikeSerializer
 from django.contrib.auth.models import User
 from identity.models import Following
-import json
+import json, urllib.parse
+from django.db.models import Q
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -254,7 +255,7 @@ def author_commented(request, author_id):
 
         paginator = CommentPagination()
         paginated_comments = paginator.paginate_queryset(filtered_comments, request)
-        serializer = CommentSerializer(paginated_comments, many=True)
+        serializer = CommentSerializer(paginated_comments, many=True,context={"request": request})
         post = filtered_comments[0].post
         return paginator.get_paginated_response(serializer.data,post)
 
@@ -273,7 +274,7 @@ def author_commented(request, author_id):
             content=data.get("comment", ""),
         )
 
-        return Response(CommentSerializer(comment).data, status=status.HTTP_201_CREATED)
+        return Response(CommentSerializer(comment,context={"request": request}).data, status=status.HTTP_201_CREATED)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -285,7 +286,7 @@ def get_comment(request, author_id, comment_id):
     user = author.user  # Convert Author to User
     comment = get_object_or_404(Comment, id=comment_id, user=user)
 
-    serializer = CommentSerializer(comment)
+    serializer = CommentSerializer(comment, context={"request": request})
     return Response(serializer.data, status=status.HTTP_200_OK)
     
 @api_view(['POST'])
@@ -330,7 +331,7 @@ def get_comment_by_id(request, comment_id):
     GET: Retrieve a comment by its global ID.
     """
     comment = get_object_or_404(Comment, id=comment_id)
-    serializer = CommentSerializer(comment)
+    serializer = CommentSerializer(comment,context={"request": request})
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
@@ -432,3 +433,89 @@ def comment_likes(request, author_id, post_id, comment_id):
     serializer = LikeSerializer(paginated_likes, many=True)
 
     return paginator.get_paginated_response(serializer.data,post)
+
+def commentLikes(likes,post):
+    paginator = LikePagination()
+    paginated_likes = paginator.paginate_queryset(likes, request)
+
+    serializer = LikeSerializer(paginated_likes, many=True)
+
+    return paginator.get_paginated_response(serializer.data,post)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_author_likes(request, author_id):
+    """
+    Retrieve a list of things an author has liked.
+    """
+    author = get_object_or_404(Author, author_id=author_id)
+    
+    # Retrieve all likes made by this author
+    likes = Like.objects.filter(user=author.user).order_by('-created_at')
+
+    # Get a post that this author has liked
+    liked_post = Post.objects.filter(likes__user=author.user).distinct().order_by('-published')[0]
+
+    # Paginate the likes using the custom LikePagination
+    paginator = LikePagination()
+    paginated_likes = paginator.paginate_queryset(likes, request)
+
+    # Serialize paginated data
+    serializer = LikeSerializer(paginated_likes, many=True)
+
+    return paginator.get_paginated_response(serializer.data,liked_post)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_single_like(request, author_id, like_id):
+    """
+    Retrieve a single like made by an author.
+    """
+    author = get_object_or_404(Author, author_id=author_id)
+    like = get_object_or_404(Like, id=like_id, user=author.user)
+
+    serializer = LikeSerializer(like)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_author_likes_by_fqid(request, author_fqid):
+    """
+    Retrieve a list of things an author has liked.
+    """
+    #TODO: may not work right now as author doesnot has fqid
+    decoded_fqid = urllib.parse.unquote(author_fqid)
+    author = get_object_or_404(Author, fqid=decoded_fqid)
+    
+    # Retrieve all likes made by this author
+    likes = Like.objects.filter(user=author.user).order_by('-created_at')
+
+    # Get a post that this author has liked
+    liked_post = Post.objects.filter(likes__user=author.user).distinct().order_by('-published')[0]
+
+    # Paginate the likes using the custom LikePagination
+    paginator = LikePagination()
+    paginated_likes = paginator.paginate_queryset(likes, request)
+
+    # Serialize paginated data
+    serializer = LikeSerializer(paginated_likes, many=True)
+
+    return paginator.get_paginated_response(serializer.data,liked_post)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_like_by_fqid(request, like_fqid):
+    """
+    Retrieve a single like by its Fully Qualified ID (FQID).
+    """
+    decoded_fqid = urllib.parse.unquote(like_fqid)
+    #print("decoded_fqid:", decoded_fqid)
+    
+    #like = Like.objects.filter(Q(fqid=decoded_fqid))
+    like = get_object_or_404(Like, fqid=decoded_fqid)
+     
+    serializer = LikeSerializer(like)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)

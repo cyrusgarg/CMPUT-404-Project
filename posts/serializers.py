@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Post, Like, Comment
 from identity.models import Author
+from rest_framework.pagination import PageNumberPagination
 import markdown
 import base64
 from django.contrib.auth.models import User  # Import Django User model / 导入Django用户模型（GJ）
@@ -247,12 +248,32 @@ class CommentSerializer(serializers.ModelSerializer):
 
     def get_likes(self, obj):
         """Retrieve likes on this comment."""
+        request = self.context.get("request")
+        if request is None:
+            return {"type": "likes", "id": obj.get_like_url(), "page": obj.get_like_url(), "page_number": 1, "size": 0, "count": 0, "src": []}
+
+        likes = Like.objects.filter(comment=obj).order_by("-created_at")  # Get likes for the comment
+        
+        paginator = CommentLikePagination()
+        paginated_likes = paginator.paginate_queryset(likes, request)
+        serializer = LikeSerializer(paginated_likes, many=True, context=self.context)
+        
         return {
             "type": "likes",
-            "id": obj.get_like_url(),
-            "page": f"{obj.get_absolute_url()}/likes",
-            "page_number": 1,
-            "size": 50,
+            "id": f"{obj.post.author.author_profile.host}/api/authors/{obj.user.author_profile.author_id}/commented/{obj.id}/likes",
+            "page": f"{obj.post.author.author_profile.host}/api/authors/{obj.user.author_profile.author_id}/commented/{obj.id}/likes",
+            "page_number": paginator.page.number if paginator.page else 1,
+            "size": paginator.page.paginator.per_page if paginator.page else 50,
             "count": obj.likes.count(),
-            "src": [like.author_profile.to_dict() for like in obj.likes.all()]  # Serialize likes
+            "src": serializer.data  # Include paginated like objects
         }
+        
+
+class CommentLikePagination(PageNumberPagination):
+    """
+    Custom pagination for Likes.
+    Ensures proper structure with page number, size, and count.
+    """
+    page_size_query_param = "size"  # Allow dynamic page size via query parameters
+    page_size = 5  # Default page size
+    max_page_size = 50  # Limit max likes per request
