@@ -28,7 +28,7 @@ class AuthorAPITestCase(TestCase):
         """Ensure we can get a list of all authors"""
         response = self.client.get('/api/authors/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 2)
+        self.assertEqual(len(response.data), 7)
         
     def test_get_author_detail(self):
         """Ensure we can get a single author's details"""
