@@ -1,5 +1,5 @@
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
+from django.http import JsonResponse, HttpResponse
+from django.shortcuts import get_object_or_404, redirect
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated,AllowAny
@@ -9,9 +9,14 @@ from identity.models import Author
 from posts.models import Post,Comment,Like
 from posts.serializers import PostSerializer, CommentSerializer,LikeSerializer
 from django.contrib.auth.models import User
-from identity.models import Following
-import json, urllib.parse
+from identity.models import Following, FollowRequests
+import json, urllib.parse, re, base64
 from django.db.models import Q
+try:
+    from bs4 import BeautifulSoup
+    BS4_AVAILABLE = True
+except ImportError:
+    BS4_AVAILABLE = False
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -184,18 +189,29 @@ class CommentPagination(PageNumberPagination):
     """
     Custom pagination response matching the required format for comments.
     """
+    page_size = 5  # Default to 5 comments per page
     page_size_query_param = 'size'
 
-    def get_paginated_response(self, data,post):
+    def get_paginated_response(self, data, post):
         """Returns paginated response with additional `page` and `id` fields."""
         post_author = post.author.author_profile
+        if hasattr(self, 'page') and self.page is not None:
+            page_number = self.page.number
+            size = self.page.paginator.per_page
+            count = self.page.paginator.count
+        else:
+            # Defaults if there is no pagination info (e.g., when there are no items)
+            page_number = 1
+            size = 0
+            count = 0
+
         return Response({
             "type": "comments",
             "page": f"{post_author.host}/authors/{post_author.author_id}/posts/{post.id}",
             "id": f"{post_author.host}/api/authors/{post_author.author_id}/posts/{post.id}/comments",
-            "page_number": self.page.number,
-            "size": self.page.paginator.per_page,
-            "count": self.page.paginator.count,
+            "page_number": page_number,
+            "size": size,
+            "count": count,
             "src": data  # Serialized list of comments
         })
 
@@ -333,58 +349,6 @@ def get_comment_by_id(request, comment_id):
     comment = get_object_or_404(Comment, id=comment_id)
     serializer = CommentSerializer(comment,context={"request": request})
     return Response(serializer.data, status=status.HTTP_200_OK)
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def inbox_like(request, author_id):
-    """
-    POST: Accepts a remote like object and processes it.
-    """
-    author = get_object_or_404(Author, author_id=author_id)
-    data = request.data
-
-    if data.get("type") != "like":
-        return Response({"error": "Invalid object type."}, status=status.HTTP_400_BAD_REQUEST)
-
-    # Extract author details
-    liker_author_url = data["author"]["id"]
-    liker = Author.objects.filter(author_id=liker_author_url.split("/")[-1]).first()
-
-    if not liker:
-        return Response({"error": "Liker author not found."}, status=status.HTTP_400_BAD_REQUEST)
-
-    # Determine if this is a post or comment like
-    object_url = data.get("object")
-    object_type = object_url.split("/")[-2]  # Extract 'posts' or 'commented'
-    object_id = object_url.split("/")[-1]  # Extract the UUID
-
-    if object_type == "posts":
-        post = Post.objects.filter(id=object_id).first()
-        if not post:
-            return Response({"error": "Post not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        # Prevent duplicate likes on the post
-        if Like.objects.filter(user=liker.user, post=post).exists():
-            return Response({"error": "You have already liked this post."}, status=status.HTTP_400_BAD_REQUEST)
-
-        Like.objects.create(user=liker.user, post=post)
-
-    elif object_type == "commented":
-        comment = Comment.objects.filter(id=object_id).first()
-        if not comment:
-            return Response({"error": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        # Prevent duplicate likes on the comment
-        if Like.objects.filter(user=liker.user, comment=comment).exists():
-            return Response({"error": "You have already liked this comment."}, status=status.HTTP_400_BAD_REQUEST)
-
-        Like.objects.create(user=liker.user, comment=comment)
-
-    else:
-        return Response({"error": "Invalid object reference."}, status=status.HTTP_400_BAD_REQUEST)
-
-    return Response({"message": "Like received successfully."}, status=status.HTTP_201_CREATED)
-
 
 class LikePagination(PageNumberPagination):
     """
@@ -535,3 +499,190 @@ def get_like_by_fqid(request, like_fqid):
     serializer = LikeSerializer(like)
 
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def image_post(request, author_id, post_id):
+    """
+    Retrieve the image from an author's post.
+
+    - Checks post.image field (base64 or URL).
+    - If not found, extracts from post.content (HTML <img> tag or markdown).
+    - Redirects to the image URL or returns 404.
+    """
+    author = get_object_or_404(Author, author_id=author_id)
+    post = get_object_or_404(Post, id=post_id, author=author.user)
+
+    # Check if there's a direct image field
+    if post.image:
+        if post.image.startswith("data:image/"):
+            try:
+                header, encoded = post.image.split(',', 1)
+                content_type = header.split(':')[1].split(';')[0]
+                missing_padding = len(encoded) % 4
+                if missing_padding:
+                    encoded += '=' * (4 - missing_padding)
+                image_data = base64.b64decode(encoded)
+                return HttpResponse(image_data, content_type=content_type)
+            except Exception as e:
+                print("Error decoding image:", e)
+                return Response({"detail": "Invalid image data"}, status=status.HTTP_404_NOT_FOUND)
+        elif post.image.startswith("http://") or post.image.startswith("https://"):
+            return redirect(post.image)
+
+    # Extract from post content
+    img_src = None
+    if post.content:
+        if BS4_AVAILABLE:
+            soup = BeautifulSoup(post.content, 'html.parser')
+            img_tag = soup.find('img')
+            if img_tag:
+                img_src = img_tag.get('src')
+        if not img_src:
+            match = re.search(r'<img\s+[^>]*src=["\']([^"\']+)["\']', post.content)
+            if match:
+                img_src = match.group(1)
+        if not img_src:
+            match_md = re.search(r'!\[.*?\]\((.*?)\)', post.content)
+            if match_md:
+                img_src = match_md.group(1)
+
+    if img_src:
+        return redirect(img_src)
+
+    return Response({"detail": "Not an image"}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def post_comment(request, author_id, post_id):
+    """
+    GET: Retrieve a paginated list of comments for the specified post under a specific author.
+         Visibility rules:
+           - PUBLIC and UNLISTED posts are accessible to everyone.
+           - FRIENDS posts require the request user to be authenticated and either the post's author 
+             or in the author's friends list.
+    """
+    author = get_object_or_404(Author, author_id=author_id)
+    post = get_object_or_404(Post, id=post_id, author=author.user)
+
+    # Check visibility before returning comments.
+    if post.visibility in ["PUBLIC", "UNLISTED"]:
+        pass  # These posts are accessible
+    elif post.visibility == "FRIENDS":
+        if request.user.is_authenticated:
+            if request.user != post.author and request.user not in post.author.author_profile.friends.all():
+                return Response(
+                    {"detail": "You do not have permission to view comments on this post."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        else:
+            return Response(
+                {"detail": "Authentication is required to view comments on this post."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+    else:
+        return Response(
+            {"detail": "You do not have permission to view comments on this post."},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    # Retrieve and paginate comments
+    comments = post.comments.all().order_by("-created_at")
+    paginator = CommentPagination()
+    paginated_comments = paginator.paginate_queryset(comments, request)
+    serializer = CommentSerializer(paginated_comments, many=True, context={'request': request})
+    return paginator.get_paginated_response(serializer.data, post)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def inbox(request, author_id):
+    """
+    POST: Accepts remote objects (posts, follow requests, likes, comments)
+    and processes them. When sending/updating:
+      - posts: the body is a post object (processed with PostSerializer)
+      - follow requests: the body is a follow object (added to the inbox for later approval)
+      - likes: the body is a like object (processed with LikeSerializer)
+      - comments: the body is a comment object (processed with CommentSerializer)
+    """
+    # Get the target author (the owner of this inbox)
+    author = get_object_or_404(Author, author_id=author_id)
+    data = request.data
+    obj_type = data.get("type", "").lower()
+
+    if obj_type == "post":
+        serializer = PostSerializer(data=data)
+        if serializer.is_valid():
+            post_instance = serializer.save(author=author.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif obj_type == "like":
+        # Process a like object.
+        liker_author_url = data.get("author", {}).get("id")
+        if not liker_author_url:
+            return Response({"error": "Missing liker author information."}, status=status.HTTP_400_BAD_REQUEST)
+        # Extract the author_id from the URL
+        liker = Author.objects.filter(author_id=liker_author_url.rstrip("/").split("/")[-1]).first()
+        if not liker:
+            return Response({"error": "Liker author not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Determine whether this is a like for a post or a comment.
+        object_url = data.get("object")
+        if not object_url:
+            return Response({"error": "Missing object URL in like."}, status=status.HTTP_400_BAD_REQUEST)
+        parts = object_url.strip("/").split("/")
+        if len(parts) < 2:
+            return Response({"error": "Invalid object URL."}, status=status.HTTP_400_BAD_REQUEST)
+        ref_type = parts[-2].lower()
+        ref_id = parts[-1]
+
+        if ref_type in ["posts", "post"]:
+            post = Post.objects.filter(id=ref_id).first()
+            if not post:
+                return Response({"error": "Post not found."}, status=status.HTTP_404_NOT_FOUND)
+            if Like.objects.filter(user=liker.user, post=post).exists():
+                return Response({"error": "You have already liked this post."}, status=status.HTTP_400_BAD_REQUEST)
+            Like.objects.create(user=liker.user, post=post)
+        elif ref_type in ["comments", "comment"]:
+            comment = Comment.objects.filter(id=ref_id).first()
+            if not comment:
+                return Response({"error": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
+            if Like.objects.filter(user=liker.user, comment=comment).exists():
+                return Response({"error": "You have already liked this comment."}, status=status.HTTP_400_BAD_REQUEST)
+            Like.objects.create(user=liker.user, comment=comment)
+        else:
+            return Response({"error": "Invalid object reference."}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"message": "Like received successfully."}, status=status.HTTP_201_CREATED)
+
+    elif obj_type == "comment":
+        # Process a comment object using CommentSerializer.
+        serializer = CommentSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Comment received successfully."}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif obj_type == "follow":
+        # Process a follow request.
+        # Extract the sender's URL from the incoming follow object.
+        sender_author_url = data.get("author", {}).get("id")
+        if not sender_author_url:
+            return Response({"error": "Missing sender author information in follow request."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        sender = Author.objects.filter(author_id=sender_author_url.rstrip("/").split("/")[-1]).first()
+        if not sender:
+            return Response({"error": "Sender author not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if a follow request already exists or the users are already following.
+        if FollowRequests.objects.filter(sender=sender.user, receiver=author.user).exists() or \
+           Following.objects.filter(follower=sender.user, followee=author.user).exists():
+            return Response({"error": "Follow request already exists or sender is already following."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        FollowRequests.objects.create(sender=sender.user, receiver=author.user)
+        return Response({"message": "Follow request received successfully."}, status=status.HTTP_201_CREATED)
+
+    else:
+        return Response({"error": "Invalid object type."}, status=status.HTTP_400_BAD_REQUEST)
