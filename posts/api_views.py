@@ -17,6 +17,13 @@ from .serializers import PostSerializer,LikeSerializer
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
+def post_list(request):
+    posts = Post.objects.all()
+    serializer = PostSerializer(posts, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
 @permission_classes([AllowAny])  # Allow anyone to access the endpoint initially
 def get_post_by_fqid(request, post_id):
     """

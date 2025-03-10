@@ -5,3 +5,4 @@ Markdown==3.7
 sqlparse==0.5.3
 Pillow
 whitenoise==6.9.0
+django_widget_tweaks
