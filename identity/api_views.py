@@ -35,6 +35,7 @@ def author_posts(request, author_id):
 
     if request.method == 'GET':
 
+
         if request.user.is_authenticated:
             is_follower = Following.objects.filter(follower=request.user, followee=user).exists()
             is_friend = Friendship.objects.filter(user1=request.user, user2=user).exists() or \
@@ -42,6 +43,7 @@ def author_posts(request, author_id):
         else:
             is_follower = False
             is_friend = False
+
 
         # Visibility filters based on authentication and relationships
         if not request.user.is_authenticated:
