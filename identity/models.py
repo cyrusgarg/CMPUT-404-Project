@@ -6,6 +6,7 @@ from django.dispatch import receiver
 from django.urls import reverse
 from django.conf import settings
 from django.contrib import admin
+from .id_mapping import get_numeric_id_for_author
 
 class Author(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='author_profile')
@@ -32,14 +33,17 @@ class Author(models.Model):
         return reverse('identity:author-profile', kwargs={'pk': self.author_id})
     
     def to_dict(self):
+        numeric_id = get_numeric_id_for_author(self.author_id)
+        base_url = self.host
         return {
             "type": "author",
-            "id": self.id,
+            "id": f"{base_url}/api/authors/{numeric_id}",
             "host": self.host,
             "displayName": self.display_name,
             "github": self.github,
             "profileImage": self.profile_image.url if self.profile_image else "",
-            "page": self.page
+            "page": self.page,
+            "url": f"{base_url}/authors/{numeric_id}"
         }
     github_username = models.CharField(max_length=100, blank=True, null=True)
 

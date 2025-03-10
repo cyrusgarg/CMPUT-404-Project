@@ -436,11 +436,11 @@ def comment_likes(request, author_id, post_id, comment_id):
 
 def commentLikes(likes,post):
     paginator = LikePagination()
-    paginated_likes = paginator.paginate_queryset(likes, request)
+    # paginated_likes = paginator.paginate_queryset(likes, request)
 
-    serializer = LikeSerializer(paginated_likes, many=True)
+    #serializer = LikeSerializer(paginated_likes, many=True)
 
-    return paginator.get_paginated_response(serializer.data,post)
+    #return paginator.get_paginated_response(serializer.data,post)
 
 
 @api_view(['GET'])
@@ -519,3 +519,36 @@ def get_like_by_fqid(request, like_fqid):
     serializer = LikeSerializer(like)
 
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AuthorPagination(PageNumberPagination):
+    """
+    Custom pagination response matching the required format for authors.
+    """
+    page_size_query_param = 'size'
+    page_size = 3  # Default page size set to 3
+    max_page_size = 100  # Maximum allowed page size
+
+    def get_paginated_response(self, data):
+        return Response({
+            "type": "authors",
+            "page_number": self.page.number,
+            "size": self.page.paginator.per_page,
+            "count": self.page.paginator.count,
+            "next": self.get_next_link(),  # Link to next page
+            "previous": self.get_previous_link(),  # Link to previous page
+            "src": data  # Serialized list of authors
+        })
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def author_list(request):
+    """Return a paginated list of all authors"""
+    authors = Author.objects.all()
+    
+    # Apply pagination
+    paginator = AuthorPagination()
+    paginated_authors = paginator.paginate_queryset(authors, request)
+    
+    # Return paginated response
+    return paginator.get_paginated_response([author.to_dict() for author in paginated_authors])
