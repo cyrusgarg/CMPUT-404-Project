@@ -433,13 +433,14 @@ def comment_likes(request, author_id, post_id, comment_id):
 
     #return paginator.get_paginated_response(serializer.data,post)
 
-def commentLikes(likes,post):
-    paginator = LikePagination()
-    # paginated_likes = paginator.paginate_queryset(likes, request)
+#Seems like no one use this function
+# def commentLikes(likes,post):
+#     paginator = LikePagination()
+#     # paginated_likes = paginator.paginate_queryset(likes, request)
 
-    #serializer = LikeSerializer(paginated_likes, many=True)
+#     #serializer = LikeSerializer(paginated_likes, many=True)
 
-    #return paginator.get_paginated_response(serializer.data,post)
+#     #return paginator.get_paginated_response(serializer.data,post)
 
 
 @api_view(['GET'])
