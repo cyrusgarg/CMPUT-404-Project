@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Posts</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/PostIndex.css' %}">
+</head>
+<body>
+    <h1>My Posts</h1>
+
+    <!-- Form for creating a new post / 创建新帖子的表单（GJ） -->
+    <form action="{% url 'posts:create_post' %}" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <label for="title">Title:</label>
+        <input type="text" name="title" required>
+
+        <label for="description">Description:</label>
+        <input type="text" name="description" required>
+
+        <label for="content">Content:</label>
+        <textarea name="content" required></textarea>
+
+        <label for="contentType">Content Type:</label>
+        <select name="contentType">
+            <option value="text/plain">Plain Text</option>
+            <option value="text/markdown">Markdown</option>
+        </select>
+
+        <label for="visibility">Visibility:</label>
+        <select name="visibility">
+            <option value="PUBLIC">Public</option>
+            <option value="FRIENDS">Friends Only</option>
+            <option value="UNLISTED">Unlisted</option>
+        </select>
+
+        <label for="image">Upload Image:</label>
+        <input type="file" name="image" accept="image/*">
+
+        <button type="submit">Create Post</button>
+    </form>
+
+    <h2>My Posts List</h2>
+    <ul>
+        {% for post in posts %}
+            <li>
+                <!-- Display post title and visibility / 显示帖子标题和可见性（GJ） -->
+                <a href="{% url 'posts:post_detail' post.id %}">{{ post.title }}</a>
+                <span>({{ post.visibility }})</span>
+
+                {% if post.image %}
+                    <br>
+                    <img src="{{ post.image }}" alt="{{ post.title }} Image" style="max-width: 100px;">
+                {% endif %}
+
+                {% if post.visibility == "DELETED" %}
+                    <!-- Show deleted message / 显示已删除提示（GJ） -->
+                    <span id="deleted-warning">[Deleted]</span>
+                {% else %}
+                    {% if user == post.author.username %}
+                        <!-- Buttons for editing and deleting posts / 编辑和删除帖子的按钮（GJ） -->
+                        <a href="{% url 'posts:edit_post' post.id %}">Edit</a>
+
+                        <form action="{% url 'posts:delete_post' post.id %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit">Delete</button>
+                        </form>
+                    {% endif %}
+                {% endif %}
+            </li>
+        {% empty %}
+            <!-- Message when no posts are available / 没有帖子时显示消息（GJ） -->
+            <li>No posts available.</li>
+        {% endfor %}
+    </ul>
+
+    <br>
+    <!-- Link to view other posts / 查看其他帖子页面的链接（GJ） -->
+    <a href="{% url 'posts:view_posts' %}">View Other Users' Posts</a>
+    <br>
+    <a href="{% url 'identity:author-profile' username=request.user.username %}" class="btn btn-secondary">Back to Profile</a>
+</body>
+</html>

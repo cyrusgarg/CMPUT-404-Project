@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>View Posts</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/PostView.css' %}">
+</head>
+<body>
+    <h1>View Other Users' Posts</h1>
+
+    <h2>Available Posts</h2>
+    <ul>
+        {% for post in posts %}
+            <li>
+                <!-- Display post title and visibility / 显示帖子标题和可见性（GJ） -->
+                <a href="{% url 'posts:post_detail' post.id %}">{{ post.title }}</a>
+                <span>({{ post.visibility }})</span>
+
+                {% if post.visibility == "DELETED" %}
+                    <!-- Show deleted message if the user is an admin / 如果是管理员，则显示已删除帖子（GJ） -->
+                    <span id="deleted-warning">[Deleted]</span>
+                {% endif %}
+            </li>
+        {% empty %}
+            <!-- Message when no visible posts are available / 没有可见帖子时显示消息（GJ） -->
+            <li>No posts available.</li>
+        {% endfor %}
+    </ul>
+
+    <br>
+    <!-- Link to go back to the user's own posts page / 返回用户自己帖子页面的链接（GJ） -->
+    <a href="{% url 'posts:index' %}">Back to My Posts</a>
+</body>
+</html>

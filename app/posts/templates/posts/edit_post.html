@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Post</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/PostEdit.css' %}">
+</head>
+<body>
+    <h1>Edit Post</h1>
+    <form action="{% url 'posts:web_update_post' post.id %}" method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <label>Title:</label>
+        <input type="text" name="title" value="{{ post.title }}" required><br>
+
+        <label>Description:</label>
+        <textarea name="description" required>{{ post.description }}</textarea><br>
+
+        <label>Content:</label>
+        <textarea name="content" required>{{ post.content }}</textarea><br>
+
+        <label>Content Type:</label>
+        <select name="contentType">
+            <option value="text/plain" {% if post.contentType == "text/plain" %}selected{% endif %}>Plain Text</option>
+            <option value="text/markdown" {% if post.contentType == "text/markdown" %}selected{% endif %}>Markdown</option>
+        </select><br>
+
+        <label>Visibility:</label>
+        <select name="visibility">
+            <option value="PUBLIC" {% if post.visibility == "PUBLIC" %}selected{% endif %}>Public</option>
+            <option value="FRIENDS" {% if post.contentType == "FRIENDS" %}selected{% endif %}>Friends Only</option>
+            <option value="UNLISTED" {% if post.contentType == "UNLISTED" %}selected{% endif %}>Unlisted</option>
+            <option value="DELETED" {% if post.contentType == "DELETED" %}selected{% endif %}>Deleted</option>
+        </select><br>
+
+        <label for="image">Upload Image:</label>
+        <input type="file" name="image" accept="image/*">
+
+        {% if post.image %}
+            <p>Current Image:</p>
+            <img src="{{ post.image }}" alt="{{ post.title }} Image" style="max-width: 200px;"><br>
+        {% endif %}
+
+        <button type="submit">Save Changes</button>
+    </form>
+    <!-- <a href="{% url 'posts:post_detail' post.id %}">Cancel</a> -->
+    <a href="{% url 'posts:index' %}">Cancel</a>
+</body>
+</html>
+

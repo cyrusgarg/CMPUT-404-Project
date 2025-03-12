@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2>Your Requests</h2>
+
+<div class="requests-container">
+    {% if requests %}
+        <ul>
+            <!-- Show each follow request with option to accept and decline -->
+            {% for request in requests %}
+                <li>
+                    <a href="/authors/{{ request.sender.username }}">
+                        {{ request.sender.username }}
+                    </a>
+                    <form action="/authors/accept" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="sender" value="{{ request.sender.username }}">
+                        <input type="hidden" name="receiver" value="{{ request.receiver.username }}">
+                        <button type="submit">Accept</button>
+                    </form>
+                    <form action="/authors/decline" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="sender" value="{{ request.sender.username }}">
+                        <input type="hidden" name="receiver" value="{{ request.receiver.username }}">
+                        <button type="submit">Decline</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No follow requests at the moment.</p>
+    {% endif %}
+</div>
+
+{% endblock %}
