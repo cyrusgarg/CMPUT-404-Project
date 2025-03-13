@@ -14,6 +14,7 @@ import json, urllib.parse, re, base64
 from django.db.models import Q
 from .id_mapping import get_uuid_for_numeric_id
 from rest_framework.views import APIView
+from django.utils.timezone import now
 
 try:
     from bs4 import BeautifulSoup
@@ -75,19 +76,46 @@ def author_posts(request, author_id):
     elif request.method == 'POST':
         # Only allow authenticated authors to create posts
         if not request.user.is_authenticated:
-            return Response({"detail": "Authentication is required to create a post."},
-                            status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"detail": "Authentication is required to create a post."}, status=status.HTTP_401_UNAUTHORIZED)
 
         if request.user != author.user:
-            return Response({"detail": "You are not authorized to create posts for this author."},
-                            status=status.HTTP_403_FORBIDDEN)
+            return Response({"detail": "You are not authorized to create posts for this author."}, status=status.HTTP_403_FORBIDDEN)
 
-        # Deserialize and validate the post data
-        serializer = PostSerializer(data=request.data, context={'request': request})
-        if serializer.is_valid():
-            serializer.save(author=request.user)  # Save post with author set
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Debugging: Check if content exists in the request
+        print("Received Content:", request.data.get("content"))
+
+        required_fields = ["title", "description", "contentType", "content", "visibility"]
+        missing_fields = [field for field in required_fields if field not in request.data or not request.data[field]]
+
+        if missing_fields:
+            return Response(
+                {"detail": f"Missing required fields: {', '.join(missing_fields)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    # Extract fields from request
+        title = request.data["title"]
+        description = request.data["description"]
+        contentType = request.data["contentType"]
+        content = request.data["content"]
+        visibility = request.data["visibility"]
+        image=request.data.get("image","")
+
+        post = Post.objects.create(
+            title=title,
+            description=description,
+            contentType=contentType,
+            content=content,
+            visibility=visibility,
+            author=author.user,
+            published=now(),
+            image=image
+        )
+
+        # Serialize the created post and return response
+        serializer = PostSerializer(post, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
 
 # Custom Pagination class
 class CustomPagination(PageNumberPagination):

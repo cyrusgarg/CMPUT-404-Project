@@ -45,8 +45,9 @@ class Post(models.Model):
         Convert Markdown content to HTML if applicable.
         如果帖子内容是Markdown格式，则转换为HTML。（GJ）
         """
-        if self.contentType == 'text/markdown':
-            return markdown.markdown(self.content, extensions=['extra']) 
+        #commenting so we just send them the plain text and markdown text as its contexts
+        # if (self.contentType == 'text/markdown' and self.content):
+        #     return markdown.markdown(self.content, extensions=['extra']) 
         return self.content
 
     @staticmethod

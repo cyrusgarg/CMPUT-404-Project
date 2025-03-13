@@ -43,35 +43,8 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_author(self, obj):
         """Returns the author details in the required format."""
-        return {
-            "type": "author",
-            "id": obj.author.author_profile.author_id,
-            "host": obj.author.author_profile.host,
-            "displayName": obj.author.author_profile.display_name,
-            "github": obj.author.author_profile.github,
-            "profileImage": obj.author.author_profile.profile_image.url if obj.author.author_profile.profile_image else "",
-            "page": obj.author.author_profile.page
-        }
-      
-    def get_content(self, obj):
-        """Handles content formatting based on contentType (Markdown, Plain Text, Base64 Images)."""
-        if obj.contentType == 'text/markdown':
-            return markdown.markdown(obj.content, extensions=['extra'])
-        
-        elif obj.contentType.startswith('image/'):
-          if obj.image:  # Ensure there is an image
-              file_path = obj.image.path
-              content_type = obj.contentType  # Ensure it's in the correct format like "image/png;base64"
-              
-              try:
-                  with open(file_path, "rb") as image_file:
-                      encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
-                  return f"data:{content_type};base64,{encoded_string}"
-              except FileNotFoundError:
-                  return None  # Handle missing files gracefully
-
-        return obj.content    # Default to plain text content if no matching contentType
-      
+        return obj.author.author_profile.to_dict()
+          
     def get_comments(self, obj):
         """Fetches comments in the required format."""
         request = self.context.get("request")
@@ -295,3 +268,24 @@ class CommentLikePagination(PageNumberPagination):
     page_size_query_param = "size"  # Allow dynamic page size via query parameters
     page_size = 5  # Default page size
     max_page_size = 50  # Limit max likes per request
+
+#Not using it from 12 March 2025
+# def get_content(self, obj):
+    #     """Handles content formatting based on contentType (Markdown, Plain Text, Base64 Images)."""
+    #     print("Line 58")
+    #     if obj.contentType == 'text/markdown':
+    #         return markdown.markdown(obj.content, extensions=['extra'])
+        
+    #     elif obj.contentType.startswith('image/'):
+    #       if obj.image:  # Ensure there is an image
+    #           file_path = obj.image.path
+    #           content_type = obj.contentType  # Ensure it's in the correct format like "image/png;base64"
+              
+    #           try:
+    #               with open(file_path, "rb") as image_file:
+    #                   encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+    #               return f"data:{content_type};base64,{encoded_string}"
+    #           except FileNotFoundError:
+    #               return None  # Handle missing files gracefully
+
+    #     return obj.content    # Default to plain text content if no matching contentType
