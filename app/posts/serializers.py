@@ -18,7 +18,8 @@ class PostSerializer(serializers.ModelSerializer):
     """
     type = serializers.CharField(default="post")
     page = serializers.SerializerMethodField()  # HTML Page URL
-    id = serializers.SerializerMethodField()  # Full API URL for post
+    id = serializers.CharField(required=False)  # Allow writing existing IDs
+    #id = serializers.SerializerMethodField()  # Full API URL for post
     author = serializers.SerializerMethodField()  # Full author details
     content = serializers.SerializerMethodField()  # Convert Markdown/Base64 images
     comments = serializers.SerializerMethodField()  # Include comments
@@ -112,7 +113,17 @@ class PostSerializer(serializers.ModelSerializer):
         创建新的帖子实例。（GJ）
         """
         validated_data.pop('type', None)  # Remove 'type' if present
-        return Post.objects.create(**validated_data)
+        post_id = validated_data.pop('id', None)  # Extract the ID from request data
+
+        if post_id:
+            # Ensure it doesn't already exist before creating
+            existing_post = Post.objects.filter(id=post_id).first()
+            if existing_post:
+                raise serializers.ValidationError({"id": "Post with this ID already exists."})
+
+            return Post.objects.create(id=post_id, **validated_data)  # Use provided ID
+
+        return Post.objects.create(**validated_data)  # Default behavior
 
     def update(self, instance, validated_data):
         """

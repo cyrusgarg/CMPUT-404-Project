@@ -737,11 +737,25 @@ def inbox(request, author_id):
     obj_type = data.get("type", "").lower()
 
     if obj_type == "post":
-        serializer = PostSerializer(data=data)
-        if serializer.is_valid():
-            post_instance = serializer.save(author=author.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        post_id = data.get("id", "").split("/")[-1]  # Extract the post UUID from the URL
+
+        # Check if this post already exists on the local node
+        existing_post = Post.objects.filter(id=post_id).first()
+
+        if existing_post:
+            #  Update the existing post
+            serializer = PostSerializer(existing_post, data=data, partial=True, context={'request': request})
+            if serializer.is_valid():
+                serializer.save()  # Update the post
+                return Response(serializer.data, status=status.HTTP_200_OK)  # 200 OK for update
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            # Create a new post if it doesn't exist
+            serializer = PostSerializer(data=data, context={'request': request})
+            if serializer.is_valid():
+                post_instance = serializer.save(author=author.user)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)  # 201 Created for new post
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif obj_type == "like":
         # Process a like object.
