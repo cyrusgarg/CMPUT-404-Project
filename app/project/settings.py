@@ -21,10 +21,12 @@ SITE_URL = 'http://127.0.0.1:8000'
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-p+fs8ix*o6!*l_ry%vp_*33&0$*$z(8n0p3ag_11+*(d+domu0'
+#SECRET_KEY = 'django-insecure-p+fs8ix*o6!*l_ry%vp_*33&0$*$z(8n0p3ag_11+*(d+domu0'
+SECRET_KEY = os.environ.get("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+#DEBUG = True
+DEBUG = bool(os.environ.get("DEBUG", default=False))
 
 LOGIN_URL = 'identity:login'
 LOGIN_REDIRECT_URL = 'posts:index'  # Redirect to posts view after login
@@ -32,7 +34,8 @@ LOGOUT_REDIRECT_URL = 'login'  # Redirect to login after logout
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 #ALLOWED_HOSTS = []
-ALLOWED_HOSTS = ['*']
+#ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS","").split(",")
 
 
 # Application definition
@@ -91,13 +94,22 @@ WSGI_APPLICATION = 'project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": os.environ.get("DB_ENGINE", "django.db.backends.postgresql"),
+        "NAME": os.environ.get("DB_NAME", "hello_django"),
+        "USER": os.environ.get("DB_USER", "hello_django"),
+        "PASSWORD": os.environ.get("DB_PASS", "hello_django"),
+        "HOST": os.environ.get("DB_HOST", "postgres"),
+        "PORT": os.environ.get("DB_PORT", "5432"),
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

@@ -1,6 +1,19 @@
 To create token for authentication, use the following:
     python manage.py drf_create_token <username>
 
+To migrate in docker
+    docker compose exec socialapp python manage.py makemigrations posts
+    docker compose exec socialapp python manage.py makemigrations identity
+    docker compose exec socialapp python manage.py migrate posts
+    docker compose exec socialapp python manage.py migrate identity
+    docker compose exec socialapp python manage.py migrate posts zero
+    docker compose exec socialapp python manage.py migrate posts
+    docker compose exec socialapp python manage.py migrate identity zero
+    docker compose exec socialapp python manage.py migrate identity
+    docker compose restart socialapp
+    docker compose exec socialapp python manage.py migrate --noinput
+    docker compose exec socialapp python manage.py createsuperuser
+
 Some helpful git commands
     git branch  //to see which branch you are on
     git pull origin main //to pull the origin main code into current branch

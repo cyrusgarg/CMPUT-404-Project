@@ -18,7 +18,8 @@ class PostSerializer(serializers.ModelSerializer):
     """
     type = serializers.CharField(default="post")
     page = serializers.SerializerMethodField()  # HTML Page URL
-    id = serializers.SerializerMethodField()  # Full API URL for post
+    id = serializers.CharField(required=False)  # Allow writing existing IDs
+    #id = serializers.SerializerMethodField()  # Full API URL for post
     author = serializers.SerializerMethodField()  # Full author details
     content = serializers.SerializerMethodField()  # Convert Markdown/Base64 images
     comments = serializers.SerializerMethodField()  # Include comments
@@ -43,35 +44,8 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_author(self, obj):
         """Returns the author details in the required format."""
-        return {
-            "type": "author",
-            "id": obj.author.author_profile.author_id,
-            "host": obj.author.author_profile.host,
-            "displayName": obj.author.author_profile.display_name,
-            "github": obj.author.author_profile.github,
-            "profileImage": obj.author.author_profile.profile_image.url if obj.author.author_profile.profile_image else "",
-            "page": obj.author.author_profile.page
-        }
-      
-    def get_content(self, obj):
-        """Handles content formatting based on contentType (Markdown, Plain Text, Base64 Images)."""
-        if obj.contentType == 'text/markdown':
-            return markdown.markdown(obj.content, extensions=['extra'])
-        
-        elif obj.contentType.startswith('image/'):
-          if obj.image:  # Ensure there is an image
-              file_path = obj.image.path
-              content_type = obj.contentType  # Ensure it's in the correct format like "image/png;base64"
-              
-              try:
-                  with open(file_path, "rb") as image_file:
-                      encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
-                  return f"data:{content_type};base64,{encoded_string}"
-              except FileNotFoundError:
-                  return None  # Handle missing files gracefully
-
-        return obj.content    # Default to plain text content if no matching contentType
-      
+        return obj.author.author_profile.to_dict()
+          
     def get_comments(self, obj):
         """Fetches comments in the required format."""
         request = self.context.get("request")
@@ -139,7 +113,17 @@ class PostSerializer(serializers.ModelSerializer):
         创建新的帖子实例。（GJ）
         """
         validated_data.pop('type', None)  # Remove 'type' if present
-        return Post.objects.create(**validated_data)
+        post_id = validated_data.pop('id', None)  # Extract the ID from request data
+
+        if post_id:
+            # Ensure it doesn't already exist before creating
+            existing_post = Post.objects.filter(id=post_id).first()
+            if existing_post:
+                raise serializers.ValidationError({"id": "Post with this ID already exists."})
+
+            return Post.objects.create(id=post_id, **validated_data)  # Use provided ID
+
+        return Post.objects.create(**validated_data)  # Default behavior
 
     def update(self, instance, validated_data):
         """
@@ -295,3 +279,24 @@ class CommentLikePagination(PageNumberPagination):
     page_size_query_param = "size"  # Allow dynamic page size via query parameters
     page_size = 5  # Default page size
     max_page_size = 50  # Limit max likes per request
+
+#Not using it from 12 March 2025
+# def get_content(self, obj):
+    #     """Handles content formatting based on contentType (Markdown, Plain Text, Base64 Images)."""
+    #     print("Line 58")
+    #     if obj.contentType == 'text/markdown':
+    #         return markdown.markdown(obj.content, extensions=['extra'])
+        
+    #     elif obj.contentType.startswith('image/'):
+    #       if obj.image:  # Ensure there is an image
+    #           file_path = obj.image.path
+    #           content_type = obj.contentType  # Ensure it's in the correct format like "image/png;base64"
+              
+    #           try:
+    #               with open(file_path, "rb") as image_file:
+    #                   encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+    #               return f"data:{content_type};base64,{encoded_string}"
+    #           except FileNotFoundError:
+    #               return None  # Handle missing files gracefully
+
+    #     return obj.content    # Default to plain text content if no matching contentType

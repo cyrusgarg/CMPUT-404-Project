@@ -187,6 +187,7 @@ def create_post(request):
             visibility=visibility,
             image=base64_image,
         )
+        #send_post_to_remote_followers(post)
         return redirect("posts:index")  # Redirect to posts index / 创建帖子后跳转到主页（GJ）
     
     return render(request, "posts/create_post.html", {"user": request.user.username})  # Render post creation page / 渲染帖子创建页面（GJ）
@@ -232,6 +233,7 @@ def edit_post(request, post_id):
 @csrf_exempt
 def update_post(request, post_id):
     """
+    Needs to verify where this function gets used
     Handle updates to an existing post via API.
     处理通过API更新现有帖子。（GJ）
     """
@@ -381,16 +383,33 @@ def like_comment(request, post_id, comment_id):
     comment = get_object_or_404(Comment, id=comment_id)
     user = request.user
 
-    if comment.likes.filter(pk=user.pk).exists():
+    like, created = Like.objects.get_or_create(user=user, comment=comment)
+
+    if not created:
+        # If the like already exists, remove it (unlike)
+        like.delete()
         comment.likes.remove(user)
         liked = False
     else:
         comment.likes.add(user)
         liked = True
 
-    # Update the like_count field
+    # Update the like count
+    like_count = Like.objects.filter(comment=comment).count()
     comment.like_count = comment.likes.count()
     comment.save()
+    
+    #commented below code because it does not create the like object which gives problem during API fetch
+    # if comment.likes.filter(pk=user.pk).exists():
+    #     comment.likes.remove(user)
+    #     liked = False
+    # else:
+    #     comment.likes.add(user)
+    #     liked = True
+
+    # # Update the like_count field
+    # comment.like_count = comment.likes.count()
+    # comment.save()
 
     # Return a JSON response with the updated like details
     return JsonResponse({
@@ -400,6 +419,7 @@ def like_comment(request, post_id, comment_id):
         "like_count": comment.like_count,
         "author": request.user.author_profile.to_dict()  # Assumes every user has an author_profile
     })
+
 
 def shared_post_view(request, post_id):
     """
@@ -434,3 +454,52 @@ def shared_post_view(request, post_id):
         "is_logged_in": is_logged_in,
         "is_liked": is_liked
     })
+
+def send_post_to_remote_followers(post):
+    """
+    Sends a newly created PUBLIC post to all remote followers of the author.
+    """
+    if post.visibility != "PUBLIC":
+        print(f"Skipping post {post.id} because it is not public.")
+        return
+
+    # Get remote followers
+    # remote_followers = Following.objects.filter(
+    #     followee_id=f"{post.author.author_profile.id}",
+    #     follower_host__isnull=False  # Ensure it's a remote follower
+    # )
+
+    # Prepare post data
+    post_data = {
+        "type": "post",
+        "id": f"{post.id}", #this is important to distinguish between current post or new post
+        "title": post.title,
+        "description": post.description,
+        "contentType": post.contentType,
+        "content": post.content,
+        "visibility": post.visibility,
+        
+    }
+
+    # for follower in remote_followers:
+    #     inbox_url = f"{follower.follower_host}/api/authors/{follower_id}/inbox"
+
+    inbox_url = f"http://10.2.6.207:8000//api/authors/c37307f0-a9ae-44fb-afd7-8d4194b35994/inbox"
+    try:
+        response = requests.post(
+            inbox_url,
+            json=post_data,
+            headers={"Content-Type": "application/json"},
+            auth=("your-username", "your-password")    # Replace with real authentication
+        )
+
+        if response.status_code in [200, 201]:
+            print(f"Post sent successfully to {follower.follower_id}")
+            #logger.info(f" Post sent successfully to {follower.follower_id}")
+        else:
+            print(f"Failed to send post to {follower.follower_id}: {response.status_code}")
+            #logger.error(f" Failed to send post to {follower.follower_id}: {response.status_code}")
+
+    except requests.RequestException as e:
+        print(f"Error sending post to {follower.follower_id}: {e}")
+        #logger.error(f"Error sending post to {follower.follower_id}: {e}")
