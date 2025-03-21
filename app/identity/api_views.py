@@ -122,7 +122,27 @@ class CustomPagination(PageNumberPagination):
     """
     Custom pagination response matching the required format.
     """
-    page_size_query_param = 'size'  # Allows client to set page size via query parameter
+    page_size = 5  # Default number of posts per page
+    page_size_query_param = 'size'  # Allows the client to set page size
+    max_page_size = 50  # Limit the maximum page size
+
+    def paginate_queryset(self, queryset, request, view=None):
+        """
+        Override to set default page number and size if not provided.
+        """
+        request_query_params = request.query_params.copy()
+
+        # Set default 'page' to 1 if not provided
+        if 'page' not in request_query_params:
+            request_query_params['page'] = '1'
+
+        # Set default 'size' to 5 if not provided
+        if 'size' not in request_query_params:
+            request_query_params['size'] = str(self.page_size)
+
+        request._request.GET = request_query_params  # Force request object to use new defaults
+
+        return super().paginate_queryset(queryset, request, view)
 
     def get_paginated_response(self, data):
         return Response({
@@ -218,11 +238,31 @@ class CommentPagination(PageNumberPagination):
     """
     Custom pagination response matching the required format for comments.
     """
-    page_size = 5  # Default to 5 comments per page
+    page_size = 5  # Default number of comments per page
     page_size_query_param = 'size'
+    max_page_size = 50
 
-    def get_paginated_response(self, data, post):
-        """Returns paginated response with additional `page` and `id` fields."""
+    def paginate_queryset(self, queryset, request, view=None):
+        """
+        Override to set default page number and size if not provided.
+        """
+        request_query_params = request.query_params.copy()
+
+        # Set default 'page' to 1 if not provided
+        if 'page' not in request_query_params:
+            request_query_params['page'] = '1'
+
+        # Set default 'size' to 5 if not provided
+        if 'size' not in request_query_params:
+            request_query_params['size'] = str(self.page_size)
+
+        request._request.GET = request_query_params  # Force request object to use new defaults
+
+        return super().paginate_queryset(queryset, request, view)
+
+    def get_paginated_response(self, data, post, request):
+        """Returns paginated response with additional `page` and `id` fields, now with `request`."""
+        base_url = f"https://{request.get_host()}" if request else "https://commenthost.com"
         post_author = post.author.author_profile
 
         if hasattr(self, 'page') and self.page is not None:
@@ -237,8 +277,8 @@ class CommentPagination(PageNumberPagination):
 
         return Response({
             "type": "comments",
-            "page": f"{post_author.host}/authors/{post_author.author_id}/posts/{post.id}",
-            "id": f"{post_author.host}/api/authors/{post_author.author_id}/posts/{post.id}/comments",
+            "page": f"{base_url}/authors/{post_author.author_id}/posts/{post.id}",
+            "id": f"{base_url}/api/authors/{post_author.author_id}/posts/{post.id}/comments",
             "page_number": page_number,
             "size": size,
             "count": count,
@@ -303,7 +343,7 @@ def author_commented(request, author_id):
         paginated_comments = paginator.paginate_queryset(filtered_comments, request)
         serializer = CommentSerializer(paginated_comments, many=True,context={"request": request})
         post = filtered_comments[0].post
-        return paginator.get_paginated_response(serializer.data,post)
+        return paginator.get_paginated_response(serializer.data,post,request)
 
     elif request.method == "POST":
         try:
@@ -357,17 +397,41 @@ def like_comment(request, author_id, comment_id):
 def get_comment_likes(request, author_id, comment_id):
     """Retrieve all likes on a specific comment."""
     comment = get_object_or_404(Comment, id=comment_id)
-    likes = [like.author_profile.to_dict() for like in comment.likes.all()]
+
+    # Ensure `comment.likes.all()` exists and is not empty
+    if not comment.likes.exists():
+        return Response({
+            "type": "likes",
+            "id": f"https://{request.get_host()}/api/authors/{author_id}/comments/{comment_id}/likes",
+            "page": f"https://{request.get_host()}/authors/{author_id}/comments/{comment_id}/likes",
+            "page_number": 1,
+            "size": 50,
+            "count": 0,
+            "src": []
+        }, status=200)
+
+    likes_list = []
+    for user in comment.likes.all():
+        # Ensure `author_profile` exists
+        if hasattr(user, 'author_profile'):
+            likes_list.append(user.author_profile.to_dict(request=request))
+        else:
+            print(f"Warning: User {user.id} has no author_profile!")
+
+    # Ensure `get_like_url(request=request)` returns a valid URL
+    like_url = comment.get_like_url(request=request)
+    if like_url is None:
+        like_url = f"https://{request.get_host()}/api/authors/{author_id}/comments/{comment_id}/likes"
 
     return Response({
         "type": "likes",
-        "id": f"{comment.get_like_url()}",
-        "page": f"{comment.get_absolute_url()}/likes",
+        "id": like_url,
+        "page": f"{comment.get_absolute_url(request=request)}/likes",
         "page_number": 1,
         "size": 50,
         "count": comment.likes.count(),
-        "src": likes,
-    })
+        "src": likes_list,
+    }, status=200)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -388,15 +452,36 @@ class LikePagination(PageNumberPagination):
     page_size = 5  # Default page size
     max_page_size = 50  # Limit max likes per request
 
-    def get_paginated_response(self, data,post):
+    def paginate_queryset(self, queryset, request, view=None):
+        """
+        Override to set default page number and size if not provided.
+        """
+        request_query_params = request.query_params.copy()
+
+        # Set default 'page' to 1 if not provided
+        if 'page' not in request_query_params:
+            request_query_params['page'] = '1'
+
+        # Set default 'size' to 5 if not provided
+        if 'size' not in request_query_params:
+            request_query_params['size'] = str(self.page_size)
+
+        request._request.GET = request_query_params  # Force request object to use new defaults
+
+        return super().paginate_queryset(queryset, request, view)
+
+    def get_paginated_response(self, data, post, request):
         """
         Returns a paginated response structured as per the spec.
+        Now `request` is explicitly passed.
         """
+        base_url = f"https://{request.get_host()}" if request else "https://Likehost.com"
         post_author = post.author.author_profile
+
         return Response({
             "type": "likes",
-            "page": f"{post_author.host}/authors/{post_author.author_id}/posts/{post.id}",
-            "id": f"{post_author.host}/api/authors/{post_author.author_id}/posts/{post.id}/likes",
+            "page": f"{base_url}/authors/{post_author.author_id}/posts/{post.id}",
+            "id": f"{base_url}/api/authors/{post_author.author_id}/posts/{post.id}/likes",
             "page_number": self.page.number,
             "size": self.page.paginator.per_page,
             "count": self.page.paginator.count,
@@ -423,7 +508,7 @@ def post_likes(request, author_id, post_id):
 
     serializer = LikeSerializer(paginated_likes, many=True,context={"request": request})
 
-    return paginator.get_paginated_response(serializer.data,post)
+    return paginator.get_paginated_response(serializer.data,post,request)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -441,20 +526,20 @@ def comment_likes(request, author_id, post_id, comment_id):
 
     serializer = LikeSerializer(paginated_likes, many=True)
 
-    return paginator.get_paginated_response(serializer.data,post)
+    return paginator.get_paginated_response(serializer.data,post,request)
 
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def comment_likes(request, author_id, post_id, comment_id):
-    """
-    GET: Return all likes for a specific comment.
-    """
-    author = get_object_or_404(Author, author_id=author_id)
-    post = get_object_or_404(Post, id=post_id, author=author.user)
-    comment = get_object_or_404(Comment, id=comment_id, post__id=post_id, user=author.user)
+# @api_view(['GET'])
+# @permission_classes([AllowAny])
+# def comment_likes(request, author_id, post_id, comment_id):
+#     """
+#     GET: Return all likes for a specific comment.
+#     """
+#     author = get_object_or_404(Author, author_id=author_id)
+#     post = get_object_or_404(Post, id=post_id, author=author.user)
+#     comment = get_object_or_404(Comment, id=comment_id, post__id=post_id, user=author.user)
 
-    likes = Like.objects.filter(comment=comment).exclude(user=post.author).order_by("-created_at")
-    paginator = LikePagination()
+#     likes = Like.objects.filter(comment=comment).exclude(user=post.author).order_by("-created_at")
+#     paginator = LikePagination()
     # paginated_likes = paginator.paginate_queryset(likes, request)
 
     #serializer = LikeSerializer(paginated_likes, many=True)
@@ -492,7 +577,7 @@ def get_author_likes(request, author_id):
     # Serialize paginated data
     serializer = LikeSerializer(paginated_likes, many=True)
 
-    return paginator.get_paginated_response(serializer.data,liked_post)
+    return paginator.get_paginated_response(serializer.data,liked_post,request)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -530,7 +615,7 @@ def get_author_likes_by_fqid(request, author_fqid):
     # Serialize paginated data
     serializer = LikeSerializer(paginated_likes, many=True)
 
-    return paginator.get_paginated_response(serializer.data,liked_post)
+    return paginator.get_paginated_response(serializer.data,liked_post,request)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -718,7 +803,7 @@ def post_comment(request, author_id, post_id):
     paginator = CommentPagination()
     paginated_comments = paginator.paginate_queryset(comments, request)
     serializer = CommentSerializer(paginated_comments, many=True, context={'request': request})
-    return paginator.get_paginated_response(serializer.data, post)
+    return paginator.get_paginated_response(serializer.data, post,request)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
