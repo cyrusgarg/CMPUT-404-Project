@@ -582,7 +582,7 @@ class AuthorListView(APIView):
         paginated_authors = paginator.paginate_queryset(authors, request)
         
         # Serialize the paginated queryset
-        serialized_authors = [author.to_dict() for author in paginated_authors]
+        serialized_authors = [author.to_dict(request) for author in paginated_authors]
         
         # Return the paginated response
         return paginator.get_paginated_response(serialized_authors)
@@ -612,7 +612,7 @@ class AuthorDetailView(APIView):
             # use it directly to find the author
             author = get_object_or_404(Author, author_id=pk)
         
-        return Response(author.to_dict())
+        return Response(author.to_dict(request))
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -625,7 +625,7 @@ def author_list(request):
     paginated_authors = paginator.paginate_queryset(authors, request)
     
     # Return paginated response
-    return paginator.get_paginated_response([author.to_dict() for author in paginated_authors])
+    return paginator.get_paginated_response([author.to_dict(request) for author in paginated_authors])
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def image_post(request, author_id, post_id):
@@ -845,7 +845,7 @@ def inbox(request, author_id):
             "type": "follow",
             "summary": f"{sender.display_name} wants to follow {author.display_name}",
             "actor": sender.to_dict(),
-            "object": author.to_dict()
+            "object": author.to_dict(request)
         }
         return Response(follow_data, status=status.HTTP_201_CREATED)
 
@@ -861,7 +861,7 @@ def followers(request, author_id):
     followers = [get_object_or_404(Author, user=follow.follower) for follow in follows]
     return Response({
         "type":"followers",
-        "followers":[author.to_dict() for author in followers]
+        "followers":[author.to_dict(request) for author in followers]
     })
 
 @api_view(['DELETE', 'PUT','GET'])

@@ -109,22 +109,22 @@ class Like(models.Model):
     def __str__(self):
         return f"{self.user.username} liked {'Post' if self.post else 'Comment'}"
     
-    def get_object_url(self):
+    def get_object_url(self,request):
         """Return the URL of the object liked (post or comment)."""
         # if self.fqid:
         #     return self.fqid  # Return the stored remote FQID
         if self.post:
             author = self.post.author.author_profile
-            return f"{author.host}/api/authors/{author.author_id}/posts/{self.post.id}"
+            return f"https://{request.get_host()}/api/authors/{author.author_id}/posts/{self.post.id}"
         if self.comment:
             author = self.comment.user.author_profile
-            return f"{author.host}/api/authors/{author.author_id}/posts/{self.comment.post.id}/comments/{self.comment.id}"
+            return f"https://{request.get_host()}/api/authors/{author.author_id}/posts/{self.comment.post.id}/comments/{self.comment.id}"
         return ""
 
-    def get_id(self):
+    def get_id(self,request):
         """Return the full API URL for this like."""
         author = self.user.author_profile
-        return f"{author.host}/api/authors/{author.author_id}/liked/{self.id}"
+        return f"https://{request.get_host()}/api/authors/{author.author_id}/liked/{self.id}"
 
 class Comment(models.Model):
     """Model to represent comments on a post."""
@@ -136,31 +136,33 @@ class Comment(models.Model):
     likes = models.ManyToManyField(User, related_name='comment_likes_users', blank=True)
     like_count = models.PositiveIntegerField(default=0)
 
-    def get_absolute_url(self):
+    def get_absolute_url(self,request=None):
         """Returns the full API URL for this comment."""
         author = self.user.author_profile  # Get the corresponding Author profile
-        return f"{author.host}/api/authors/{author.author_id}/commented/{self.id}"
+        base_url = f"https://{request.get_host()}" if request else "https://default-host.com"
+        return f"{base_url}/api/authors/{author.author_id}/commented/{self.id}"
 
-    def get_like_url(self):
+    def get_like_url(self,request=None):
         """Returns the full API URL for likes on this comment."""
-        return f"{self.get_absolute_url()}/likes"
+        return f"{self.get_absolute_url(request=request)}/likes"
 
-    def to_dict(self):
+    def to_dict(self,request):
         """Formats the comment into the required JSON structure."""
         author = self.user.author_profile  # Get the Author profile from User
+        base_url = f"https://{request.get_host()}" if request else "https://127.0.0.1"
         return {
             "type": "comment",
-            "id": self.get_absolute_url(),
-            "post": f"{self.post.author.author_profile.host}/api/authors/{self.post.author.author_profile.author_id}/posts/{self.post.id}",
-            "page": f"{self.post.author.author_profile.host}/authors/{self.post.author.author_profile.author_id}/posts/{self.post.id}",
+            "id": self.get_absolute_url(request=request),
+            "post": f"{base_url}/api/authors/{self.post.author.author_profile.author_id}/posts/{self.post.id}",
+            "page": f"{base_url}/authors/{self.post.author.author_profile.author_id}/posts/{self.post.id}",
             "published": self.created_at.isoformat(),
             "contentType": self.post.contentType,
             "comment": self.content,
-            "author": author.to_dict(),
+            "author": author.to_dict(request=request),
             "likes": {
                 "type": "likes",
-                "id": self.get_like_url(),
-                "page": f"{self.get_absolute_url()}/likes",
+                "id": self.get_like_url(request=request),
+                "page": f"{self.get_absolute_url(request=request)}/likes",
                 "page_number": 1,
                 "size": 50,
                 "count": self.likes.count(),

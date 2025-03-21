@@ -25,7 +25,7 @@ class PostSerializer(serializers.ModelSerializer):
     comments = serializers.SerializerMethodField()  # Include comments
     likes = serializers.SerializerMethodField()  # Include likes
     
-    #author = serializers.CharField(source='author.username', read_only=True)  # Store author as username string / 将作者存储为用户名字符串（GJ）
+    #author = obj.author.author_profile.host serializers.CharField(source='author.username', read_only=True)  # Store author as username string / 将作者存储为用户名字符串（GJ）
      
     class Meta:
         model = Post  # Specify model / 指定模型（GJ）
@@ -34,17 +34,28 @@ class PostSerializer(serializers.ModelSerializer):
              "author", "comments", "likes","published", "visibility"
         ]  # Define the fields to be serialized / 定义需要序列化的字段（GJ）
 
+    def to_representation(self, instance):
+        """Customize the serialized output to dynamically override `id`."""
+        data = super().to_representation(instance)
+        data["id"] = self.get_id(instance)  # Ensure `id` is dynamically generated
+        return data
+
     def get_id(self, obj):
         """Returns the full API URL for the post."""
-        return f"{obj.author.author_profile.host}/api/authors/{obj.author.author_profile.author_id}/posts/{obj.id}"
+        request = self.context.get("request")
+        base_url = f"https://{request.get_host()}" if request else obj.author.author_profile.host
+        return f"{base_url}/api/authors/{obj.author.author_profile.author_id}/posts/{obj.id}"
 
     def get_page(self, obj):
         """Returns the HTML page URL for the post."""
-        return f"{obj.author.author_profile.host}/authors/{obj.author.author_profile.author_id}/posts/{obj.id}"
+        request = self.context.get("request")  # Retrieve request safely
+        base_url = f"https://{request.get_host()}" if request else obj.author.author_profile.host
+        return f"{base_url}/authors/{obj.author.author_profile.author_id}/posts/{obj.id}"
 
-    def get_author(self, obj):
+    def get_author(self,obj,request=None):
         """Returns the author details in the required format."""
-        return obj.author.author_profile.to_dict()
+        request = self.context.get("request")
+        return obj.author.author_profile.to_dict(request=request) if hasattr(obj.author, 'author_profile') else None
           
     def get_comments(self, obj):
         """Fetches comments in the required format."""
@@ -52,16 +63,18 @@ class PostSerializer(serializers.ModelSerializer):
         if request is None:
             return {"type": "Comments", "id": obj.id, "page": obj.id, "page_number": 1, "size": 0, "count": 0, "src": []}
 
-        comments = Comment.objects.filter(post=obj).order_by("-created_at")  # Get likes for the comment
-        
+        base_url = f"https://{request.get_host()}" if request else obj.author.author_profile.host
+
+        comments = Comment.objects.filter(post=obj).order_by("-created_at")
+
         paginator = CommentLikePagination()
         paginated_comments = paginator.paginate_queryset(comments, request)
         serializer = CommentSerializer(paginated_comments, many=True, context=self.context)
-        
+
         return {
             "type": "comments",
-            "id": f"{obj.author.author_profile.host}/api/authors/{obj.author.author_profile.author_id}/posts/{obj.id}/likes",
-            "page": f"{obj.author.author_profile.host}/api/authors/{obj.author.author_profile.author_id}/posts/{obj.id}/likes",
+            "id": f"{base_url}/api/authors/{obj.author.author_profile.author_id}/posts/{obj.id}/comments",
+            "page": f"{base_url}/authors/{obj.author.author_profile.author_id}/posts/{obj.id}/comments",
             "page_number": paginator.page.number if paginator.page else 1,
             "size": paginator.page.paginator.per_page if paginator.page else 50,
             "count": comments.count(),
@@ -74,16 +87,18 @@ class PostSerializer(serializers.ModelSerializer):
         if request is None:
             return {"type": "likes", "id": obj.id, "page": obj.id, "page_number": 1, "size": 0, "count": 0, "src": []}
 
-        likes = Like.objects.filter(post=obj).order_by("-created_at")  # Get likes for the comment
-        
+        base_url = f"https://{request.get_host()}" if request else obj.author.author_profile.host
+
+        likes = Like.objects.filter(post=obj).order_by("-created_at")
+
         paginator = CommentLikePagination()
         paginated_likes = paginator.paginate_queryset(likes, request)
         serializer = LikeSerializer(paginated_likes, many=True, context=self.context)
-        
+
         return {
             "type": "likes",
-            "id": f"{obj.author.author_profile.host}/api/authors/{obj.author.author_profile.author_id}/posts/{obj.id}/likes",
-            "page": f"{obj.author.author_profile.host}/api/authors/{obj.author.author_profile.author_id}/posts/{obj.id}/likes",
+            "id": f"{base_url}/api/authors/{obj.author.author_profile.author_id}/posts/{obj.id}/likes",
+            "page": f"{base_url}/authors/{obj.author.author_profile.author_id}/posts/{obj.id}/likes",
             "page_number": paginator.page.number if paginator.page else 1,
             "size": paginator.page.paginator.per_page if paginator.page else 50,
             "count": likes.count(),
@@ -164,15 +179,18 @@ class LikeSerializer(serializers.ModelSerializer):
 
     def get_id(self, obj):
         """Returns the full API URL for the like."""
-        return obj.get_id()
+        request = self.context.get("request")
+        return obj.get_id(request=request)
 
     def get_author(self, obj):
         """Returns the author details in the required format."""
-        return obj.user.author_profile.to_dict()
+        request = self.context.get("request")
+        return obj.user.author_profile.to_dict(request=request)
 
     def get_object(self, obj):
         """Returns the liked object (post or comment)."""
-        return obj.get_object_url()
+        request = self.context.get("request")
+        return obj.get_object_url(request=request)
 
 class CommentSerializer(serializers.ModelSerializer):
     """Serializer for Comment model to convert data into JSON format."""
@@ -192,16 +210,23 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ["type","author", "comment","contentType", "published","id", "post", "page","likes"]
 
     def get_id(self, obj):
-        return obj.get_absolute_url()
+        request = self.context.get("request")
+        return obj.get_absolute_url(request=request)
 
     def get_post(self, obj):
-        return f"{obj.post.author.author_profile.host}/api/authors/{obj.post.author.author_profile.author_id}/posts/{obj.post.id}"
+        request = self.context.get("request")
+        base_url = f"https://{request.get_host()}" if request else obj.post.author.author_profile.host
+        return f"{base_url}/api/authors/{obj.post.author.author_profile.author_id}/posts/{obj.post.id}"
 
     def get_page(self, obj):
-        return f"{obj.post.author.author_profile.host}/authors/{obj.post.author.author_profile.author_id}/posts/{obj.post.id}"
+        request = self.context.get("request")
+        base_url = f"https://{request.get_host()}" if request else obj.post.author.author_profile.host
+        return f"{base_url}/authors/{obj.post.author.author_profile.author_id}/posts/{obj.post.id}"
 
-    def get_author(self, obj):
-        return obj.user.author_profile.to_dict()  # Use the `to_dict()` method
+    def get_author(self,obj):
+        request = self.context.get("request")
+        base_url = f"https://{request.get_host()}" if request else obj.post.author.author_profile.host
+        return obj.user.author_profile.to_dict(request=request)  # Use the `to_dict()` method
     
     def get_contentType(self,obj):
         return obj.post.contentType
@@ -213,25 +238,34 @@ class CommentSerializer(serializers.ModelSerializer):
         return obj.content
 
     def get_likes(self, obj):
-        """Retrieve likes on this comment."""
+        """Retrieve likes on this comment dynamically using request.get_host()."""
         request = self.context.get("request")
         if request is None:
-            return {"type": "likes", "id": obj.get_like_url(), "page": obj.get_like_url(), "page_number": 1, "size": 0, "count": 0, "src": []}
+            return {
+                "type": "likes",
+                "id": obj.get_like_url(),
+                "page": obj.get_like_url(),
+                "page_number": 1,
+                "size": 0,
+                "count": 0,
+                "src": []
+            }
 
-        likes = Like.objects.filter(comment=obj).order_by("-created_at")  # Get likes for the comment
-        
+        base_url = f"https://{request.get_host()}" if request else "https://default-host.com"
+        likes = Like.objects.filter(comment=obj).order_by("-created_at")
+
         paginator = CommentLikePagination()
         paginated_likes = paginator.paginate_queryset(likes, request)
         serializer = LikeSerializer(paginated_likes, many=True, context=self.context)
-        #print("count:",likes.count())
+
         return {
             "type": "likes",
-            "id": f"{obj.post.author.author_profile.host}/api/authors/{obj.user.author_profile.author_id}/commented/{obj.id}/likes",
-            "page": f"{obj.post.author.author_profile.host}/api/authors/{obj.user.author_profile.author_id}/commented/{obj.id}/likes",
+            "id": f"{base_url}/api/authors/{obj.user.author_profile.author_id}/commented/{obj.id}/likes",
+            "page": f"{base_url}/api/authors/{obj.user.author_profile.author_id}/commented/{obj.id}/likes",
             "page_number": paginator.page.number if paginator.page else 1,
             "size": paginator.page.paginator.per_page if paginator.page else 50,
             "count": likes.count(),
-            "src": serializer.data  # Include paginated like objects
+            "src": serializer.data
         }
     
     def create(self, validated_data):
@@ -279,24 +313,3 @@ class CommentLikePagination(PageNumberPagination):
     page_size_query_param = "size"  # Allow dynamic page size via query parameters
     page_size = 5  # Default page size
     max_page_size = 50  # Limit max likes per request
-
-#Not using it from 12 March 2025
-# def get_content(self, obj):
-    #     """Handles content formatting based on contentType (Markdown, Plain Text, Base64 Images)."""
-    #     print("Line 58")
-    #     if obj.contentType == 'text/markdown':
-    #         return markdown.markdown(obj.content, extensions=['extra'])
-        
-    #     elif obj.contentType.startswith('image/'):
-    #       if obj.image:  # Ensure there is an image
-    #           file_path = obj.image.path
-    #           content_type = obj.contentType  # Ensure it's in the correct format like "image/png;base64"
-              
-    #           try:
-    #               with open(file_path, "rb") as image_file:
-    #                   encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
-    #               return f"data:{content_type};base64,{encoded_string}"
-    #           except FileNotFoundError:
-    #               return None  # Handle missing files gracefully
-
-    #     return obj.content    # Default to plain text content if no matching contentType
