@@ -8,19 +8,26 @@
 <body>
     <h1>View Other Users' Posts</h1>
 
-    <h2>Available Posts</h2>
-    <ul>
+    <div class="posts-container">
         {% for post in posts %}
-            <li>
-                <!-- Display post title and visibility / 显示帖子标题和可见性（GJ） -->
-                <a href="{% url 'posts:post_detail' post.id %}">{{ post.title }}</a>
-                <span>({{ post.visibility }})</span>
-
-                {% if post.visibility == "DELETED" %}
-                    <!-- Show deleted message if the user is an admin / 如果是管理员，则显示已删除帖子（GJ） -->
-                    <span id="deleted-warning">[Deleted]</span>
+            <div class="post-card">
+                {% if post.image %}
+                    <img src="{{ post.image }}" alt="{{ post.title }} Image">
                 {% endif %}
-            </li>
+                <div class="post-info">
+                    <h3>{{ post.title }}</h3>
+                    <p>{{ post.description }}</p>
+                    <div class="post-meta">
+                        <span><strong>Likes:</strong> {{ post.likes.count }}</span>
+                        <span><strong>Date:</strong> {{ post.published }}</span>
+                    </div>
+                    <p><strong>User:</strong> {{ post.author.username }}</p>
+                    {% if post.visibility == "DELETED" %}
+                        <p id="deleted-warning">[Deleted]</p>
+                    {% endif %}
+                    <a class="post-link" href="{% url 'posts:post_detail' post.id %}">View Details</a>
+                </div>
+            </div>
         {% empty %}
             <!-- Message when no visible posts are available / 没有可见帖子时显示消息（GJ） -->
             <li>No posts available.</li>
