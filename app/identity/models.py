@@ -21,31 +21,36 @@ class Author(models.Model):
     is_approved = models.BooleanField(default=False)
 
     @property
-    def id(self):
+    def id(self,request):
         """Return the full API URL for the author"""
-        return f"{self.host}/api/authors/{self.author_id}"
+        base_url = self.get_dynamic_host(request)
+        return f"{base_url}/api/authors/{self.author_id}"
     
+    def get_dynamic_host(self, request):
+        return f"https://{request.get_host()}" if request else self.host
+
     @property
-    def page(self):
+    def page(self,request):
         """Return the URL of the user's HTML profile page"""
         first_name = self.display_name.split(" ", 1)[0].lower()
-        return f"{self.host}/authors/{first_name}"
+        base_url = self.get_dynamic_host(request)
+        return f"{base_url}/authors/{first_name}"
     
     def get_absolute_url(self):
         return reverse('identity:author-profile', kwargs={'pk': self.author_id})
     
-    def to_dict(self):
-        numeric_id = get_numeric_id_for_author(self.author_id)
-        base_url = self.host
+    def to_dict(self,request=None):
+        #numeric_id = get_numeric_id_for_author(self.author_id)
+        base_url = f"https://{request.get_host()}" if request else self.host
         return {
             "type": "author",
-            "id": f"{base_url}/api/authors/{numeric_id}",
-            "host": self.host,
+            "id": f"{base_url}/api/authors/{self.author_id}",
+            "host": base_url,
             "displayName": self.display_name,
             "github": self.github,
             "profileImage": self.profile_image.url if self.profile_image else "",
-            "page": self.page,
-            "url": f"{base_url}/authors/{numeric_id}"
+            "page": f"{base_url}/authors/{self.display_name.split(' ', 1)[0].lower()}",
+            "url": f"{base_url}/authors/{self.author_id}"
         }
     github_username = models.CharField(max_length=100, blank=True, null=True)
 
