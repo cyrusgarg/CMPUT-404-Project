@@ -381,6 +381,7 @@ def get_comments(request, post_id):
 def like_comment(request, post_id, comment_id):
     # Retrieve the comment using the comment_id from the URL
     comment = get_object_or_404(Comment, id=comment_id)
+    post = get_object_or_404(Post, id=post_id)
     user = request.user
 
     like, created = Like.objects.get_or_create(user=user, comment=comment)
@@ -399,27 +400,7 @@ def like_comment(request, post_id, comment_id):
     comment.like_count = comment.likes.count()
     comment.save()
     
-    #commented below code because it does not create the like object which gives problem during API fetch
-    # if comment.likes.filter(pk=user.pk).exists():
-    #     comment.likes.remove(user)
-    #     liked = False
-    # else:
-    #     comment.likes.add(user)
-    #     liked = True
-
-    # # Update the like_count field
-    # comment.like_count = comment.likes.count()
-    # comment.save()
-
-    # Return a JSON response with the updated like details
-    return JsonResponse({
-        "type": "like",
-        "comment": comment.get_absolute_url(),
-        "liked": liked,
-        "like_count": comment.like_count,
-        "author": request.user.author_profile.to_dict()  # Assumes every user has an author_profile
-    })
-
+    return redirect('posts:post_detail', post_id=post.id)
 
 def shared_post_view(request, post_id):
     """

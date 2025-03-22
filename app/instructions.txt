@@ -1,6 +1,16 @@
 To create token for authentication, use the following:
     python manage.py drf_create_token <username>
 
+To delete unused docker containers
+    docker system prune -a --volumes
+
+To drop the postgress table
+    docker compose exec postgres psql -U hello_django -d postgres
+    DROP DATABASE hello_django;
+    CREATE DATABASE hello_django;
+    \q
+    docker compose restart socialapp
+
 To migrate in docker
     docker compose exec socialapp python manage.py makemigrations posts
     docker compose exec socialapp python manage.py makemigrations identity

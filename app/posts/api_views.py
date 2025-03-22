@@ -95,7 +95,7 @@ def local_post_likes(request, post_id):
 
     serializer = LikeSerializer(paginated_likes, many=True)
 
-    return paginator.get_paginated_response(serializer.data,post)
+    return paginator.get_paginated_response(serializer.data,post,request)
 
 # @api_view(['POST'])
 # @permission_classes([IsAuthenticated])
@@ -208,7 +208,7 @@ def post_comments(request, post_id):
     paginator = CommentPagination()
     paginated_comments = paginator.paginate_queryset(comments, request)
     serializer = CommentSerializer(paginated_comments, many=True, context={'request': request})
-    return paginator.get_paginated_response(serializer.data, post)
+    return paginator.get_paginated_response(serializer.data, post,request)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
