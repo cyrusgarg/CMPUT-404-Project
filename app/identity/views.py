@@ -1,27 +1,19 @@
 import json
-from django.views.generic import DetailView, ListView
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import DetailView, ListView, CreateView, UpdateView, DeleteView
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import render, get_object_or_404, redirect
-from posts.models import Post  
-from identity.models import Author
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.dateparse import parse_datetime
-from .models import Author, GitHubActivity, Following, FollowRequests, Friendship
 from django.contrib.auth.models import User
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic.edit import UpdateView
-from django.urls import reverse_lazy
-from django.contrib import messages
-from .models import Author
-from .forms import AuthorProfileForm
-from django.urls import reverse_lazy
-from django.contrib import messages
-from .forms import UserSignUpForm
-from django.views.generic import CreateView
 from django.contrib.auth.views import LoginView
+
+from posts.models import Post  
+from identity.models import Author
+from .models import Author, GitHubActivity, Following, FollowRequests, Friendship, RemoteNode
+from .forms import AuthorProfileForm, UserSignUpForm, RemoteNodeForm
 
 
 class AuthorProfileView(DetailView):
@@ -230,3 +222,31 @@ class CustomLoginView(LoginView):
     
 def waiting_approval_view(request):
     return render(request, 'identity/waiting_approval.html')
+
+
+
+class AdminRequiredMixin(UserPassesTestMixin):
+    def test_func(self):
+        return self.request.user.is_authenticated and self.request.user.is_superuser
+
+class RemoteNodeListView(AdminRequiredMixin, ListView):
+    model = RemoteNode
+    template_name = 'identity/remote_node_list.html'
+    context_object_name = 'nodes'
+
+class RemoteNodeCreateView(AdminRequiredMixin, CreateView):
+    model = RemoteNode
+    form_class = RemoteNodeForm
+    template_name = 'identity/remote_node_form.html'
+    success_url = reverse_lazy('identity:remote-node-list')
+
+class RemoteNodeUpdateView(AdminRequiredMixin, UpdateView):
+    model = RemoteNode
+    form_class = RemoteNodeForm
+    template_name = 'identity/remote_node_form.html'
+    success_url = reverse_lazy('identity:remote-node-list')
+
+class RemoteNodeDeleteView(AdminRequiredMixin, DeleteView):
+    model = RemoteNode
+    template_name = 'identity/remote_node_confirm_delete.html'
+    success_url = reverse_lazy('identity:remote-node-list')

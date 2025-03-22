@@ -104,3 +104,20 @@ class Friendship(models.Model):
     user1 = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user1")
     user2 = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user2")
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class RemoteNode(models.Model):
+    """Model representing a remote node to share content with"""
+    name = models.CharField(max_length=100)
+    host_url = models.URLField(unique=True)
+    username = models.CharField(max_length=100)  # For HTTP Basic Auth
+    password = models.CharField(max_length=100)  # For HTTP Basic Auth
+    is_active = models.BooleanField(default=True)
+    added_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ['name']
