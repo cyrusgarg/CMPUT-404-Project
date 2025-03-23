@@ -140,12 +140,12 @@ def shared_post_api(request, post_id):
     """
     post = get_object_or_404(Post, id=post_id)
     
-    if post.visibility != "PUBLIC":
+    if post.visibility not in ["PUBLIC", "UNLISTED"]:
         return Response(
             {"detail": "This post is not shareable"},
             status=status.HTTP_403_FORBIDDEN
         )
-    
+        
     is_logged_in = request.user.is_authenticated
     
     post_serializer = PostSerializer(post)
