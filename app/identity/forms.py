@@ -48,10 +48,11 @@ class UserSignUpForm(UserCreationForm):
 
 class RemoteNodeForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput())
+    host_url = forms.URLField(
+        widget=forms.URLInput(attrs={'placeholder': 'https://[IPv6]:port or https://hostname'}),
+        help_text="Full URL with protocol (http:// or https://)"
+    )
     
     class Meta:
         model = RemoteNode
         fields = ['name', 'host_url', 'username', 'password', 'is_active']
-        widgets = {
-            'host_url': forms.URLInput(attrs={'placeholder': 'https://example.com'}),
-        }
