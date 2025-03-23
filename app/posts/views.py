@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponseForbidden, HttpResponseNotAllowed
 from .models import Post, Like, Comment
-from identity.models import Following
+from identity.models import Following, Friendship
 from django.db import models
 from identity.models import Author 
 from django.contrib.auth.models import User  # Import Django User model / 导入Django用户模型（GJ）
@@ -16,7 +16,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
 from .serializers import PostSerializer, LikeSerializer, CommentSerializer
 from django.core.files.uploadedfile import InMemoryUploadedFile
-import base64
+import base64, requests
 
 @login_required
 def index(request):
@@ -187,7 +187,8 @@ def create_post(request):
             visibility=visibility,
             image=base64_image,
         )
-        #send_post_to_remote_followers(post)
+        print("author host :",request.user.author_profile.host)
+        send_post_to_remote_recipients(post,request,False)
         return redirect("posts:index")  # Redirect to posts index / 创建帖子后跳转到主页（GJ）
     
     return render(request, "posts/create_post.html", {"user": request.user.username})  # Render post creation page / 渲染帖子创建页面（GJ）
@@ -300,6 +301,7 @@ def web_update_post(request, post_id):
           post.image = image_to_base64(image)
 
       post.save()
+      send_post_to_remote_recipients(post,request,True)
       return redirect("posts:post_detail", post_id=post.id)
     
     # return to the post edit if form submission fails
@@ -436,51 +438,90 @@ def shared_post_view(request, post_id):
         "is_liked": is_liked
     })
 
-def send_post_to_remote_followers(post):
+def send_post_to_remote_recipients(post, request,is_update=False):
     """
-    Sends a newly created PUBLIC post to all remote followers of the author.
+    Sends a post (new or updated) to the appropriate remote recipients.
+    
+    - PUBLIC posts → Remote followers + friends
+    - FRIENDS posts → Only remote mutual friends
+    - Includes image as base64 if available
     """
-    if post.visibility != "PUBLIC":
-        print(f"Skipping post {post.id} because it is not public.")
-        return
-
+    author = post.author.author_profile
     # Get remote followers
     # remote_followers = Following.objects.filter(
     #     followee_id=f"{post.author.author_profile.id}",
     #     follower_host__isnull=False  # Ensure it's a remote follower
     # )
-
     # Prepare post data
     post_data = {
         "type": "post",
-        "id": f"{post.id}", #this is important to distinguish between current post or new post
+        "id": f"{post.id}",
+        "author":author.to_dict(request),
         "title": post.title,
         "description": post.description,
         "contentType": post.contentType,
         "content": post.content,
         "visibility": post.visibility,
-        
+        "image": post.image if post.image else None,  # Include image if available
     }
 
-    # for follower in remote_followers:
-    #     inbox_url = f"{follower.follower_host}/api/authors/{follower_id}/inbox"
+    # Get followers (Users who follow the author)
+    followers = Following.objects.filter(followee=author.user).select_related("follower__author_profile")
 
-    inbox_url = f"http://10.2.6.207:8000//api/authors/c37307f0-a9ae-44fb-afd7-8d4194b35994/inbox"
-    try:
-        response = requests.post(
-            inbox_url,
-            json=post_data,
-            headers={"Content-Type": "application/json"},
-            auth=("your-username", "your-password")    # Replace with real authentication
-        )
+    # Get mutual friends (Both follow each other)
+    friends = Friendship.objects.filter(user1=author.user).select_related("user2__author_profile")
+    friends |= Friendship.objects.filter(user2=author.user).select_related("user1__author_profile")
 
-        if response.status_code in [200, 201]:
-            print(f"Post sent successfully to {follower.follower_id}")
-            #logger.info(f" Post sent successfully to {follower.follower_id}")
-        else:
-            print(f"Failed to send post to {follower.follower_id}: {response.status_code}")
-            #logger.error(f" Failed to send post to {follower.follower_id}: {response.status_code}")
+    recipients = set()
 
-    except requests.RequestException as e:
-        print(f"Error sending post to {follower.follower_id}: {e}")
-        #logger.error(f"Error sending post to {follower.follower_id}: {e}")
+    if post.visibility == "PUBLIC":
+        # Send to both followers and friends
+        for follow in followers:
+            recipient = follow.follower.author_profile
+            if recipient and recipient.host != author.host:  # Only send to remote nodes
+                recipients.add(recipient)
+
+        for friend in friends:
+            recipient = friend.user1.author_profile if friend.user2 == author.user else friend.user2.author_profile
+            if recipient and recipient.host != author.host:
+                recipients.add(recipient)
+
+    elif post.visibility == "FRIENDS":
+        # Send only to mutual friends
+        for friend in friends:
+            recipient = friend.user1.author_profile if friend.user2 == author.user else friend.user2.author_profile
+            if recipient and recipient.host != author.host:
+                recipients.add(recipient)
+
+    # Convert image to base64 if it exists
+    if post.image and not post.image.startswith("data:image"):
+        try:
+            with open(post.image.path, "rb") as img_file:
+                encoded_image = base64.b64encode(img_file.read()).decode("utf-8")
+                post_data["image"] = f"data:image/jpeg;base64,{encoded_image}"  # Assuming JPEG
+        except Exception as e:
+            print(f"Error encoding image: {e}")
+
+    # Send post to all recipients
+    for recipient in recipients:
+        inbox_url = f"{recipient.host}/api/authors/{recipient.author_id}/inbox"
+        method = "PUT" if is_update else "POST"
+    #inbox_url = f"http://10.2.6.207:8000//api/authors/c37307f0-a9ae-44fb-afd7-8d4194b35994/inbox"
+        try:
+            response = requests.request(
+                method,
+                inbox_url,
+                json=post_data,
+                headers={"Content-Type": "application/json"},
+                auth=("your-username", "your-password")  # Replace with real authentication
+            )
+
+            if response.status_code in [200, 201]:
+                print(f"Post sent successfully to {recipient.author_id}")
+            else:
+                print(f"Failed to send post to {recipient.author_id}: {response.status_code}, {response.text}")
+
+        except requests.RequestException as e:
+            print(f"Error sending post to {recipient.author_id}: {e}")
+
+

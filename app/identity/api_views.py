@@ -793,7 +793,7 @@ def extract_uuid_from_url(url):
     segments = parsed.path.rstrip('/').split('/')
     return segments[-1] if segments else None
 
-@api_view(['POST'])
+@api_view(['POST','PUT'])
 @permission_classes([AllowAny])
 def inbox(request, author_id):
     """
