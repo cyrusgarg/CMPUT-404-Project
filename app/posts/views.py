@@ -189,6 +189,7 @@ def create_post(request):
         )
         print("author host :",request.user.author_profile.host)
         send_post_to_remote_recipients(post,request,False)
+        #send_post_to_remote(post,request,False)
         tryfunction()
         return redirect("posts:index")  # Redirect to posts index / 创建帖子后跳转到主页（GJ）
     
@@ -451,11 +452,7 @@ def send_post_to_remote_recipients(post, request,is_update=False):
     - Includes image as base64 if available
     """
     author = post.author.author_profile
-    # Get remote followers
-    # remote_followers = Following.objects.filter(
-    #     followee_id=f"{post.author.author_profile.id}",
-    #     follower_host__isnull=False  # Ensure it's a remote follower
-    # )
+    
     # Prepare post data
     post_data = {
         "type": "post",
@@ -469,58 +466,102 @@ def send_post_to_remote_recipients(post, request,is_update=False):
         "image": post.image if post.image else None,  # Include image if available
     }
 
-    # # Get followers (Users who follow the author)
-    # followers = Following.objects.filter(followee=author.user).select_related("follower__author_profile")
+    # Get remote followers from RemoteFollower model
+    remote_followers = RemoteFollower.objects.all()
 
-    # # Get mutual friends (Both follow each other)
+    # Get mutual friends (Both follow each other)
     # friends = Friendship.objects.filter(user1=author.user).select_related("user2__author_profile")
     # friends |= Friendship.objects.filter(user2=author.user).select_related("user1__author_profile")
 
-    # recipients = set()
+    recipients = set()
 
-    # if post.visibility == "PUBLIC":
-    #     # Send to both followers and friends
-    #     for follow in followers:
-    #         recipient = follow.follower.author_profile
-    #         if recipient and recipient.host != author.host:  # Only send to remote nodes
-    #             recipients.add(recipient)
+    if post.visibility == "PUBLIC":
+         # Add remote followers
+        for remote_follower in remote_followers:
+            parsed_url = urlparse(remote_follower.follower_id)
+            base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+            author_id = parsed_url.path.strip("/").split("/")[-1]
+            recipients.add((base_host, author_id))
 
-    #     for friend in friends:
-    #         recipient = friend.user1.author_profile if friend.user2 == author.user else friend.user2.author_profile
-    #         if recipient and recipient.host != author.host:
-    #             recipients.add(recipient)
+        # for friend in friends:
+        #     recipient = friend.user1.author_profile if friend.user2 == author.user else friend.user2.author_profile
+        #     if recipient and recipient.host != author.host:
+        #         recipients.add(recipient)
 
-    # elif post.visibility == "FRIENDS":
-    #     # Send only to mutual friends
-    #     for friend in friends:
-    #         recipient = friend.user1.author_profile if friend.user2 == author.user else friend.user2.author_profile
-    #         if recipient and recipient.host != author.host:
-    #             recipients.add(recipient)
+    elif post.visibility == "FRIENDS":
+        # Send only to mutual friends
+        # for friend in friends:
+        #     recipient = friend.user1.author_profile if friend.user2 == author.user else friend.user2.author_profile
+        #     if recipient and recipient.host != author.host:
+        #         recipients.add(recipient)
 
     # # Convert image to base64 if it exists
-    # if post.image and not post.image.startswith("data:image"):
-    #     try:
-    #         with open(post.image.path, "rb") as img_file:
-    #             encoded_image = base64.b64encode(img_file.read()).decode("utf-8")
-    #             post_data["image"] = f"data:image/jpeg;base64,{encoded_image}"  # Assuming JPEG
-    #     except Exception as e:
-    #         print(f"Error encoding image: {e}")
+    if post.image and not post.image.startswith("data:image"):
+        try:
+            with open(post.image.path, "rb") as img_file:
+                encoded_image = base64.b64encode(img_file.read()).decode("utf-8")
+                post_data["image"] = f"data:image/jpeg;base64,{encoded_image}"  # Assuming JPEG
+        except Exception as e:
+            print(f"Error encoding image: {e}")
 
     # Send post to all recipients
-    # for recipient in recipients:
-    #     inbox_url = f"{recipient.host}/api/authors/{recipient.author_id}/inbox"
-    #     method = "PUT" if is_update else "POST"
+    for host, recipient_id in recipients:
+        inbox_url = f"{host}/api/authors/{recipient_id}/inbox"
+        method = "PUT" if is_update else "POST"
+
+        try:
+            response = requests.request(
+                method,
+                inbox_url,
+                json=post_data,
+                headers={"Content-Type": "application/json"},
+                auth=("cyrus", "cyrus")  # Replace with real authentication
+            )
+
+            if response.status_code in [200, 201]:
+                print(f"Post sent successfully to {recipient_id}")
+            else:
+                print(f"Failed to send post to {recipient_id}: {response.status_code}, {response.text}")
+
+        except requests.RequestException as e:
+            print(f"Error sending post to {recipient_id}: {e}")
+
+def send_post_to_remote(post, request,is_update=False):
+    """
+    Sends a post (new or updated) to the appropriate remote recipients.
+    
+    - PUBLIC posts → Remote followers + friends
+    - FRIENDS posts → Only remote mutual friends
+    - Includes image as base64 if available
+    """
+    author = post.author.author_profile
+    # Get remote followers
+    # remote_followers = Following.objects.filter(
+    #     followee_id=f"{post.author.author_profile.id}",
+    #     follower_host__isnull=False  # Ensure it's a remote follower
+    # )
+    post_data = {
+        "type": "post",
+        "id": f"{post.id}",
+        "author":author.to_dict(request),
+        "title": post.title,
+        "description": post.description,
+        "contentType": post.contentType,
+        "content": post.content,
+        "visibility": post.visibility,
+        "image": post.image if post.image else None,  # Include image if available
+    }
+    
     #inbox_url = f"http://10.2.6.207:8000/api/authors/cc243e04-c9dd-4c61-b75e-c49fd9f86520/inbox"
-    inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fe56:c195]:8001/api/authors/cc243e04-c9dd-4c61-b75e-c49fd9f86520/inbox"
+    inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fed0:ce37]/api/authors/19290a3a-5ab8-4044-8834-d8dc497f08c5/inbox"
     
     method='POST'
     try:
-        response = requests.request(
-            method,
+        response = requests.post(
             inbox_url,
             json=post_data,
             headers={"Content-Type": "application/json"},
-            auth=("cyrus1", "cyrus1")  # Replace with real authentication
+            auth=("nodeTesting", "Smriti21!")  # Replace with real authentication
         )
 
         if response.status_code in [200, 201]:
@@ -537,11 +578,11 @@ def send_post_to_remote_recipients(post, request,is_update=False):
 
 def tryfunction():
     # Define the IPv6 address explicitly
-    ipv6_address = "2605:fd00:4:1001:f816:3eff:fe56:c195"
-    port = 8001
+    ipv6_address = "2605:fd00:4:1001:f816:3eff:fed0:ce37"
+    port = 8000
 
     # Construct the URL
-    inbox_url = f"http://[{ipv6_address}]:{port}/api/authors/cc243e04-c9dd-4c61-b75e-c49fd9f86520/inbox"
+    inbox_url = f"http://[{ipv6_address}]/api/authors/19290a3a-5ab8-4044-8834-d8dc497f08c5/inbox"
 
     # Override default resolver to prefer IPv6
     session = requests.Session()

@@ -39,7 +39,6 @@ def send_to_node(node_id, endpoint, method='GET', data=None):
         # Prepare the request with Basic Auth
         auth = (node.username, node.password)
         headers = {'Content-Type': 'application/json'}
-        
         # Make the request
         if method.upper() == 'GET':
             response = requests.get(url, auth=auth, headers=headers)
