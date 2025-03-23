@@ -150,8 +150,9 @@ class PostSerializer(serializers.ModelSerializer):
         - Prevent changes to the author field.
           禁止更改作者字段。（GJ）
         """
-        request_obj = self.context['request']
-        request_user = getattr(request_obj, 'node_user', request_obj.user)
+        request_user = self.context['request'].user
+        # request_obj = self.context['request']
+        # request_user = getattr(request_obj, 'node_user', request_obj.user)
         
         #validated_data.pop('type', None)  # Remove 'type' if present
         if instance.author != request_user:

@@ -9,12 +9,13 @@ from django.contrib.auth.models import User
 from django.urls import reverse, reverse_lazy
 from django.contrib import messages
 from django.contrib.auth.views import LoginView
-
+from django.contrib.auth.decorators import user_passes_test
 from posts.models import Post  
 from identity.models import Author
 from .models import Author, GitHubActivity, Following, FollowRequests, Friendship, RemoteNode
 from .forms import AuthorProfileForm, UserSignUpForm, RemoteNodeForm
-
+from .utils import send_to_node
+from django.http import JsonResponse
 
 class AuthorProfileView(DetailView):
     model = Author
@@ -250,3 +251,62 @@ class RemoteNodeDeleteView(AdminRequiredMixin, DeleteView):
     model = RemoteNode
     template_name = 'identity/remote_node_confirm_delete.html'
     success_url = reverse_lazy('identity:remote-node-list')
+
+@user_passes_test(lambda u: u.is_superuser)
+def share_post_with_nodes(request, post_id):
+    """Share a post with all connected nodes"""
+    try:
+        post = Post.objects.get(id=post_id)
+        
+        # Only share public posts
+        if post.visibility != 'PUBLIC':
+            return JsonResponse({"error": "Only public posts can be shared"}, status=400)
+        
+        # Get all active nodes
+        nodes = RemoteNode.objects.filter(is_active=True)
+        
+        results = []
+        for node in nodes:
+            # Format the post data for the remote node
+            post_data = {
+                "type": "post",
+                "title": post.title,
+                "description": post.description,
+                "content": post.content,
+                "contentType": post.contentType,
+                "visibility": post.visibility,
+                "author": {
+                    "id": str(post.author.author_profile.id),
+                    "displayName": post.author.author_profile.display_name,
+                    "host": post.author.author_profile.host
+                }
+            }
+            
+            # Send to remote node
+            response = send_to_node(
+                node.id, 
+                'api/posts/', 
+                method='POST', 
+                data=post_data
+            )
+            
+            results.append({
+                "node": node.name,
+                "success": response and 200 <= response.status_code < 300,
+                "status_code": response.status_code if response else "Failed to connect"
+            })
+        
+        return JsonResponse({"results": results})
+        
+    except Post.DoesNotExist:
+        return JsonResponse({"error": "Post not found"}, status=404)
+    
+from django.http import HttpResponse
+import requests
+import base64
+from .models import RemoteNode
+
+
+def test_basic_auth(request):
+    """Simple test for Basic Auth"""
+    return HttpResponse("Basic Auth test endpoint is working")

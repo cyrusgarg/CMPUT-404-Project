@@ -114,7 +114,7 @@ class Friendship(models.Model):
 class RemoteNode(models.Model):
     """Model representing a remote node to share content with"""
     name = models.CharField(max_length=100)
-    host_url = models.URLField(unique=True)
+    host_url = models.URLField(max_length=255, unique=True, help_text="Full URL including http:// or https:// and port if needed")
     username = models.CharField(max_length=100)  # For HTTP Basic Auth
     password = models.CharField(max_length=100)  # For HTTP Basic Auth
     is_active = models.BooleanField(default=True)
