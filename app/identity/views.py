@@ -173,8 +173,6 @@ class AuthorProfileEditView(LoginRequiredMixin, UpdateView):
         messages.success(self.request, "Your profile has been updated successfully!")
         return reverse_lazy('identity:author-profile', kwargs={'username': self.request.user.username})
     
-
-
 class UserSignUpView(CreateView):
     form_class = UserSignUpForm
     template_name = 'identity/signup.html'
