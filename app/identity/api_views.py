@@ -15,10 +15,9 @@ from django.db.models import Q
 from .id_mapping import get_uuid_for_numeric_id
 from rest_framework.views import APIView
 from django.utils.timezone import now
-from urllib.parse import urlparse
 import uuid
 from rest_framework.permissions import IsAuthenticated
-from .authentication import NodeBasicAuthentication
+# from .authentication import NodeBasicAuthentication
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 
 try:
@@ -782,17 +781,6 @@ def post_comment(request, author_id, post_id):
     serializer = CommentSerializer(paginated_comments, many=True, context={'request': request})
     return paginator.get_paginated_response(serializer.data, post,request)
 
-def extract_uuid_from_url(url):
-    """
-    Extracts the last path segment from a URL and returns it.
-    """
-    if not url:
-        return None
-    parsed = urlparse(url)
-    # Remove trailing slash and split the path
-    segments = parsed.path.rstrip('/').split('/')
-    return segments[-1] if segments else None
-
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def inbox(request, author_id):
@@ -810,21 +798,7 @@ def inbox(request, author_id):
     obj_type = data.get("type", "").lower()
 
     if obj_type == "post":
-        # Ensure the "id" field is provided
-        post_url = data.get("id", "")
-        if not post_url:
-            return Response({"detail": "Post id is missing in the payload."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Extract the post UUID from the URL
-        post_id = extract_uuid_from_url(post_url)
-        if not post_id:
-            return Response({"detail": "Could not extract a valid post id from the URL."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Validate the extracted UUID
-        try:
-            uuid_obj = uuid.UUID(post_id)
-        except ValueError:
-            return Response({"detail": "Provided post id is not a valid UUID."}, status=status.HTTP_400_BAD_REQUEST)
+        post_id = data.get("id", "").split("/")[-1]  # Extract the post ID from the URL
 
         # Check if this post already exists on the local node
         existing_post = Post.objects.filter(id=post_id).first()
