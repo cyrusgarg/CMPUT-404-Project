@@ -403,7 +403,10 @@ def like_comment(request, post_id, comment_id):
     comment.like_count = comment.likes.count()
     comment.save()
     
-    return redirect('posts:post_detail', post_id=post.id)
+    return JsonResponse({
+        "like_count": comment.like_count,
+        "liked": liked
+    })
 
 def shared_post_view(request, post_id):
     """
@@ -413,7 +416,7 @@ def shared_post_view(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     
     # Only allow viewing of PUBLIC or UNLISTED posts through this route
-    if post.visibility != "PUBLIC":        
+    if post.visibility not in ["PUBLIC", "UNLISTED"]:
         return render(request, 'posts/error.html', {'message': 'This post is not shareable'}, status=403)
     
     # Check if user is logged in
