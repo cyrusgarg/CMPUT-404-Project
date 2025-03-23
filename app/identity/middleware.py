@@ -6,6 +6,7 @@ from django.http import JsonResponse
 # from .authentication import authenticate, authenticate_with_token
 # import base64
 
+
 class AuthorApprovalMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
@@ -32,7 +33,7 @@ class AuthorApprovalMiddleware:
 #     """
 #     def __init__(self, get_response):
 #         self.get_response = get_response
-
+#
 #     def __call__(self, request):
 #         if "/inbox" in request.path:
 #             auth_header = request.META.get('HTTP_AUTHORIZATION')
