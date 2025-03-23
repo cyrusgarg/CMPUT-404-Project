@@ -24,19 +24,21 @@ class PostSerializer(serializers.ModelSerializer):
     content = serializers.SerializerMethodField()  # Convert Markdown/Base64 images
     comments = serializers.SerializerMethodField()  # Include comments
     likes = serializers.SerializerMethodField()  # Include likes
-    
+    image = serializers.CharField(write_only=True, required=False)
     #author = obj.author.author_profile.host serializers.CharField(source='author.username', read_only=True)  # Store author as username string / 将作者存储为用户名字符串（GJ）
      
     class Meta:
         model = Post  # Specify model / 指定模型（GJ）
         fields = [
             "type","title","id","description","page","contentType", "content", 
-             "author", "comments", "likes","published", "visibility"
+             "author", "comments", "likes","published", "visibility", "image"
         ]  # Define the fields to be serialized / 定义需要序列化的字段（GJ）
+        extra_kwargs = {"image": {"write_only": True}}  # Ensures image is input-only
 
     def to_representation(self, instance):
         """Customize the serialized output to dynamically override `id`."""
         data = super().to_representation(instance)
+        data.pop("image", None)
         data["id"] = self.get_id(instance)  # Ensure `id` is dynamically generated
         return data
 
@@ -127,9 +129,14 @@ class PostSerializer(serializers.ModelSerializer):
         Create a new Post instance.
         创建新的帖子实例。（GJ）
         """
+        image = validated_data.pop("image", None)
         validated_data.pop('type', None)  # Remove 'type' if present
         post_id = validated_data.pop('id', None)  # Extract the ID from request data
 
+        if image:
+            post.image = self.image_to_base64(image)
+            post.save()
+        
         if post_id:
             # Ensure it doesn't already exist before creating
             existing_post = Post.objects.filter(id=post_id).first()
@@ -154,14 +161,26 @@ class PostSerializer(serializers.ModelSerializer):
         #validated_data.pop('type', None)  # Remove 'type' if present
         if instance.author != request_user:
             raise serializers.ValidationError("You do not have permission to edit this post.")  # Prevent unauthorized edits / 防止未授权编辑（GJ）
-
+        image = validated_data.pop("image", None)
         instance.title = validated_data.get('title', instance.title)
         instance.description = validated_data.get('description', instance.description)
         instance.content = validated_data.get('content', instance.content)
         instance.contentType = validated_data.get('contentType', instance.contentType)
         instance.visibility = validated_data.get('visibility', instance.visibility)
+        if image:
+            instance.image = self.image_to_base64(image)
         instance.save()
         return instance
+
+    def image_to_base64(self, image_file):
+        """
+        Converts an uploaded image file to a base64 encoded string.
+        """
+        try:
+            return f"data:image/jpeg;base64,{base64.b64encode(image_file.read()).decode('utf-8')}"
+        except Exception as e:
+            print(f"⚠️ Error encoding image: {e}")
+            return None
 
 class LikeSerializer(serializers.ModelSerializer):
     """
