@@ -72,9 +72,9 @@ def view_posts(request):
         return render(request, "posts/views.html", {"posts": posts, "user": user.username}) # Get the logged-in user / 获取当前用户（GJ）
 
     if remote_node and not remote_node.is_active:
-        print("1")
         posts = Post.objects.filter(author=user).exclude(visibility="DELETED").order_by('-published')
         return render(request, "posts/views.html", {"posts": posts, "user": user.username})
+        
     # Get the followers of the current user / 获取当前用户的关注者（即用户关注的对象）（GJ）
     following_ids = Following.objects.filter(follower=user).values_list("followee_id", flat=True)  
 
