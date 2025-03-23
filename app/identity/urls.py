@@ -25,6 +25,8 @@ urlpatterns = [
     path('login/', views.CustomLoginView.as_view(), name='login'),
     path('accept', views.accept, name='accept'),
     path('decline', views.decline, name='decline'),
+    path('remote-accept', views.remoteAccept, name='remote-accept'),
+    path('remote-decline', views.remoteDecline, name='remote-decline'),
     
     # Username pattern should come last as it's a catch-all
     path('<str:username>/', views.AuthorProfileView.as_view(), name='author-profile'),
