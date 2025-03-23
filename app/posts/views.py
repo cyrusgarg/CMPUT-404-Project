@@ -16,7 +16,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
 from .serializers import PostSerializer, LikeSerializer, CommentSerializer
 from django.core.files.uploadedfile import InMemoryUploadedFile
+<<<<<<< HEAD
 import base64, requests
+=======
+from identity.models import RemoteNode
+from django.http import HttpResponse, JsonResponse
+import base64
+>>>>>>> 6549308cc66eacc8e699851e89fb390c011d869b
 
 @login_required
 def index(request):
@@ -31,10 +37,7 @@ def index(request):
     """
     user = request.user  # Get the logged-in Django user / 获取当前登录的Django用户（GJ）
 
-    if user.is_superuser:
-        posts = Post.objects.all().order_by('-published')  # Admin can see all posts, ordered by creation date
-    else:
-        posts = Post.objects.filter(author=user).exclude(visibility="DELETED").order_by('-published')  # Regular users only see their posts, ordered by creation date 
+    posts = Post.objects.filter(author=user).exclude(visibility="DELETED").order_by('-published')  # Regular users only see their posts, ordered by creation date 
 
     return render(request, "posts/index.html", {"posts": posts, "user": user.username})  # Pass username to the template / 传递用户名到模板（GJ）
 
@@ -64,10 +67,18 @@ def view_posts(request):
     """
     user = request.user 
 
+    host = request.get_host()
+    #print(f"Request from: {full_host_url}") 
+    remote_node = RemoteNode.objects.filter(host_url__icontains=host).first()
+
     if user.is_superuser:
         posts = Post.objects.all().order_by('-published') # Admin can see all posts, ordered by creation date
         return render(request, "posts/views.html", {"posts": posts, "user": user.username}) # Get the logged-in user / 获取当前用户（GJ）
-    
+
+    if remote_node and not remote_node.is_active:
+        posts = Post.objects.filter(author=user).exclude(visibility="DELETED").order_by('-published')
+        return render(request, "posts/views.html", {"posts": posts, "user": user.username})
+        
     # Get the followers of the current user / 获取当前用户的关注者（即用户关注的对象）（GJ）
     following_ids = Following.objects.filter(follower=user).values_list("followee_id", flat=True)  
 
@@ -402,7 +413,10 @@ def like_comment(request, post_id, comment_id):
     comment.like_count = comment.likes.count()
     comment.save()
     
-    return redirect('posts:post_detail', post_id=post.id)
+    return JsonResponse({
+        "like_count": comment.like_count,
+        "liked": liked
+    })
 
 def shared_post_view(request, post_id):
     """
@@ -412,7 +426,7 @@ def shared_post_view(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     
     # Only allow viewing of PUBLIC or UNLISTED posts through this route
-    if post.visibility != "PUBLIC":        
+    if post.visibility not in ["PUBLIC", "UNLISTED"]:
         return render(request, 'posts/error.html', {'message': 'This post is not shareable'}, status=403)
     
     # Check if user is logged in

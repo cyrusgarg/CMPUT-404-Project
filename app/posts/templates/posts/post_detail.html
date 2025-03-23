@@ -84,7 +84,7 @@
         </form>
     {% endif %}
 
-    {% if post.visibility == "PUBLIC" %}
+    {% if post.visibility == "PUBLIC" or post.visibility == "UNLISTED" %}
     <div class="share-section">
         <p><strong>Share this post:</strong></p>
         <div class="share-link-container">
