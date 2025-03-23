@@ -5,6 +5,7 @@
 <h2>Your Requests</h2>
 
 <div class="requests-container">
+    <h3>Local Follow Requests</h3>
     {% if requests %}
         <ul>
             <!-- Show each follow request with option to accept and decline -->
@@ -29,7 +30,39 @@
             {% endfor %}
         </ul>
     {% else %}
-        <p>No follow requests at the moment.</p>
+        <p>No local follow requests at the moment.</p>
+    {% endif %}
+</div>
+
+<div class="remote-requests-container">
+    <h3>Remote Follow Requests</h3>
+    {% if remote_requests %}
+        <ul>
+            <!-- Show each follow request with option to accept and decline -->
+            {% for request in remote_requests %}
+                <li>
+                    <p>
+                        {{ request.sender_name }}
+                    </p>
+                    <form action="/authors/remote-accept" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="sender_name" value="{{ request.sender_name }}">
+                        <input type="hidden" name="sender_id" value="{{ request.sender_id }}">
+                        <input type="hidden" name="receiver" value="{{ request.receiver.username }}">
+                        <button type="submit">Accept</button>
+                    </form>
+                    <form action="/authors/remote-decline" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="sender_name" value="{{ request.sender_name }}">
+                        <input type="hidden" name="sender_id" value="{{ request.sender_id }}">
+                        <input type="hidden" name="receiver" value="{{ request.receiver.username }}">
+                        <button type="submit">Decline</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No remote follow requests at the moment.</p>
     {% endif %}
 </div>
 
