@@ -16,6 +16,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
 from .serializers import PostSerializer, LikeSerializer, CommentSerializer
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from identity.models import RemoteNode
+from django.http import HttpResponse, JsonResponse
 import base64
 
 @login_required
@@ -31,10 +33,7 @@ def index(request):
     """
     user = request.user  # Get the logged-in Django user / 获取当前登录的Django用户（GJ）
 
-    if user.is_superuser:
-        posts = Post.objects.all().order_by('-published')  # Admin can see all posts, ordered by creation date
-    else:
-        posts = Post.objects.filter(author=user).exclude(visibility="DELETED").order_by('-published')  # Regular users only see their posts, ordered by creation date 
+    posts = Post.objects.filter(author=user).exclude(visibility="DELETED").order_by('-published')  # Regular users only see their posts, ordered by creation date 
 
     return render(request, "posts/index.html", {"posts": posts, "user": user.username})  # Pass username to the template / 传递用户名到模板（GJ）
 
@@ -64,10 +63,18 @@ def view_posts(request):
     """
     user = request.user 
 
+    host = request.get_host()
+    #print(f"Request from: {full_host_url}") 
+    remote_node = RemoteNode.objects.filter(host_url__icontains=host).first()
+
     if user.is_superuser:
         posts = Post.objects.all().order_by('-published') # Admin can see all posts, ordered by creation date
         return render(request, "posts/views.html", {"posts": posts, "user": user.username}) # Get the logged-in user / 获取当前用户（GJ）
-    
+
+    if remote_node and not remote_node.is_active:
+        print("1")
+        posts = Post.objects.filter(author=user).exclude(visibility="DELETED").order_by('-published')
+        return render(request, "posts/views.html", {"posts": posts, "user": user.username})
     # Get the followers of the current user / 获取当前用户的关注者（即用户关注的对象）（GJ）
     following_ids = Following.objects.filter(follower=user).values_list("followee_id", flat=True)  
 
