@@ -24,6 +24,23 @@ To migrate in docker
     docker compose exec socialapp python manage.py migrate --noinput
     docker compose exec socialapp python manage.py createsuperuser
 
+if you see error regarding nodetable doesnt exist: 
+    docker compose exec postgres psql -U hello_django -d hello_django
+    CREATE TABLE identity_remotenode (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    host_url VARCHAR(200) UNIQUE NOT NULL,
+    username VARCHAR(100) NOT NULL,
+    password VARCHAR(100) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    added_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+    (type \q and press Enter)
+    docker compose exec socialapp python manage.py migrate identity --fake
+    docker compose restart socialapp
+
+
 Some helpful git commands
     git branch  //to see which branch you are on
     git pull origin main //to pull the origin main code into current branch

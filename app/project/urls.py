@@ -19,6 +19,7 @@ from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic.base import RedirectView
+from identity.views import test_basic_auth
 
 urlpatterns = [
     path('posts/', include('posts.urls',namespace='posts_frontend')),
@@ -32,6 +33,7 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),
     
     path('accounts/login/', RedirectView.as_view(pattern_name='identity:login'), name='login_redirect'),
+    path('test-basic-auth/', test_basic_auth, name='test-basic-auth'),
 
 
 ]

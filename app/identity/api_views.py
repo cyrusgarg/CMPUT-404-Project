@@ -17,7 +17,9 @@ from rest_framework.views import APIView
 from django.utils.timezone import now
 from urllib.parse import urlparse
 import uuid
-
+from rest_framework.permissions import IsAuthenticated
+from .authentication import NodeBasicAuthentication
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 
 try:
     from bs4 import BeautifulSoup
@@ -27,6 +29,8 @@ except ImportError:
 
 @api_view(['GET', 'POST'])
 @permission_classes([AllowAny])  # Allow any user to access, then control with logic
+@authentication_classes([NodeBasicAuthentication])  # Add this line
+
 def author_posts(request, author_id):
     """
     GET: Returns paginated posts of a specific author with proper visibility rules.
@@ -1018,3 +1022,27 @@ def follower(request, author_id, follower_id):
 #     #serializer = LikeSerializer(paginated_likes, many=True)
 
 #     #return paginator.get_paginated_response(serializer.data,post)
+        
+class NodeAPIView(APIView):
+    """
+    API View that can be accessed by authenticated nodes.
+    """
+    authentication_classes = [NodeBasicAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        # The requesting node is available in request.auth
+        node = request.auth
+        return Response({
+            "message": f"Hello {node.name}, you are authenticated!",
+            "node_url": node.host_url
+        })
+
+class NodeAuthTestView(APIView):
+    authentication_classes = [NodeBasicAuthentication]
+    
+    def get(self, request):
+        return Response({
+            "message": "Authentication successful",
+            "node": getattr(request.auth, 'name', 'Unknown') if request.auth else "No Auth"
+        })
