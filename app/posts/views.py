@@ -400,7 +400,10 @@ def like_comment(request, post_id, comment_id):
     comment.like_count = comment.likes.count()
     comment.save()
     
-    return redirect('posts:post_detail', post_id=post.id)
+    return JsonResponse({
+        "like_count": comment.like_count,
+        "liked": liked
+    })
 
 def shared_post_view(request, post_id):
     """
