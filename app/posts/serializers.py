@@ -20,7 +20,8 @@ class PostSerializer(serializers.ModelSerializer):
     page = serializers.SerializerMethodField()  # HTML Page URL
     id = serializers.CharField(required=False)  # Allow writing existing IDs
     #id = serializers.SerializerMethodField()  # Full API URL for post
-    author = serializers.SerializerMethodField()  # Full author details
+    author = serializers.JSONField(write_only=True, required=False)  # Accept author input
+    #author = serializers.SerializerMethodField()  # Full author details
     content = serializers.SerializerMethodField()  # Convert Markdown/Base64 images
     comments = serializers.SerializerMethodField()  # Include comments
     likes = serializers.SerializerMethodField()  # Include likes
@@ -33,13 +34,14 @@ class PostSerializer(serializers.ModelSerializer):
             "type","title","id","description","page","contentType", "content", 
              "author", "comments", "likes","published", "visibility", "image"
         ]  # Define the fields to be serialized / 定义需要序列化的字段（GJ）
-        extra_kwargs = {"image": {"write_only": True}}  # Ensures image is input-only
+        extra_kwargs = {"image": {"write_only": True}, "author": {"write_only": True}}  # Ensures image is input-only
 
     def to_representation(self, instance):
         """Customize the serialized output to dynamically override `id`."""
         data = super().to_representation(instance)
         data.pop("image", None)
         data["id"] = self.get_id(instance)  # Ensure `id` is dynamically generated
+        data["author"] = self.get_author(instance)  # Use `get_author` for response
         return data
 
     def get_id(self, obj):
@@ -130,6 +132,7 @@ class PostSerializer(serializers.ModelSerializer):
         创建新的帖子实例。（GJ）
         """
         image = validated_data.pop("image", None)
+        author_data = validated_data.pop("author", None)  # Get author input
         validated_data.pop('type', None)  # Remove 'type' if present
         post_id = validated_data.pop('id', None)  # Extract the ID from request data
 
@@ -137,11 +140,31 @@ class PostSerializer(serializers.ModelSerializer):
             post.image = self.image_to_base64(image)
             post.save()
         
+        # Handle author creation if author_data is provided
+        if author_data:
+            author_id = author_data.get("id", "").split("/")[-1]  # Extract author UUID
+            author = Author.objects.filter(author_id=author_id).first()
+
+            if not author:
+                # Create new Author if author does not exist
+                author = Author.objects.create(
+                    author_id=author_id,
+                    display_name=author_data.get("displayName", "Unknown Author"),
+                    github=author_data.get("github", ""),
+                    host=author_data.get("host", settings.SITE_URL),
+                    profile_image=author_data.get("profileImage", ""),
+                )
+
+            validated_data["author"] = author.user  # Assign the user linked to the author    
         if post_id:
             # Ensure it doesn't already exist before creating
             existing_post = Post.objects.filter(id=post_id).first()
             if existing_post:
-                raise serializers.ValidationError({"id": "Post with this ID already exists."})
+                # Update the existing post instead of creating a new one
+                for attr, value in validated_data.items():
+                    setattr(existing_post, attr, value)
+                existing_post.save()
+                return existing_post  # Return the updated post
 
             return Post.objects.create(id=post_id, **validated_data)  # Use provided ID
 
@@ -162,6 +185,8 @@ class PostSerializer(serializers.ModelSerializer):
         if instance.author != request_user:
             raise serializers.ValidationError("You do not have permission to edit this post.")  # Prevent unauthorized edits / 防止未授权编辑（GJ）
         image = validated_data.pop("image", None)
+        author_data = validated_data.pop("author", None)  # Ignore author updates
+
         instance.title = validated_data.get('title', instance.title)
         instance.description = validated_data.get('description', instance.description)
         instance.content = validated_data.get('content', instance.content)

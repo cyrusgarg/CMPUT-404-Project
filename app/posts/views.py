@@ -188,7 +188,7 @@ def create_post(request):
             image=base64_image,
         )
         print("author host :",request.user.author_profile.host)
-        send_post_to_remote_recipients(post)
+        send_post_to_remote_recipients(post,request,False)
         return redirect("posts:index")  # Redirect to posts index / 创建帖子后跳转到主页（GJ）
     
     return render(request, "posts/create_post.html", {"user": request.user.username})  # Render post creation page / 渲染帖子创建页面（GJ）
@@ -301,7 +301,7 @@ def web_update_post(request, post_id):
           post.image = image_to_base64(image)
 
       post.save()
-      send_post_to_remote_recipients(post,True)
+      send_post_to_remote_recipients(post,request,True)
       return redirect("posts:post_detail", post_id=post.id)
     
     # return to the post edit if form submission fails
@@ -438,7 +438,7 @@ def shared_post_view(request, post_id):
         "is_liked": is_liked
     })
 
-def send_post_to_remote_recipients(post, is_update=False):
+def send_post_to_remote_recipients(post, request,is_update=False):
     """
     Sends a post (new or updated) to the appropriate remote recipients.
     
@@ -456,6 +456,7 @@ def send_post_to_remote_recipients(post, is_update=False):
     post_data = {
         "type": "post",
         "id": f"{post.id}",
+        "author":author.to_dict(request),
         "title": post.title,
         "description": post.description,
         "contentType": post.contentType,
