@@ -9,7 +9,7 @@ from identity.models import Author, Following, Friendship
 from posts.models import Post,Comment,Like
 from posts.serializers import PostSerializer, CommentSerializer,LikeSerializer
 from django.contrib.auth.models import User
-from identity.models import Following, FollowRequests, Friendship
+from identity.models import Following, FollowRequests, RemoteFollowRequests, Friendship, RemoteFollower
 import json, urllib.parse, re, base64
 from django.db.models import Q
 from .id_mapping import get_uuid_for_numeric_id
@@ -904,9 +904,7 @@ def inbox(request, author_id):
         sender_author_url = actor_data.get("id")
         if not sender_author_url:
             return Response({"error": "Missing sender author id in follow request."}, status=status.HTTP_400_BAD_REQUEST)
-        sender = Author.objects.filter(author_id=sender_author_url.rstrip("/").split("/")[-1]).first()
-        if not sender:
-            return Response({"error": "Sender author not found."}, status=status.HTTP_400_BAD_REQUEST)
+        sender_name = actor_data.get("displayName")
 
         object_data = data.get("object")
         if not object_data:
@@ -919,22 +917,15 @@ def inbox(request, author_id):
             return Response({"error": "Target author does not match inbox author."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if a follow request already exists or the sender is already following.
-        if FollowRequests.objects.filter(sender=sender.user, receiver=author.user).exists() or \
-        Following.objects.filter(follower=sender.user, followee=author.user).exists():
+        if RemoteFollowRequests.objects.filter(sender_id=sender_author_url, sender_name=sender_name, receiver=author.user).exists() or \
+        RemoteFollower.objects.filter(follower_id=sender_author_url, follower_name=sender_name, followee=author.user).exists():
             return Response({"error": "Follow request already exists or sender is already following."},
                             status=status.HTTP_400_BAD_REQUEST)
 
         # Create the follow request.
-        follow_request = FollowRequests.objects.create(sender=sender.user, receiver=author.user)
+        RemoteFollowRequests.objects.create(sender_id=sender_author_url, sender_name=sender_name, receiver=author.user)
 
-        # Construct the follow object to return.
-        follow_data = {
-            "type": "follow",
-            "summary": f"{sender.display_name} wants to follow {author.display_name}",
-            "actor": sender.to_dict(),
-            "object": author.to_dict(request)
-        }
-        return Response(follow_data, status=status.HTTP_201_CREATED)
+        return Response("Follow request sent", status=status.HTTP_201_CREATED)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
