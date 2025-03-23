@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from .models import Author
-
+from .models import RemoteNode
 class AuthorProfileForm(forms.ModelForm):
     class Meta:
         model = Author
@@ -44,3 +44,14 @@ class UserSignUpForm(UserCreationForm):
             author.save()
         
         return user
+    
+
+class RemoteNodeForm(forms.ModelForm):
+    password = forms.CharField(widget=forms.PasswordInput())
+    
+    class Meta:
+        model = RemoteNode
+        fields = ['name', 'host_url', 'username', 'password', 'is_active']
+        widgets = {
+            'host_url': forms.URLInput(attrs={'placeholder': 'https://example.com'}),
+        }

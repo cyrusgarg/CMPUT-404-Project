@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Remote Nodes</h1>
+    <p>Manage remote nodes that you want to share content with.</p>
+    
+    <a href="{% url 'identity:remote-node-add' %}" class="btn btn-primary mb-3">Add New Node</a>
+    
+    {% if nodes %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Host URL</th>
+                    <th>Status</th>
+                    <th>Added</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for node in nodes %}
+                <tr>
+                    <td>{{ node.name }}</td>
+                    <td>{{ node.host_url }}</td>
+                    <td>
+                        {% if node.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-danger">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ node.added_at|date:"M d, Y" }}</td>
+                    <td>
+                        <a href="{% url 'identity:remote-node-edit' node.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <a href="{% url 'identity:remote-node-delete' node.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="alert alert-info">
+            No remote nodes have been added yet. Click "Add New Node" to get started.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

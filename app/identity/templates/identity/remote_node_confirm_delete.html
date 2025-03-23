@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Delete Remote Node</h1>
+    
+    <div class="alert alert-warning">
+        <p>Are you sure you want to delete the remote node "{{ object.name }}"?</p>
+        <p>This will stop sharing content with this node.</p>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, delete</button>
+        <a href="{% url 'identity:remote-node-list' %}" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}
