@@ -109,6 +109,10 @@ def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)  # Retrieve post or return 404 / 获取帖子或返回404（GJ）
     user = request.user
 
+    host = request.get_host()
+    #print(f"Request from: {full_host_url}") 
+    remote_node = RemoteNode.objects.filter(host_url__icontains=host).first()
+
    # Get the followers of the current user / 获取当前用户的关注者（即用户关注的对象）（GJ）
     following_ids = Following.objects.filter(follower=user).values_list("followee_id", flat=True)  
 
@@ -125,6 +129,9 @@ def post_detail(request, post_id):
         # Ensure we have the latest state from the DB
         comment.refresh_from_db()
         comment.is_liked_by_user = comment.likes.filter(id=user.id).exists()
+
+    if remote_node and not post.visibility == "DELETED":
+        return render(request, "posts/post_detail.html", {"post": post, "user": request.user.username, "comments": comments}) 
 
     if post.visibility == "DELETED" and not user.is_superuser:
         return HttpResponseForbidden("You do not have permission to view this post.")  # Forbidden response if post is deleted / 如果帖子已删除且用户非管理员，则返回403（GJ）
