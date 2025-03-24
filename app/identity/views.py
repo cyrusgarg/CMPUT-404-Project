@@ -12,7 +12,7 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import user_passes_test
 from posts.models import Post  
 from identity.models import Author
-from .models import Author, GitHubActivity, Following, FollowRequests, Friendship, RemoteNode
+from .models import Author, GitHubActivity, Following, FollowRequests, Friendship, RemoteNode, RemoteAuthor
 from .forms import AuthorProfileForm, UserSignUpForm, RemoteNodeForm
 from .utils import send_to_node
 from django.http import JsonResponse
@@ -41,10 +41,57 @@ class AuthorProfileView(DetailView):
         return context
 
 class AuthorListView(ListView):
-    model = Author
-    template_name = 'authors/author_list.html'
+    template_name = 'identity/author_list.html'
     context_object_name = 'authors'
-    paginate_by = 10
+    paginate_by = 15  # Increased to accommodate both local and remote authors
+    
+    def get_queryset(self):
+        # Get local authors
+        local_authors = Author.objects.all()
+        
+        # Get remote authors from all active nodes
+        remote_authors = RemoteAuthor.objects.filter(node__is_active=True)
+        
+        # Combine local and remote authors into a single queryset
+        # We'll use a custom class to represent both types uniformly
+        combined_authors = []
+        
+        # Add local authors
+        for author in local_authors:
+            combined_authors.append({
+                'id': str(author.author_id),
+                'display_name': author.display_name,
+                'bio': author.bio,
+                'profile_image': author.profile_image.url if author.profile_image else None,
+                'github': author.github,
+                'host': author.host,
+                'is_local': True,
+                'username': author.user.username
+            })
+        
+        # Add remote authors
+        for author in remote_authors:
+            combined_authors.append({
+                'id': author.author_id,
+                'display_name': author.display_name,
+                'bio': '',  # Remote authors might not have bios in your current model
+                'profile_image': author.profile_image if author.profile_image else None,
+                'github': author.github,
+                'host': author.host,
+                'is_local': False,
+                'node_id': author.node.id,
+                'node_name': author.node.name
+            })
+        
+        # Sort by display name
+        combined_authors.sort(key=lambda x: x['display_name'])
+        
+        return combined_authors
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['has_remote_authors'] = RemoteAuthor.objects.filter(node__is_active=True).exists()
+        return context
 
 class Requests(ListView):
     model = FollowRequests
@@ -234,6 +281,14 @@ class RemoteNodeListView(AdminRequiredMixin, ListView):
     model = RemoteNode
     template_name = 'identity/remote_node_list.html'
     context_object_name = 'nodes'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add author counts for each node
+        for node in context['nodes']:
+            node.author_count = RemoteAuthor.objects.filter(node=node).count()
+        return context
+
 
 class RemoteNodeCreateView(AdminRequiredMixin, CreateView):
     model = RemoteNode
@@ -310,3 +365,95 @@ from .models import RemoteNode
 def test_basic_auth(request):
     """Simple test for Basic Auth"""
     return HttpResponse("Basic Auth test endpoint is working")
+
+def fetch_remote_authors(request, node_id):
+    """Fetch authors from a remote node and save them to the database"""
+    try:
+        node = RemoteNode.objects.get(id=node_id, is_active=True)
+        
+        # Start with the first page
+        next_page_url = f"api/authors/"
+        total_authors_count = 0
+        
+        while next_page_url:
+            # Send request to the remote node's authors endpoint
+            response = send_to_node(node.id, next_page_url, method='GET')
+            
+            if response and response.status_code == 200:
+                authors_data = response.json()
+                
+                # Based on the API structure in your curl output
+                if 'type' in authors_data and authors_data['type'] == 'authors' and 'src' in authors_data:
+                    authors_list = authors_data['src']
+                    
+                    authors_count = 0
+                    for author_data in authors_list:
+                        # Extract ID from the full URL
+                        author_id = author_data.get('id', '')
+                        if '/' in author_id:
+                            author_id = author_id.split('/')[-1]
+                        
+                        # Update or create the remote author
+                        RemoteAuthor.objects.update_or_create(
+                            node=node,
+                            author_id=author_id,
+                            defaults={
+                                'display_name': author_data.get('displayName', 'Unknown'),
+                                'host': author_data.get('host', ''),
+                                'github': author_data.get('github', ''),
+                                'profile_image': author_data.get('profileImage', '')
+                            }
+                        )
+                        authors_count += 1
+                    
+                    total_authors_count += authors_count
+                    
+                    # Check if there's a next page
+                    if 'next' in authors_data and authors_data['next']:
+                        # Extract the relative path from the next URL
+                        full_next_url = authors_data['next']
+                        if full_next_url.startswith("http"):
+                            # Extract just the path and query string
+                            from urllib.parse import urlparse
+                            parsed_url = urlparse(full_next_url)
+                            next_page_url = parsed_url.path
+                            if parsed_url.query:
+                                next_page_url += "?" + parsed_url.query
+                        else:
+                            next_page_url = full_next_url
+                    else:
+                        next_page_url = None
+                else:
+                    next_page_url = None
+                    messages.warning(request, f"Unexpected API response format from {node.name}")
+            else:
+                next_page_url = None
+                status = response.status_code if response else "Connection failed"
+                error_detail = response.text if response else "No response received"
+                messages.error(request, f"Failed to fetch authors from {node.name}. Status: {status}. Details: {error_detail}")
+        
+        messages.success(request, f"Successfully fetched {total_authors_count} authors from {node.name}")
+        return redirect('identity:remote-authors-list', node_id=node_id)
+    
+    except RemoteNode.DoesNotExist:
+        messages.error(request, "Remote node not found")
+        return redirect('identity:remote-node-list')
+    except Exception as e:
+        messages.error(request, f"Error fetching authors: {type(e).__name__} - {str(e)}")
+        return redirect('identity:remote-node-list')
+    
+class RemoteAuthorListView(LoginRequiredMixin, ListView):
+    """View to display authors from a specific remote node"""
+    model = RemoteAuthor
+    template_name = 'identity/remote_author_list.html'
+    context_object_name = 'authors'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        self.node = get_object_or_404(RemoteNode, id=self.kwargs['node_id'], is_active=True)
+        return RemoteAuthor.objects.filter(node=self.node)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['node'] = self.node
+        return context

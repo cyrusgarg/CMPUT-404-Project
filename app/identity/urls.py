@@ -17,6 +17,9 @@ urlpatterns = [
     path('nodes/<int:pk>/edit/', views.RemoteNodeUpdateView.as_view(), name='remote-node-edit'),
     path('nodes/<int:pk>/delete/', views.RemoteNodeDeleteView.as_view(), name='remote-node-delete'),
     
+    # Remote Author paths
+    path('nodes/<int:node_id>/authors/', views.RemoteAuthorListView.as_view(), name='remote-authors-list'),
+    path('nodes/<int:node_id>/fetch-authors/', views.fetch_remote_authors, name='fetch-remote-authors'),
     # Other specific paths
     path('posts/', include('posts.urls', namespace='posts')),
     path('webhook/github/', views.github_webhook, name='github-webhook'),
