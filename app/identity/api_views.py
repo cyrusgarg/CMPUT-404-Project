@@ -17,7 +17,7 @@ from rest_framework.views import APIView
 from django.utils.timezone import now
 import uuid
 from rest_framework.permissions import IsAuthenticated
-# from .authentication import NodeBasicAuthentication
+from .authentication import NodeBasicAuthentication
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 
 try:
