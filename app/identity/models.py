@@ -27,7 +27,7 @@ class Author(models.Model):
         return f"{base_url}/api/authors/{self.author_id}"
     
     def get_dynamic_host(self, request):
-        return f"https://{request.get_host()}" if request else self.host
+        return f"http://{request.get_host()}" if request else self.host
 
     @property
     def page(self,request):
@@ -41,7 +41,7 @@ class Author(models.Model):
     
     def to_dict(self,request=None):
         #numeric_id = get_numeric_id_for_author(self.author_id)
-        base_url = f"https://{request.get_host()}" if request else self.host
+        base_url = f"http://{settings.ALLOWED_HOSTS[-1]}"
         return {
             "type": "author",
             "id": f"{base_url}/api/authors/{self.author_id}",
@@ -160,7 +160,7 @@ class RemoteNode(models.Model):
         # Check if it's an IPv6 address without brackets
         if ':' in host_url.replace('http://', '').replace('https://', '') and not ('[' in host_url and ']' in host_url):
             # Extract protocol
-            protocol = 'https://' if host_url.startswith('https://') else 'http://'
+            protocol = 'http://'
             
             # Extract address part
             address_part = host_url.replace('http://', '').replace('https://', '')

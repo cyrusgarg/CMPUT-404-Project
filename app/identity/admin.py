@@ -1,10 +1,12 @@
 from django.contrib import admin
-from .models import Following, FollowRequests, Friendship, RemoteNode, RemoteAuthor, RemoteFollower, RemoteFollowRequests,RemoteFriendship
-
+from .models import Following, FollowRequests, Friendship, RemoteNode, RemoteAuthor, RemoteFollower, RemoteFollowRequests, RemoteFriendship, RemoteFollowee
 
 admin.site.register(Following)
 admin.site.register(FollowRequests)
 admin.site.register(Friendship)
+admin.site.register(RemoteFollower)
+admin.site.register(RemoteFollowee)
+admin.site.register(RemoteFollowRequests)
 admin.site.register(RemoteFriendship)
 
 @admin.register(RemoteNode)
