@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="profile-container">
+    <h1>{{ remote_author.display_name }}</h1>
+
+    <div class="profile-actions">
+        {% if user.is_authenticated %}
+            {% if is_follow_requested %}
+                <p>Follow request sent!</p> 
+            {% else %}
+                {% if is_following %}
+                    <form action="/authors/unfollow" method="post" style="display: inline-block;">
+                        {% csrf_token %}
+                        <input type="hidden" name="follower" value="{{ request.user.username }}">
+                        <input type="hidden" name="followee" value="{{ remote_author.display_name }}">
+                        <button type="submit" class="profile-button secondary">Unfollow</button>
+                    </form>
+                {% else %}
+                    <form action="/authors/follow" method="post" style="display: inline-block;">
+                        {% csrf_token %}
+                        <input type="hidden" name="sender" value="{{ request.user.username }}">
+                        <input type="hidden" name="receiver" value="{{ remote_author.display_name }}">
+                        <button type="submit" class="profile-button">Follow</button>
+                    </form>
+                {% endif %}
+            {% endif %}
+        {% endif %}
+    </div>
+    
+    <div style="clear: both; margin-bottom: 20px;"></div>
+    
+    {% if remote_author.profile_image %}
+        <img src="{{ remote_author.profile_image }}" alt="{{ remote_author.display_name }}" class="profile-image">
+    {% endif %}
+    
+    {% if remote_author.bio %}
+        <div class="bio-section">
+            <h2>About</h2>
+            <p>{{ remote_author.bio }}</p>
+        </div>
+    {% endif %}
+    
+    <div class="user-info">
+        <p>Username: {{ remote_author.display_name }}</p>
+        <p>Remote Author from {{ remote_author.node.name }}</p>
+        
+        {% if remote_author.github %}
+            <p>GitHub: <a href="{{ remote_author.github }}" target="_blank">{{ remote_author.github }}</a></p>
+        {% endif %}
+        
+        <p>Host: {{ remote_author.host }}</p>
+    </div>
+
+    <hr>
+
+    <div class="action-links">
+        <p>This is a remote author from {{ remote_author.node.name }}</p>
+    </div>
+
+    <!-- Posts Section -->
+    <div class="public-posts">
+        <h2>Public Posts</h2>
+        {% if posts %}
+            <ul>
+                {% for post in posts %}
+                    {% with unique_id="post_payload_"|add:forloop.counter %}
+                        <li>
+                            <strong>{{ post.title }}</strong> 
+                            <small>Published on {{ post.published|default:"Unknown date" }}</small>
+                            <div class="post-content">
+                                <pre>{{ post.description|json_script:unique_id }}</pre>
+                            </div>
+                        </li>
+                    {% endwith %}
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No public posts available.</p>
+        {% endif %}
+    </div>
+
+    <!-- CSS styles for the buttons (copied from local author profile) -->
+    <style>
+        .profile-button {
+            display: inline-block;
+            padding: 8px 15px;
+            background-color: #4361ee;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            box-shadow: 0 2px 6px rgba(67, 97, 238, 0.2);
+            margin-right: 10px;
+            cursor: pointer;
+            font-family: inherit; /* Ensures consistent font */
+        }
+        
+        .profile-button.secondary {
+            background-color: #6c757d;
+            box-shadow: 0 2px 6px rgba(108, 117, 125, 0.2);
+        }
+    </style>
+</div>
+{% endblock %}

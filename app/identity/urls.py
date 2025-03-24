@@ -1,6 +1,14 @@
 from django.urls import path, include
 from . import views, api_views
-
+from .views import (
+    RemoteNodeListView, 
+    RemoteNodeCreateView, 
+    RemoteNodeUpdateView, 
+    RemoteNodeDeleteView,
+    RemoteAuthorListView,
+    RemoteAuthorDetailView,
+    fetch_remote_authors
+)
 app_name = 'identity'
 
 urlpatterns = [
@@ -31,7 +39,9 @@ urlpatterns = [
     path('remote-accept', views.remoteAccept, name='remote-accept'),
     path('remote-decline', views.remoteDecline, name='remote-decline'),
     
-    # Username pattern should come last as it's a catch-all
     path('<str:username>/', views.AuthorProfileView.as_view(), name='author-profile'),
     path('<str:username>/requests/', views.Requests.as_view(), name='requests'),
+    path('nodes/<int:node_id>/authors/', RemoteAuthorListView.as_view(), name='remote-authors-list'),
+    path('nodes/<int:node_id>/authors/<int:pk>/', RemoteAuthorDetailView.as_view(), name='remote-author-detail'),
+    path('nodes/<int:node_id>/fetch/', fetch_remote_authors, name='fetch-remote-authors'),
 ]
