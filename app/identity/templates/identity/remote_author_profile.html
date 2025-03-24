@@ -6,24 +6,20 @@
 
     <div class="profile-actions">
         {% if user.is_authenticated %}
-            {% if is_follow_requested %}
-                <p>Follow request sent!</p> 
+            {% if is_following %}
+                <form action="/authors/remote-unfollow" method="post" style="display: inline-block;">
+                    {% csrf_token %}
+                    <input type="hidden" name="follower" value="{{ request.user.username }}">
+                    <input type="hidden" name="followee_id" value="{{ remote_author.author_id }}">
+                    <button type="submit" class="profile-button secondary">Unfollow</button>
+                </form>
             {% else %}
-                {% if is_following %}
-                    <form action="/authors/unfollow" method="post" style="display: inline-block;">
-                        {% csrf_token %}
-                        <input type="hidden" name="follower" value="{{ request.user.username }}">
-                        <input type="hidden" name="followee" value="{{ remote_author.display_name }}">
-                        <button type="submit" class="profile-button secondary">Unfollow</button>
-                    </form>
-                {% else %}
-                    <form action="/authors/follow" method="post" style="display: inline-block;">
-                        {% csrf_token %}
-                        <input type="hidden" name="sender" value="{{ request.user.username }}">
-                        <input type="hidden" name="receiver" value="{{ remote_author.display_name }}">
-                        <button type="submit" class="profile-button">Follow</button>
-                    </form>
-                {% endif %}
+                <form action="/authors/remote-follow" method="post" style="display: inline-block;">
+                    {% csrf_token %}
+                    <input type="hidden" name="follower" value="{{ request.user.username }}">
+                    <input type="hidden" name="followee_id" value="{{ remote_author.author_id }}">
+                    <button type="submit" class="profile-button">Follow</button>
+                </form>
             {% endif %}
         {% endif %}
     </div>
