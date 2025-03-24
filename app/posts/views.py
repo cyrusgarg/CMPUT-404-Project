@@ -4,7 +4,7 @@ from django.http import JsonResponse, HttpResponseForbidden, HttpResponseNotAllo
 from .models import Post, Like, Comment
 from identity.models import Following, Friendship
 from django.db import models
-from identity.models import Author , RemoteFollower
+from identity.models import Author , RemoteFollower, RemoteFriendship
 from django.contrib.auth.models import User  # Import Django User model / 导入Django用户模型（GJ）
 from django.views.decorators.csrf import csrf_exempt
 import json
