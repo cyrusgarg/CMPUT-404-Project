@@ -661,18 +661,26 @@ class AuthorDetailView(APIView):
         # Convert numeric ID to UUID if it's a numeric ID
         try:
             # Check if pk is numeric
-            numeric_id = int(pk)
-            uuid_str = get_uuid_for_numeric_id(numeric_id)
-            
-            if uuid_str is None:
-                return Response({"error": "Author not found"}, status=404)
+            if isinstance(pk, int):
+                numeric_id = pk
+                uuid_str = get_uuid_for_numeric_id(numeric_id)
                 
-            # Find the author using the UUID
-            author = get_object_or_404(Author, author_id=uuid_str)
-        except ValueError:
-            # If pk is not a numeric ID (e.g., it's already a UUID string),
-            # use it directly to find the author
-            author = get_object_or_404(Author, author_id=pk)
+                if uuid_str is None:
+                    return Response({"error": "Author not found"}, status=404)
+                    
+                # Find the author using the UUID
+                author = get_object_or_404(Author, author_id=uuid_str)
+            else:
+                # If pk is not an integer, it should be a UUID
+                try:
+                    # Try to validate the UUID
+                    uuid_obj = uuid.UUID(str(pk))
+                    author = get_object_or_404(Author, author_id=uuid_obj)
+                except ValueError:
+                    # Not a valid UUID format
+                    return Response({"error": "Invalid UUID format"}, status=400)
+        except Exception as e:
+            return Response({"error": f"Author lookup failed: {str(e)}"}, status=404)
         
         return Response(author.to_dict(request))
 
