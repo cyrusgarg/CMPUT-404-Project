@@ -27,6 +27,7 @@ urlpatterns = [
     path('<uuid:author_id>/followers', api_views.followers, name='followers'),
     path('<uuid:author_id>/followers/<path:follower_id>', api_views.follower, name='follower'),
     path('node-auth-test/', api_views.NodeAuthTestView.as_view(), name='node-auth-test'),
+    path('node-api/', api_views.NodeAPIView.as_view(), name='node-api-view'),
 
 
 ]
