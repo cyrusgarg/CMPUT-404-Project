@@ -781,7 +781,7 @@ def post_comment(request, author_id, post_id):
     serializer = CommentSerializer(paginated_comments, many=True, context={'request': request})
     return paginator.get_paginated_response(serializer.data, post,request)
 
-<<<<<<< HEAD
+
 def extract_uuid_from_url(url):
     """
     Extracts the last path segment from a URL and returns it.
@@ -794,9 +794,6 @@ def extract_uuid_from_url(url):
     return segments[-1] if segments else None
 
 @api_view(['POST','PUT'])
-=======
-@api_view(['POST'])
->>>>>>> d0a2e8df3ec15a95ed22db278307e592aba6151e
 @permission_classes([AllowAny])
 def inbox(request, author_id):
     """

@@ -16,13 +16,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
 from .serializers import PostSerializer, LikeSerializer, CommentSerializer
 from django.core.files.uploadedfile import InMemoryUploadedFile
-<<<<<<< HEAD
 import base64, requests
-=======
 from identity.models import RemoteNode
 from django.http import HttpResponse, JsonResponse
 import base64
->>>>>>> 6549308cc66eacc8e699851e89fb390c011d869b
 
 @login_required
 def index(request):
