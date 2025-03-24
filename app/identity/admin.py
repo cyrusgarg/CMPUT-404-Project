@@ -5,9 +5,6 @@ from .models import Following, FollowRequests, Friendship, RemoteNode, RemoteAut
 admin.site.register(Following)
 admin.site.register(FollowRequests)
 admin.site.register(Friendship)
-admin.site.register(RemoteFollower)
-admin.site.register(RemoteFollowRequests)
-
 
 @admin.register(RemoteNode)
 class RemoteNodeAdmin(admin.ModelAdmin):
