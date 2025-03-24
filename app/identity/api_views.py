@@ -926,7 +926,7 @@ def followers(request, author_id):
     for follow in remote_follows:
         print(follow.follower_id)
         response = requests.get(follow.follower_id)
-        if(response.status == 200):
+        if(response.status_code == 200):
             remote_followers.append(response.json())
 
     return Response({
