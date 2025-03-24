@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Following, FollowRequests, Friendship, RemoteNode, RemoteAuthor
+from .models import Following, FollowRequests, Friendship, RemoteNode, RemoteAuthor, RemoteFollower, RemoteFollowRequests
 
 
 admin.site.register(Following)
