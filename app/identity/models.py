@@ -41,7 +41,7 @@ class Author(models.Model):
     
     def to_dict(self,request=None):
         #numeric_id = get_numeric_id_for_author(self.author_id)
-        base_url = f"http://[2605:fd00:4:1001:f816:3eff:feb6:16ee]"
+        base_url = f"http://{settings.ALLOWED_HOSTS[-1]}"
         return {
             "type": "author",
             "id": f"{base_url}/api/authors/{self.author_id}",

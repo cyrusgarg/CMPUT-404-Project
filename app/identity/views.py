@@ -29,7 +29,6 @@ class AuthorProfileView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         author = self.get_object()
-        print(author.author_id)
         # Add public posts to profile
         context['posts'] = Post.objects.filter(
             author=author.user,
