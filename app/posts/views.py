@@ -488,6 +488,7 @@ def send_post_to_remote_recipients(post, request,is_update=False):
             author_id = parsed_url.path.strip("/").split("/")[-1]
             #print("baseHost:",base_host,"author_id:",author_id)
             inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+            print("inbox url:",inbox_url)
             recipients.add(inbox_url)
 
     elif post.visibility == "FRIENDS":
@@ -498,16 +499,17 @@ def send_post_to_remote_recipients(post, request,is_update=False):
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
             author_id = parsed_url.path.strip("/").split("/")[-1]
             inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+            print("inbox url:",inbox_url)
             recipients.add(inbox_url)
 
     # # Convert image to base64 if it exists
-    if post.image and not post.image.startswith("data:image"):
-        try:
-            with open(post.image.path, "rb") as img_file:
-                encoded_image = base64.b64encode(img_file.read()).decode("utf-8")
-                post_data["image"] = f"data:image/jpeg;base64,{encoded_image}"  # Assuming JPEG
-        except Exception as e:
-            print(f"Error encoding image: {e}")
+    # if post.image and not post.image.startswith("data:image"):
+    #     try:
+    #         with open(post.image.path, "rb") as img_file:
+    #             encoded_image = base64.b64encode(img_file.read()).decode("utf-8")
+    #             post_data["image"] = f"data:image/jpeg;base64,{encoded_image}"  # Assuming JPEG
+    #     except Exception as e:
+    #         print(f"Error encoding image: {e}")
 
     # Send post to all recipients
     for inbox_url in recipients:
@@ -559,7 +561,8 @@ def send_post_to_remote(post, request,is_update=False):
     #inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fed0:ce37]/api/authors/19290a3a-5ab8-4044-8834-d8dc497f08c5/inbox"
     #inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fe56:c195]/api/authors/f5b24430-e8e6-4e09-bd49-f4574d72b85c/inbox"
     #inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:feb6:bbc]/api/authors/a3354abf-375d-4039-b712-3da6c1225366/inbox"
-    inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fed0:ce37]/api/authors/55fd04cf-f748-4689-9b5e-4d81227726f9/inbox"
+    inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fe1a:a199]/api/authors/80fe48df-2868-46aa-82ed-70d30f8e7a89/inbox"
+    
     print("Sending post data:", json.dumps(post_data, indent=4))
     method='POST'
     try:
