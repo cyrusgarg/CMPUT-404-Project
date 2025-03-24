@@ -9,7 +9,7 @@ from identity.models import Author, Following, Friendship
 from posts.models import Post,Comment,Like
 from posts.serializers import PostSerializer, CommentSerializer,LikeSerializer
 from django.contrib.auth.models import User
-from identity.models import Following, FollowRequests, RemoteFollowRequests, Friendship, RemoteFollower, RemoteFollowee
+from identity.models import Following, FollowRequests, RemoteFollowRequests, Friendship, RemoteFollower, RemoteFollowee, RemoteFriendship
 import json, urllib.parse, re, base64
 from django.db.models import Q
 from .id_mapping import get_uuid_for_numeric_id
@@ -20,6 +20,7 @@ from rest_framework.permissions import IsAuthenticated
 from .authentication import NodeBasicAuthentication
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 import requests
+from urllib.parse import unquote
 
 try:
     from bs4 import BeautifulSoup
@@ -948,48 +949,42 @@ def follower(request, author_id, follower_id):
 
     # get follower and followee
     author = get_object_or_404(Author, author_id=author_id)
-    follower = get_object_or_404(Author, author_id=follower_id)
-    follow = Following.objects.filter(follower=follower.user, followee=author.user)
+    decoded_follower_id = follower_id
+    follow = RemoteFollower.objects.filter(follower_id=decoded_follower_id, followee=author.user)
         
     # handle appropriate methods
     if request.method == 'GET':
 
         # send follower's author object if follow exists, 404 otherwise
         if follow.exists() :
-            return Response(follower.to_dict())
+            response = requests.get(decoded_follower_id)
+            if(response.status_code == 200):
+                return Response(response.json(), status=200)
+            else:
+                return Response({"detail":"remote user not found"}, status=404)
         return Response({"detail": "Follow relationship does not exist"}, status=404)
 
     elif request.method == 'PUT':
 
-        # user can only create a follow relationship between them and some other user
-        if request.user != follower.user:
-            return Response({"detail":"Cannot create follow relationship for other users"}, status=403)
-
         if follow.exists():
             return Response({"detail":"Follow relationship already exists"}, status=200)
 
-        Following.objects.create(follower=follower.user, followee=author.user)
+        RemoteFollower.objects.create(follower_id=decoded_follower_id, followee=author.user)
 
         # check if a corresponding friendship relationship needs to be created
-        user1, user2 = sorted([follower.user, author.user], key=lambda user: user.id)
-        if(Following.objects.filter(follower=author.user, followee=follower.user).exists() and not Friendship.objects.filter(user1=user1, user2=user2)):
-            Friendship.objects.create(user1=user1, user2=user2)
+        if(RemoteFollowee.objects.filter(follower=author.user, followee_id=decoded_follower_id).exists() and not RemoteFriendship.objects.filter(local=author.user, remote=decoded_follower_id)):
+            RemoteFriendship.objects.create(local=author.user, remote=decoded_follower_id)
             
         return Response({"detail":"Follow relationship created"}, status=200)
 
     elif request.method == 'DELETE':
-
-        # user can only remove it's own followers
-        if request.user != author.user:
-            return Response({"detail":"Cannot delete follow relationship for other users"}, status=403)
 
         # if follow relationship exists then delete, 404 otherwise
         if follow.exists():
             follow.delete()
 
             # remove the corresponding friendship if it exists
-            user1, user2 = sorted([follower.user, author.user], key=lambda user: user.id)
-            friendship = Friendship.objects.filter(user1=user1, user2=user2)
+            friendship = RemoteFriendship.objects.filter(local=author.user, remote=decoded_follower_id)
             if(friendship.exists()):
                 friendship.delete()
                 
