@@ -197,8 +197,8 @@ def create_post(request):
             image=base64_image,
         )
         print("author host :",request.user.author_profile.host)
-        send_post_to_remote_recipients(post,request,False)
-        #send_post_to_remote(post,request,False)
+        #send_post_to_remote_recipients(post,request,False)
+        send_post_to_remote(post,request,False)
         return redirect("posts:index")  # Redirect to posts index / 创建帖子后跳转到主页（GJ）
     
     return render(request, "posts/create_post.html", {"user": request.user.username})  # Render post creation page / 渲染帖子创建页面（GJ）
@@ -311,7 +311,8 @@ def web_update_post(request, post_id):
           post.image = image_to_base64(image)
 
       post.save()
-      send_post_to_remote_recipients(post,request,True)
+      #send_post_to_remote_recipients(post,request,True)
+      send_post_to_remote(post,request,True)
       return redirect("posts:post_detail", post_id=post.id)
     
     # return to the post edit if form submission fails
@@ -486,11 +487,11 @@ def send_post_to_remote_recipients(post, request,is_update=False):
     if post.visibility == "PUBLIC":
          # Add remote followers
         for remote_follower in remote_followers:
-            print("Line 489")
+            #print("Line 489")
             parsed_url = urlparse(remote_follower.follower_id)
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
             author_id = parsed_url.path.strip("/").split("/")[-1]
-            print("baseHost:",base_host,"author_id:",author_id)
+            #print("baseHost:",base_host,"author_id:",author_id)
             recipients.add((base_host, author_id))
 
         # for friend in friends:
@@ -518,11 +519,10 @@ def send_post_to_remote_recipients(post, request,is_update=False):
     for host, recipient_id in recipients:
         inbox_url = f"{host}/api/authors/{recipient_id}/inbox"
         print("Inbox url:",inbox_url)
-        method = "PUT" if is_update else "POST"
+        #method = "PUT" if is_update else "POST"
 
         try:
-            response = requests.request(
-                method,
+            response = requests.post(
                 inbox_url,
                 json=post_data,
                 headers={"Content-Type": "application/json"},
@@ -563,15 +563,15 @@ def send_post_to_remote(post, request,is_update=False):
         "visibility": post.visibility,
         "image": post.image if post.image else None,  # Include image if available
     }
-    
+    # post_data={"type": "post",}
     #inbox_url = f"http://10.2.6.207:8000/api/authors/3ccf030e-68f0-4de1-a135-a072e1c4902c/inbox"
     #inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fed0:ce37]/api/authors/19290a3a-5ab8-4044-8834-d8dc497f08c5/inbox"
-    inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fe56:c195]:8000/api/authors/3ccf030e-68f0-4de1-a135-a072e1c4902c/inbox"
-    
+    inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fe56:c195]/api/authors/f5b24430-e8e6-4e09-bd49-f4574d72b85c/inbox"
+    #inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:feb6:bbc]/api/authors/a3354abf-375d-4039-b712-3da6c1225366/inbox"
+    print("Sending post data:", json.dumps(post_data, indent=4))
     method='POST'
     try:
-        response = requests.request(
-            'POST',
+        response = requests.post(
             inbox_url,
             json=post_data,
             headers={"Content-Type": "application/json"},
