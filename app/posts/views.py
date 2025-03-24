@@ -475,37 +475,31 @@ def send_post_to_remote_recipients(post, request,is_update=False):
         "image": post.image if post.image else None,  # Include image if available
     }
 
-    # Get remote followers from RemoteFollower model
-    remote_followers = RemoteFollower.objects.all()
-
-    # Get mutual friends (Both follow each other)
-    # friends = Friendship.objects.filter(user1=author.user).select_related("user2__author_profile")
-    # friends |= Friendship.objects.filter(user2=author.user).select_related("user1__author_profile")
-
     recipients = set()
 
     if post.visibility == "PUBLIC":
          # Add remote followers
+         # Get remote followers from RemoteFollower model
+        remote_followers = RemoteFollower.objects.all()
         for remote_follower in remote_followers:
             #print("Line 489")
             parsed_url = urlparse(remote_follower.follower_id)
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
             author_id = parsed_url.path.strip("/").split("/")[-1]
             #print("baseHost:",base_host,"author_id:",author_id)
-            recipients.add((base_host, author_id))
-
-        # for friend in friends:
-        #     recipient = friend.user1.author_profile if friend.user2 == author.user else friend.user2.author_profile
-        #     if recipient and recipient.host != author.host:
-        #         recipients.add(recipient)
+            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+            recipients.add(inbox_url)
 
     elif post.visibility == "FRIENDS":
         # Send only to mutual friends
-        # for friend in friends:
-        #     recipient = friend.user1.author_profile if friend.user2 == author.user else friend.user2.author_profile
-        #     if recipient and recipient.host != author.host:
-        #         recipients.add(recipient)
-        print("hi")
+        remote_friends = RemoteFriendship.objects.filter(local=author.user)
+        for remote_friend in remote_friends:
+            parsed_url = urlparse(remote_friend.remote)
+            base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+            author_id = parsed_url.path.strip("/").split("/")[-1]
+            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+            recipients.add(inbox_url)
+
     # # Convert image to base64 if it exists
     if post.image and not post.image.startswith("data:image"):
         try:
@@ -516,26 +510,23 @@ def send_post_to_remote_recipients(post, request,is_update=False):
             print(f"Error encoding image: {e}")
 
     # Send post to all recipients
-    for host, recipient_id in recipients:
-        inbox_url = f"{host}/api/authors/{recipient_id}/inbox"
-        print("Inbox url:",inbox_url)
-        #method = "PUT" if is_update else "POST"
+    for inbox_url in recipients:
+        print(f"Sending post to {inbox_url}")
 
         try:
             response = requests.post(
                 inbox_url,
                 json=post_data,
                 headers={"Content-Type": "application/json"},
-                #auth=("cyrus", "cyrus")  # Replace with real authentication
             )
 
             if response.status_code in [200, 201]:
-                print(f"Post sent successfully to {recipient_id}")
+                print(f"Post sent successfully to {inbox_url}")
             else:
-                print(f"Failed to send post to {recipient_id}: {response.status_code}, {response.text}")
+                print(f"Failed to send post to {inbox_url}: {response.status_code}, {response.text}")
 
         except requests.RequestException as e:
-            print(f"Error sending post to {recipient_id}: {e}")
+            print(f" Error sending post to {inbox_url}: {e}")
 
 #just for testing
 def send_post_to_remote(post, request,is_update=False):
