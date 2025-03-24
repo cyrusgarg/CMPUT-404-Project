@@ -197,8 +197,8 @@ def create_post(request):
             image=base64_image,
         )
         print("author host :",request.user.author_profile.host)
-        #send_post_to_remote_recipients(post,request,False)
-        send_post_to_remote(post,request,False)
+        send_post_to_remote_recipients(post,request,False)
+        #send_post_to_remote(post,request,False)
         return redirect("posts:index")  # Redirect to posts index / 创建帖子后跳转到主页（GJ）
     
     return render(request, "posts/create_post.html", {"user": request.user.username})  # Render post creation page / 渲染帖子创建页面（GJ）
@@ -311,8 +311,8 @@ def web_update_post(request, post_id):
           post.image = image_to_base64(image)
 
       post.save()
-      #send_post_to_remote_recipients(post,request,True)
-      send_post_to_remote(post,request,True)
+      send_post_to_remote_recipients(post,request,True)
+      #send_post_to_remote(post,request,True)
       return redirect("posts:post_detail", post_id=post.id)
     
     # return to the post edit if form submission fails
