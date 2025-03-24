@@ -7,12 +7,21 @@
     
     <a href="{% url 'identity:remote-node-add' %}" class="btn btn-primary mb-3">Add New Node</a>
     
+    {% if messages %}
+    <div class="messages mb-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
     {% if nodes %}
         <table class="table table-striped">
             <thead>
                 <tr>
                     <th>Name</th>
                     <th>Host URL</th>
+                    <th>Authors</th>
                     <th>Status</th>
                     <th>Added</th>
                     <th>Actions</th>
@@ -24,6 +33,11 @@
                     <td>{{ node.name }}</td>
                     <td>{{ node.host_url }}</td>
                     <td>
+                        <a href="{% url 'identity:remote-authors-list' node.id %}">
+                            {{ node.author_count|default:"0" }} Authors
+                        </a>
+                    </td>
+                    <td>
                         {% if node.is_active %}
                             <span class="badge bg-success">Active</span>
                         {% else %}
@@ -34,6 +48,7 @@
                     <td>
                         <a href="{% url 'identity:remote-node-edit' node.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
                         <a href="{% url 'identity:remote-node-delete' node.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                        <a href="{% url 'identity:remote-authors-list' node.id %}" class="btn btn-sm btn-outline-success">View Authors</a>
                     </td>
                 </tr>
                 {% endfor %}
