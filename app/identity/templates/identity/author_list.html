@@ -7,44 +7,32 @@
     <div class="authors-grid">
         {% for author in authors %}
             <div class="author-card {% if not author.is_local %}remote-author-card{% endif %}">
-                {% if author.is_local %}
-                    <!-- Local author -->
-                    {% if author.profile_image %}
-                        <img src="{{ author.profile_image }}" alt="{{ author.display_name }}" class="author-image">
-                    {% else %}
-                        <div class="author-initial">{{ author.display_name|first }}</div>
-                    {% endif %}
-                    
-                    <h2>{{ author.display_name }}</h2>
-                    <p class="author-bio">{{ author.bio|truncatewords:30 }}</p>
-                    
-                    {% if author.github %}
-                    <p class="author-github">
-                        <a href="{{ author.github }}" target="_blank">GitHub</a>
-                    </p>
-                    {% endif %}
-                    
-                    <div class="author-host">{{ author.host }}</div>
-                    
-                    <a href="{% url 'identity:author-profile' author.username %}" class="view-profile-btn">View Profile</a>
+                {% if author.profile_image %}
+                    <img src="{{ author.profile_image }}" alt="{{ author.display_name }}" class="author-image">
                 {% else %}
-                    <!-- Remote author -->
-                    {% if author.profile_image %}
-                        <img src="{{ author.profile_image }}" alt="{{ author.display_name }}" class="author-image">
-                    {% else %}
-                        <div class="author-initial">{{ author.display_name|first }}</div>
-                    {% endif %}
-                    
-                    <h2>{{ author.display_name }}</h2>
+                    <div class="author-initial">{{ author.display_name|first }}</div>
+                {% endif %}
+                
+                <h2>{{ author.display_name }}</h2>
+                
+                {% if not author.is_local %}
                     <p class="remote-label">Remote author from {{ author.node_name }}</p>
-                    
-                    {% if author.github %}
-                    <p class="author-github">
-                        <a href="{{ author.github }}" target="_blank">GitHub</a>
-                    </p>
-                    {% endif %}
-                    
-                    <div class="author-host">{{ author.host }}</div>
+                {% endif %}
+                
+                {% if author.bio %}
+                    <p class="author-bio">{{ author.bio|truncatewords:30 }}</p>
+                {% endif %}
+                
+                {% if author.github %}
+                <p class="author-github">
+                    <a href="{{ author.github }}" target="_blank">GitHub</a>
+                </p>
+                {% endif %}
+                
+                <div class="author-host">{{ author.host }}</div>
+                
+                {% if author.profile_url %}
+                    <a href="{{ author.profile_url }}" class="view-profile-btn">View Profile</a>
                 {% endif %}
             </div>
         {% endfor %}
@@ -91,6 +79,10 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
             background-color: white;
             transition: transform 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
         }
         
         .author-card:hover {
@@ -158,6 +150,7 @@
             border-radius: 4px;
             font-size: 0.9em;
             transition: background-color 0.2s;
+            margin-top: auto;
         }
         
         .view-profile-btn:hover {

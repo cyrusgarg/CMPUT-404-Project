@@ -12,7 +12,7 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import user_passes_test
 from posts.models import Post  
 from identity.models import Author
-from .models import Author, GitHubActivity, Following, FollowRequests, Friendship, RemoteNode, RemoteAuthor
+from .models import Author, GitHubActivity, Following, FollowRequests, Friendship, RemoteNode, RemoteAuthor, RemoteFollowRequests, RemoteFollower, RemoteFollowee
 from .forms import AuthorProfileForm, UserSignUpForm, RemoteNodeForm
 from .utils import send_to_node
 from django.http import JsonResponse
@@ -28,6 +28,7 @@ class AuthorProfileView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         author = self.get_object()
+        print(author.author_id)
         # Add public posts to profile
         context['posts'] = Post.objects.filter(
             author=author.user,
@@ -53,34 +54,46 @@ class AuthorListView(ListView):
         remote_authors = RemoteAuthor.objects.filter(node__is_active=True)
         
         # Combine local and remote authors into a single queryset
-        # We'll use a custom class to represent both types uniformly
         combined_authors = []
         
         # Add local authors
         for author in local_authors:
             combined_authors.append({
-                'id': str(author.author_id),
+                'id': str(author.author_id),  # Ensure string representation
                 'display_name': author.display_name,
                 'bio': author.bio,
                 'profile_image': author.profile_image.url if author.profile_image else None,
                 'github': author.github,
                 'host': author.host,
                 'is_local': True,
-                'username': author.user.username
+                'username': author.user.username,
+                # Generate profile URL for local authors
+                'profile_url': reverse_lazy('identity:author-profile', 
+                                kwargs={'username': author.user.username})
             })
         
         # Add remote authors
         for author in remote_authors:
+            # Try to extract numeric ID if possible
+            try:
+                # Attempt to extract a numeric ID from the author_id
+                numeric_id = int(''.join(filter(str.isdigit, str(author.id))))
+            except:
+                numeric_id = author.id
+            
             combined_authors.append({
-                'id': author.author_id,
+                'id': numeric_id,  # Use a numeric ID if possible
                 'display_name': author.display_name,
-                'bio': '',  # Remote authors might not have bios in your current model
+                'bio': '',  # Remote authors might not have bios
                 'profile_image': author.profile_image if author.profile_image else None,
                 'github': author.github,
                 'host': author.host,
                 'is_local': False,
                 'node_id': author.node.id,
-                'node_name': author.node.name
+                'node_name': author.node.name,
+                # Generate profile URL for remote authors
+                'profile_url': reverse_lazy('identity:remote-author-detail', 
+                                kwargs={'node_id': author.node.id, 'pk': numeric_id})
             })
         
         # Sort by display name
@@ -90,7 +103,20 @@ class AuthorListView(ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['has_remote_authors'] = RemoteAuthor.objects.filter(node__is_active=True).exists()
+        
+        # Add profile URL for each author
+        for author in context['authors']:
+            # For local authors
+            if author.get('is_local', False):
+                profile_url = reverse_lazy('identity:author-profile', 
+                                        kwargs={'username': author.get('username')})
+            else:
+                # For remote authors
+                profile_url = reverse_lazy('identity:remote-author-detail', 
+                                        kwargs={'node_id': author.get('node_id'), 'pk': author.get('id')})
+            
+            author['profile_url'] = profile_url
+        
         return context
 
 class Requests(ListView):
@@ -220,14 +246,13 @@ def remoteAccept(request):
     
     # ensure database is consistent
     request = RemoteFollowRequests.objects.filter(sender_id=sender_id, sender_name=sender_name, receiver=receiver)
-    if(request.exists() and not RemoteFollower.objects.filter(follower_id=sender_id, follower_name=sender_name, followee=receiver).exists()):
+    if(request.exists() and not RemoteFollower.objects.filter(follower_id=sender_id, followee=receiver).exists()):
         request.delete()
-        RemoteFollower.objects.create(follower_id=sender_id, follower_name=sender_name, followee=receiver)
+        RemoteFollower.objects.create(follower_id=sender_id, followee=receiver)
 
         # check if there is a corresponding friendship to be created
-        #user1, user2 = sorted([sender, receiver], key=lambda user: user.id)
-        #if(Following.objects.filter(follower=receiver, followee=sender).exists() and not Friendship.objects.filter(user1=user1, user2=user2)):
-        #    Friendship.objects.create(user1=user1, user2=user2)
+        if(RemoteFollowee.objects.filter(follower=receiver, followee_id=sender_id).exists() and not RemoteFriendship.objects.filter(local=receiver, remote=followee_id)):
+            RemoteFriendship.objects.create(local=receiver, remote=followee_id)
 
         return redirect(reverse('identity:requests', kwargs={'username': receiver.username}))
     return HttpResponse("Error in accepting the follow request")
@@ -492,4 +517,54 @@ class RemoteAuthorListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['node'] = self.node
+        return context
+    
+
+
+class RemoteAuthorDetailView(LoginRequiredMixin, DetailView):
+    model = RemoteAuthor
+    template_name = 'identity/remote_author_profile.html'
+    context_object_name = 'remote_author'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        remote_author = self.get_object()
+        
+        # Check if the current user is following this remote author
+        context['is_following'] = Following.objects.filter(
+            follower=self.request.user, 
+            followee__username=remote_author.display_name
+        ).exists()
+        
+        # Check if a follow request is pending
+        context['is_follow_requested'] = FollowRequests.objects.filter(
+            sender=self.request.user, 
+            receiver__username=remote_author.display_name
+        ).exists()
+        
+        # Fetch posts and other details as before
+        try:
+            # Your existing code to fetch posts
+            node = remote_author.node
+            posts_endpoint = f'api/authors/{remote_author.author_id}/posts/'
+            posts_response = send_to_node(
+                node.id, 
+                posts_endpoint, 
+                method='GET'
+            )
+            
+            if posts_response and posts_response.status_code == 200:
+                posts_data = posts_response.json()
+                
+                if 'type' in posts_data and posts_data['type'] == 'posts' and 'src' in posts_data:
+                    context['posts'] = posts_data['src']
+                else:
+                    context['posts'] = []
+            else:
+                context['posts'] = []
+        
+        except Exception as e:
+            messages.error(self.request, f"Error fetching remote author details: {str(e)}")
+            context['posts'] = []
+        
         return context
