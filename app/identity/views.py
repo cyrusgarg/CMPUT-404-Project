@@ -12,10 +12,11 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import user_passes_test
 from posts.models import Post  
 from identity.models import Author
-from .models import Author, GitHubActivity, Following, FollowRequests, Friendship, RemoteNode, RemoteAuthor, RemoteFollowRequests, RemoteFollower, RemoteFollowee
+from .models import Author, GitHubActivity, Following, FollowRequests, Friendship, RemoteNode, RemoteAuthor, RemoteFollowRequests, RemoteFollower, RemoteFollowee, RemoteFriendship
 from .forms import AuthorProfileForm, UserSignUpForm, RemoteNodeForm
 from .utils import send_to_node
 from django.http import JsonResponse
+import requests
 
 class AuthorProfileView(DetailView):
     model = Author
@@ -28,7 +29,6 @@ class AuthorProfileView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         author = self.get_object()
-        print(author.author_id)
         # Add public posts to profile
         context['posts'] = Post.objects.filter(
             author=author.user,
@@ -207,6 +207,51 @@ def unfollow(request):
         return redirect(reverse('identity:author-profile', kwargs={'username': followee.username}))
     return HttpResponse("Error during unfollowing")
 
+def remoteFollow(request):
+    follower = get_object_or_404(Author, user__username=request.POST["follower"])
+    local_followee = get_object_or_404(RemoteAuthor, author_id=request.POST["followee_id"])
+    
+    followee_response = requests.get(local_followee.host + "/api/authors/" + local_followee.author_id)
+
+    if followee_response.status_code != 200:
+        return HttpResponse("Error retrieving remote user:", response.text)
+    
+    followee = followee_response.json()
+
+    url = followee.get("id") + "/inbox"
+    headers = {"Content-Type": "application/json"}
+    body = {
+        "type": "follow",
+        "summary": f"{follower.display_name} wants to follow {followee.get("display_name")}",
+        "actor": follower.to_dict(),
+        "object": followee
+    }
+
+    response = requests.post(url, headers=headers, json=body)
+
+    if not RemoteFollowee.objects.filter(follower=follower.user, followee_id=followee.get("id")).exists():
+        RemoteFollowee.objects.create(follower=follower.user, followee_id=followee.get("id"))
+
+    if RemoteFollower.objects.filter(follower_id=followee.get("id"), followee=follower.user).exists() and not RemoteFriendship.objects.filter(local=follower.user, remote=followee.get("id")).exists():
+        RemoteFriendship.objects.create(local=follower.user, remote=followee.get("id"))
+
+    return redirect(reverse('identity:remote-author-detail', kwargs={'node_id':local_followee.node.id, 'pk':local_followee.id}))
+    
+def remoteUnfollow(request):
+    follower = get_object_or_404(User, username=request.POST["follower"]) 
+    followee = get_object_or_404(RemoteAuthor, author_id=request.POST["followee_id"])
+    followee_id = followee.host + "/api/authors/" + followee.author_id
+
+    follow = RemoteFollowee.objects.filter(follower=follower, followee_id=followee_id)
+    if follow.exists():
+        follow.delete()
+
+        friendship = RemoteFriendship.objects.filter(local=follower, remote=followee_id)
+        if(friendship.exists()):
+            friendship.delete()
+        return redirect(reverse('identity:remote-author-detail', kwargs={'node_id':followee.node.id, 'pk':followee.id}))
+    return HttpResponse("Error during unfollowing")
+
 def accept(request):
     # query user DB to get the sender and receiver
     sender = get_object_or_404(User, username=request.POST["sender"])
@@ -251,8 +296,8 @@ def remoteAccept(request):
         RemoteFollower.objects.create(follower_id=sender_id, followee=receiver)
 
         # check if there is a corresponding friendship to be created
-        if(RemoteFollowee.objects.filter(follower=receiver, followee_id=sender_id).exists() and not RemoteFriendship.objects.filter(local=receiver, remote=followee_id)):
-            RemoteFriendship.objects.create(local=receiver, remote=followee_id)
+        if(RemoteFollowee.objects.filter(follower=receiver, followee_id=sender_id).exists() and not RemoteFriendship.objects.filter(local=receiver, remote=sender_id)):
+            RemoteFriendship.objects.create(local=receiver, remote=sender_id)
 
         return redirect(reverse('identity:requests', kwargs={'username': receiver.username}))
     return HttpResponse("Error in accepting the follow request")
@@ -531,15 +576,9 @@ class RemoteAuthorDetailView(LoginRequiredMixin, DetailView):
         remote_author = self.get_object()
         
         # Check if the current user is following this remote author
-        context['is_following'] = Following.objects.filter(
-            follower=self.request.user, 
-            followee__username=remote_author.display_name
-        ).exists()
-        
-        # Check if a follow request is pending
-        context['is_follow_requested'] = FollowRequests.objects.filter(
-            sender=self.request.user, 
-            receiver__username=remote_author.display_name
+        context['is_following'] = RemoteFollowee.objects.filter(
+            follower=self.request.user,
+            followee_id=remote_author.host + "/api/authors/" + remote_author.author_id
         ).exists()
         
         # Fetch posts and other details as before
