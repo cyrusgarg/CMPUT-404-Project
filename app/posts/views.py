@@ -564,12 +564,14 @@ def send_post_to_remote(post, request,is_update=False):
         "image": post.image if post.image else None,  # Include image if available
     }
     
-    inbox_url = f"http://10.2.6.207:8000/api/authors/3ccf030e-68f0-4de1-a135-a072e1c4902c/inbox"
+    #inbox_url = f"http://10.2.6.207:8000/api/authors/3ccf030e-68f0-4de1-a135-a072e1c4902c/inbox"
     #inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fed0:ce37]/api/authors/19290a3a-5ab8-4044-8834-d8dc497f08c5/inbox"
+    inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fe56:c195]:8000/api/authors/3ccf030e-68f0-4de1-a135-a072e1c4902c/inbox"
     
     method='POST'
     try:
-        response = requests.post(
+        response = requests.request(
+            'POST',
             inbox_url,
             json=post_data,
             headers={"Content-Type": "application/json"},
