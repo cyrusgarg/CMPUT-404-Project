@@ -479,7 +479,7 @@ def send_post_to_remote_recipients(post, request,is_update=False):
 
     recipients = set()
 
-    if post.visibility == "PUBLIC":
+    if post.visibility == "PUBLIC" or post.visibility == "DELETED":
          # Add remote followers
          # Get remote followers from RemoteFollower model
         remote_followers = RemoteFollower.objects.all()
