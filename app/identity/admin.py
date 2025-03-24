@@ -1,10 +1,10 @@
 from django.contrib import admin
 from .models import Following, FollowRequests, Friendship, RemoteNode, RemoteAuthor
 
+
 admin.site.register(Following)
 admin.site.register(FollowRequests)
 admin.site.register(Friendship)
-
 
 @admin.register(RemoteNode)
 class RemoteNodeAdmin(admin.ModelAdmin):
