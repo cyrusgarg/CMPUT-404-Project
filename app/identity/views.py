@@ -12,7 +12,7 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import user_passes_test
 from posts.models import Post  
 from identity.models import Author
-from .models import Author, GitHubActivity, Following, FollowRequests, Friendship, RemoteNode, RemoteAuthor
+from .models import Author, GitHubActivity, Following, FollowRequests, Friendship, RemoteNode, RemoteAuthor, RemoteFollowRequests, RemoteFollower, RemoteFollowee
 from .forms import AuthorProfileForm, UserSignUpForm, RemoteNodeForm
 from .utils import send_to_node
 from django.http import JsonResponse
@@ -28,6 +28,7 @@ class AuthorProfileView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         author = self.get_object()
+        print(author.author_id)
         # Add public posts to profile
         context['posts'] = Post.objects.filter(
             author=author.user,
@@ -245,14 +246,13 @@ def remoteAccept(request):
     
     # ensure database is consistent
     request = RemoteFollowRequests.objects.filter(sender_id=sender_id, sender_name=sender_name, receiver=receiver)
-    if(request.exists() and not RemoteFollower.objects.filter(follower_id=sender_id, follower_name=sender_name, followee=receiver).exists()):
+    if(request.exists() and not RemoteFollower.objects.filter(follower_id=sender_id, followee=receiver).exists()):
         request.delete()
-        RemoteFollower.objects.create(follower_id=sender_id, follower_name=sender_name, followee=receiver)
+        RemoteFollower.objects.create(follower_id=sender_id, followee=receiver)
 
         # check if there is a corresponding friendship to be created
-        #user1, user2 = sorted([sender, receiver], key=lambda user: user.id)
-        #if(Following.objects.filter(follower=receiver, followee=sender).exists() and not Friendship.objects.filter(user1=user1, user2=user2)):
-        #    Friendship.objects.create(user1=user1, user2=user2)
+        if(RemoteFollowee.objects.filter(follower=receiver, followee_id=sender_id).exists() and not RemoteFriendship.objects.filter(local=receiver, remote=followee_id)):
+            RemoteFriendship.objects.create(local=receiver, remote=followee_id)
 
         return redirect(reverse('identity:requests', kwargs={'username': receiver.username}))
     return HttpResponse("Error in accepting the follow request")

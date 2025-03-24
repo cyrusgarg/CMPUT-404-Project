@@ -4,7 +4,7 @@ from django.http import JsonResponse, HttpResponseForbidden, HttpResponseNotAllo
 from .models import Post, Like, Comment
 from identity.models import Following, Friendship
 from django.db import models
-from identity.models import Author , RemoteFollower
+from identity.models import Author , RemoteFollower, RemoteFriendship
 from django.contrib.auth.models import User  # Import Django User model / 导入Django用户模型（GJ）
 from django.views.decorators.csrf import csrf_exempt
 import json
@@ -224,6 +224,8 @@ def delete_post(request, post_id):
 
     post.visibility = "DELETED"  # Change visibility to DELETED instead of removing from DB / 更改可见性为 DELETED 而非直接删除（GJ）
     post.save()
+
+    send_post_to_remote_recipients(post,request,True)
     
     return redirect("posts:index")  # Redirect back to post list / 返回帖子列表（GJ）
 
@@ -312,6 +314,7 @@ def web_update_post(request, post_id):
 
       post.save()
       send_post_to_remote_recipients(post,request,True)
+      #send_post_to_remote(post,request,True)
       return redirect("posts:post_detail", post_id=post.id)
     
     # return to the post edit if form submission fails
@@ -474,68 +477,74 @@ def send_post_to_remote_recipients(post, request,is_update=False):
         "image": post.image if post.image else None,  # Include image if available
     }
 
-    # Get remote followers from RemoteFollower model
-    remote_followers = RemoteFollower.objects.all()
-
-    # Get mutual friends (Both follow each other)
-    # friends = Friendship.objects.filter(user1=author.user).select_related("user2__author_profile")
-    # friends |= Friendship.objects.filter(user2=author.user).select_related("user1__author_profile")
-
     recipients = set()
 
     if post.visibility == "PUBLIC":
          # Add remote followers
+         # Get remote followers from RemoteFollower model
+        remote_followers = RemoteFollower.objects.all()
         for remote_follower in remote_followers:
-            print("Line 489")
+            #print("Line 489")
             parsed_url = urlparse(remote_follower.follower_id)
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
             author_id = parsed_url.path.strip("/").split("/")[-1]
-            print("baseHost:",base_host,"author_id:",author_id)
-            recipients.add((base_host, author_id))
-
-        # for friend in friends:
-        #     recipient = friend.user1.author_profile if friend.user2 == author.user else friend.user2.author_profile
-        #     if recipient and recipient.host != author.host:
-        #         recipients.add(recipient)
+            #print("baseHost:",base_host,"author_id:",author_id)
+            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+            print("inbox url:",inbox_url)
+            recipients.add(inbox_url)
 
     elif post.visibility == "FRIENDS":
         # Send only to mutual friends
-        # for friend in friends:
-        #     recipient = friend.user1.author_profile if friend.user2 == author.user else friend.user2.author_profile
-        #     if recipient and recipient.host != author.host:
-        #         recipients.add(recipient)
-        print("hi")
+
+        remote_friends = RemoteFriendship.objects.filter(local=author.user)
+        for remote_friend in remote_friends:
+            parsed_url = urlparse(remote_friend.remote)
+            base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+            author_id = parsed_url.path.strip("/").split("/")[-1]
+            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+            print("inbox url:",inbox_url)
+            recipients.add(inbox_url)
+
+    elif post.visibility == "DELETED":
+         # Add remote followers
+         # Get remote followers from RemoteFollower model
+        remote_followers = RemoteFollower.objects.all()
+        for remote_follower in remote_followers:
+            #print("delete")
+            parsed_url = urlparse(remote_follower.follower_id)
+            base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+            author_id = parsed_url.path.strip("/").split("/")[-1]
+            #print("baseHost:",base_host,"author_id:",author_id)
+            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+            recipients.add(inbox_url)
+          
     # # Convert image to base64 if it exists
-    if post.image and not post.image.startswith("data:image"):
-        try:
-            with open(post.image.path, "rb") as img_file:
-                encoded_image = base64.b64encode(img_file.read()).decode("utf-8")
-                post_data["image"] = f"data:image/jpeg;base64,{encoded_image}"  # Assuming JPEG
-        except Exception as e:
-            print(f"Error encoding image: {e}")
+    # if post.image and not post.image.startswith("data:image"):
+    #     try:
+    #         with open(post.image.path, "rb") as img_file:
+    #             encoded_image = base64.b64encode(img_file.read()).decode("utf-8")
+    #             post_data["image"] = f"data:image/jpeg;base64,{encoded_image}"  # Assuming JPEG
+    #     except Exception as e:
+    #         print(f"Error encoding image: {e}")
 
     # Send post to all recipients
-    for host, recipient_id in recipients:
-        inbox_url = f"{host}/api/authors/{recipient_id}/inbox"
-        print("Inbox url:",inbox_url)
-        method = "PUT" if is_update else "POST"
+    for inbox_url in recipients:
+        print(f"Sending post to {inbox_url}")
 
         try:
-            response = requests.request(
-                method,
+            response = requests.post(
                 inbox_url,
                 json=post_data,
                 headers={"Content-Type": "application/json"},
-                #auth=("cyrus", "cyrus")  # Replace with real authentication
             )
 
             if response.status_code in [200, 201]:
-                print(f"Post sent successfully to {recipient_id}")
+                print(f"Post sent successfully to {inbox_url}")
             else:
-                print(f"Failed to send post to {recipient_id}: {response.status_code}, {response.text}")
+                print(f"Failed to send post to {inbox_url}: {response.status_code}, {response.text}")
 
         except requests.RequestException as e:
-            print(f"Error sending post to {recipient_id}: {e}")
+            print(f" Error sending post to {inbox_url}: {e}")
 
 #just for testing
 def send_post_to_remote(post, request,is_update=False):
@@ -563,15 +572,17 @@ def send_post_to_remote(post, request,is_update=False):
         "visibility": post.visibility,
         "image": post.image if post.image else None,  # Include image if available
     }
-    
+    # post_data={"type": "post",}
     #inbox_url = f"http://10.2.6.207:8000/api/authors/3ccf030e-68f0-4de1-a135-a072e1c4902c/inbox"
     #inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fed0:ce37]/api/authors/19290a3a-5ab8-4044-8834-d8dc497f08c5/inbox"
-    inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fe56:c195]:8000/api/authors/3ccf030e-68f0-4de1-a135-a072e1c4902c/inbox"
+    #inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fe56:c195]/api/authors/f5b24430-e8e6-4e09-bd49-f4574d72b85c/inbox"
+    #inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:feb6:bbc]/api/authors/a3354abf-375d-4039-b712-3da6c1225366/inbox"
+    inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fe1a:a199]/api/authors/80fe48df-2868-46aa-82ed-70d30f8e7a89/inbox"
     
+    print("Sending post data:", json.dumps(post_data, indent=4))
     method='POST'
     try:
-        response = requests.request(
-            'POST',
+        response = requests.post(
             inbox_url,
             json=post_data,
             headers={"Content-Type": "application/json"},
