@@ -198,8 +198,7 @@ def create_post(request):
         )
         print("author host :",request.user.author_profile.host)
         send_post_to_remote_recipients(post,request,False)
-        send_post_to_remote(post,request,False)
-        #tryfunction()
+        #send_post_to_remote(post,request,False)
         return redirect("posts:index")  # Redirect to posts index / 创建帖子后跳转到主页（GJ）
     
     return render(request, "posts/create_post.html", {"user": request.user.username})  # Render post creation page / 渲染帖子创建页面（GJ）
@@ -527,7 +526,7 @@ def send_post_to_remote_recipients(post, request,is_update=False):
                 inbox_url,
                 json=post_data,
                 headers={"Content-Type": "application/json"},
-                auth=("cyrus", "cyrus")  # Replace with real authentication
+                #auth=("cyrus", "cyrus")  # Replace with real authentication
             )
 
             if response.status_code in [200, 201]:
@@ -538,6 +537,7 @@ def send_post_to_remote_recipients(post, request,is_update=False):
         except requests.RequestException as e:
             print(f"Error sending post to {recipient_id}: {e}")
 
+#just for testing
 def send_post_to_remote(post, request,is_update=False):
     """
     Sends a post (new or updated) to the appropriate remote recipients.
@@ -588,33 +588,6 @@ def send_post_to_remote(post, request,is_update=False):
     except requests.RequestException as e:
         print(f"Error sending post {e}")
         #print(f"Error sending post to {recipient.author_id}: {e}")
-
-
-def tryfunction():
-    # Define the IPv6 address explicitly
-    ipv6_address = "2605:fd00:4:1001:f816:3eff:fed0:ce37"
-    port = 8000
-
-    # Construct the URL
-    inbox_url = f"http://[{ipv6_address}]/api/authors/19290a3a-5ab8-4044-8834-d8dc497f08c5/inbox"
-
-    # Override default resolver to prefer IPv6
-    session = requests.Session()
-    session.mount("http://", requests.adapters.HTTPAdapter())
-
-    try:
-        response = session.post(
-            inbox_url,
-            json={"message": "Hello via IPv6"},
-            headers={"Content-Type": "application/json"},
-            auth=("cyrus1", "cyrus1"),  # Ensure these credentials are correct
-        )
-
-        print(f"Response Status Code: {response.status_code}")
-        print(f"Response Body: {response.text}")
-
-    except requests.RequestException as e:
-        print(f"Error sending request: {e}")
 
 
 
