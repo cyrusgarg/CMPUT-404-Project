@@ -224,6 +224,8 @@ def delete_post(request, post_id):
 
     post.visibility = "DELETED"  # Change visibility to DELETED instead of removing from DB / 更改可见性为 DELETED 而非直接删除（GJ）
     post.save()
+
+    send_post_to_remote_recipients(post,request,True)
     
     return redirect("posts:index")  # Redirect back to post list / 返回帖子列表（GJ）
 
@@ -505,6 +507,20 @@ def send_post_to_remote_recipients(post, request,is_update=False):
         #     if recipient and recipient.host != author.host:
         #         recipients.add(recipient)
         print("hi")
+
+    elif post.visibility == "DELETED":
+         # Add remote followers
+         # Get remote followers from RemoteFollower model
+        remote_followers = RemoteFollower.objects.all()
+        for remote_follower in remote_followers:
+            #print("delete")
+            parsed_url = urlparse(remote_follower.follower_id)
+            base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+            author_id = parsed_url.path.strip("/").split("/")[-1]
+            #print("baseHost:",base_host,"author_id:",author_id)
+            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+            recipients.add(inbox_url)
+            
     # # Convert image to base64 if it exists
     if post.image and not post.image.startswith("data:image"):
         try:
