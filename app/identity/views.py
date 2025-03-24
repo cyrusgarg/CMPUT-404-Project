@@ -12,7 +12,7 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import user_passes_test
 from posts.models import Post  
 from identity.models import Author
-from .models import Author, GitHubActivity, Following, FollowRequests, Friendship, RemoteNode, RemoteFollowRequests, RemoteFollower, RemoteAuthor, RemoteFollowee, RemoteFriendship
+from .models import Author, GitHubActivity, Following, FollowRequests, Friendship, RemoteNode, RemoteAuthor, RemoteFollowRequests, RemoteFollower, RemoteFollowee, RemoteFriendship
 from .forms import AuthorProfileForm, UserSignUpForm, RemoteNodeForm
 from .utils import send_to_node
 from django.http import JsonResponse
