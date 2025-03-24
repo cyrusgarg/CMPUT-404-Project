@@ -557,8 +557,9 @@ def send_post_to_remote(post, request,is_update=False):
     # post_data={"type": "post",}
     #inbox_url = f"http://10.2.6.207:8000/api/authors/3ccf030e-68f0-4de1-a135-a072e1c4902c/inbox"
     #inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fed0:ce37]/api/authors/19290a3a-5ab8-4044-8834-d8dc497f08c5/inbox"
-    inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fe56:c195]/api/authors/f5b24430-e8e6-4e09-bd49-f4574d72b85c/inbox"
+    #inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fe56:c195]/api/authors/f5b24430-e8e6-4e09-bd49-f4574d72b85c/inbox"
     #inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:feb6:bbc]/api/authors/a3354abf-375d-4039-b712-3da6c1225366/inbox"
+    inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fed0:ce37]/api/authors/55fd04cf-f748-4689-9b5e-4d81227726f9/inbox"
     print("Sending post data:", json.dumps(post_data, indent=4))
     method='POST'
     try:

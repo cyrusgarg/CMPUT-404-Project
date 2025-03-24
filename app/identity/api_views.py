@@ -20,10 +20,7 @@ from rest_framework.permissions import IsAuthenticated
 from .authentication import NodeBasicAuthentication
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 import requests
-<<<<<<< HEAD
-=======
 from urllib.parse import unquote
->>>>>>> b80086bcc9716d98a148c2a1f2e7250ea2e89e81
 
 try:
     from bs4 import BeautifulSoup
