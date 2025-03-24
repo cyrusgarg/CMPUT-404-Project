@@ -50,7 +50,7 @@ class Author(models.Model):
             "github": self.github,
             "profileImage": self.profile_image.url if self.profile_image else "",
             "page": f"{base_url}/authors/{self.display_name.split(' ', 1)[0].lower()}",
-            "url": f"{base_url}/authors/{self.author_id}"
+            # "url": f"{base_url}/authors/{self.author_id}"
         }
     github_username = models.CharField(max_length=100, blank=True, null=True)
 
