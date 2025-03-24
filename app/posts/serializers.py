@@ -47,13 +47,13 @@ class PostSerializer(serializers.ModelSerializer):
     def get_id(self, obj):
         """Returns the full API URL for the post."""
         request = self.context.get("request")
-        base_url = f"https://{request.get_host()}" if request else obj.author.author_profile.host
+        base_url = f"http://{request.get_host()}" if request else obj.author.author_profile.host
         return f"{base_url}/api/authors/{obj.author.author_profile.author_id}/posts/{obj.id}"
 
     def get_page(self, obj):
         """Returns the HTML page URL for the post."""
         request = self.context.get("request")  # Retrieve request safely
-        base_url = f"https://{request.get_host()}" if request else obj.author.author_profile.host
+        base_url = f"http://{request.get_host()}" if request else obj.author.author_profile.host
         return f"{base_url}/authors/{obj.author.author_profile.author_id}/posts/{obj.id}"
 
     def get_author(self,obj,request=None):
@@ -67,7 +67,7 @@ class PostSerializer(serializers.ModelSerializer):
         if request is None:
             return {"type": "Comments", "id": obj.id, "page": obj.id, "page_number": 1, "size": 0, "count": 0, "src": []}
 
-        base_url = f"https://{request.get_host()}" if request else obj.author.author_profile.host
+        base_url = f"http://{request.get_host()}" if request else obj.author.author_profile.host
 
         comments = Comment.objects.filter(post=obj).order_by("-created_at")
 
@@ -91,7 +91,7 @@ class PostSerializer(serializers.ModelSerializer):
         if request is None:
             return {"type": "likes", "id": obj.id, "page": obj.id, "page_number": 1, "size": 0, "count": 0, "src": []}
 
-        base_url = f"https://{request.get_host()}" if request else obj.author.author_profile.host
+        base_url = f"http://{request.get_host()}" if request else obj.author.author_profile.host
 
         likes = Like.objects.filter(post=obj).order_by("-created_at")
 
@@ -236,17 +236,17 @@ class CommentSerializer(serializers.ModelSerializer):
 
     def get_post(self, obj):
         request = self.context.get("request")
-        base_url = f"https://{request.get_host()}" if request else obj.post.author.author_profile.host
+        base_url = f"http://{request.get_host()}" if request else obj.post.author.author_profile.host
         return f"{base_url}/api/authors/{obj.post.author.author_profile.author_id}/posts/{obj.post.id}"
 
     def get_page(self, obj):
         request = self.context.get("request")
-        base_url = f"https://{request.get_host()}" if request else obj.post.author.author_profile.host
+        base_url = f"http://{request.get_host()}" if request else obj.post.author.author_profile.host
         return f"{base_url}/authors/{obj.post.author.author_profile.author_id}/posts/{obj.post.id}"
 
     def get_author(self,obj):
         request = self.context.get("request")
-        base_url = f"https://{request.get_host()}" if request else obj.post.author.author_profile.host
+        base_url = f"http://{request.get_host()}" if request else obj.post.author.author_profile.host
         return obj.user.author_profile.to_dict(request=request)  # Use the `to_dict()` method
     
     def get_contentType(self,obj):
@@ -272,7 +272,7 @@ class CommentSerializer(serializers.ModelSerializer):
                 "src": []
             }
 
-        base_url = f"https://{request.get_host()}" if request else "https://default-host.com"
+        base_url = f"http://{request.get_host()}" if request else "http://default-host.com"
         likes = Like.objects.filter(comment=obj).order_by("-created_at")
 
         paginator = CommentLikePagination()
