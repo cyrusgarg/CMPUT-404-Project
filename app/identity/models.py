@@ -150,3 +150,45 @@ class RemoteNode(models.Model):
 
     class Meta:
         ordering = ['name']
+    def get_formatted_url(self):
+        """
+        Returns a properly formatted URL, ensuring IPv6 addresses have brackets
+        """
+        host_url = self.host_url.rstrip('/')
+        
+        # Check if it's an IPv6 address without brackets
+        if ':' in host_url.replace('http://', '').replace('https://', '') and not ('[' in host_url and ']' in host_url):
+            # Extract protocol
+            protocol = 'https://' if host_url.startswith('https://') else 'http://'
+            
+            # Extract address part
+            address_part = host_url.replace('http://', '').replace('https://', '')
+            
+            # Check if there's a port
+            if address_part.count(':') > 1:  # More than one colon means it's IPv6
+                # Check if it has a port at the end
+                if ':' in address_part.rsplit(':', 1)[1]:  # e.g., the last part is a port like :80
+                    ip_part = address_part.rsplit(':', 1)[0]
+                    port_part = address_part.rsplit(':', 1)[1]
+                    return f"{protocol}[{ip_part}]:{port_part}"
+                else:
+                    return f"{protocol}[{address_part}]"
+        
+        return host_url
+
+class RemoteAuthor(models.Model):
+    """Model representing an author from a remote node"""
+    node = models.ForeignKey(RemoteNode, on_delete=models.CASCADE, related_name='authors')
+    author_id = models.CharField(max_length=255)
+    display_name = models.CharField(max_length=255)
+    host = models.URLField(max_length=255)
+    github = models.URLField(blank=True, null=True)
+    profile_image = models.URLField(blank=True, null=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.display_name} ({self.node.name})"
+
+    class Meta:
+        unique_together = ['node', 'author_id']
+        ordering = ['display_name']
