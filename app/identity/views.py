@@ -101,6 +101,11 @@ class Requests(ListView):
     def get_queryset(self):
         return FollowRequests.objects.filter(receiver__username=self.kwargs['username']).order_by('-created_at')
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['remote_requests'] = RemoteFollowRequests.objects.filter(receiver__username=self.kwargs['username']).order_by('-created_at')
+        return context
+
 # --- GitHub Webhook View ---
 @csrf_exempt
 def github_webhook(request):
@@ -207,6 +212,39 @@ def decline(request):
         return redirect(reverse('identity:requests', kwargs={'username': receiver.username}))
     return HttpResponse("Error in declining the follow request")
 
+def remoteAccept(request):
+    # query user DB to get the sender and receiver
+    sender_id = request.POST["sender_id"]
+    sender_name = request.POST["sender_name"]
+    receiver = get_object_or_404(User, username=request.POST["receiver"])
+    
+    # ensure database is consistent
+    request = RemoteFollowRequests.objects.filter(sender_id=sender_id, sender_name=sender_name, receiver=receiver)
+    if(request.exists() and not RemoteFollower.objects.filter(follower_id=sender_id, follower_name=sender_name, followee=receiver).exists()):
+        request.delete()
+        RemoteFollower.objects.create(follower_id=sender_id, follower_name=sender_name, followee=receiver)
+
+        # check if there is a corresponding friendship to be created
+        #user1, user2 = sorted([sender, receiver], key=lambda user: user.id)
+        #if(Following.objects.filter(follower=receiver, followee=sender).exists() and not Friendship.objects.filter(user1=user1, user2=user2)):
+        #    Friendship.objects.create(user1=user1, user2=user2)
+
+        return redirect(reverse('identity:requests', kwargs={'username': receiver.username}))
+    return HttpResponse("Error in accepting the follow request")
+
+def remoteDecline(request):
+    # query user DB to get the sender and receiver
+    sender_id = request.POST["sender_id"]
+    sender_name = request.POST["sender_name"]
+    receiver = get_object_or_404(User, username=request.POST["receiver"])
+    request = RemoteFollowRequests.objects.filter(sender_id=sender_id, sender_name=sender_name, receiver=receiver)
+
+    # ensure database is consistent
+    if(request.exists()):
+        request.delete()
+        return redirect(reverse('identity:requests', kwargs={'username': receiver.username}))
+    return HttpResponse("Error in declining the follow request")
+
 class AuthorProfileEditView(LoginRequiredMixin, UpdateView):
     model = Author
     form_class = AuthorProfileForm
@@ -220,8 +258,6 @@ class AuthorProfileEditView(LoginRequiredMixin, UpdateView):
         messages.success(self.request, "Your profile has been updated successfully!")
         return reverse_lazy('identity:author-profile', kwargs={'username': self.request.user.username})
     
-
-
 class UserSignUpView(CreateView):
     form_class = UserSignUpForm
     template_name = 'identity/signup.html'

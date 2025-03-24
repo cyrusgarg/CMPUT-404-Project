@@ -98,10 +98,24 @@ class Following(models.Model):
     followee = models.ForeignKey(User, on_delete=models.CASCADE, related_name="followee")
     created_at = models.DateTimeField(auto_now_add=True)
 
+class RemoteFollower(models.Model):
+    # represents a remote follower
+    follower_name = models.CharField(max_length=100)
+    follower_id = models.CharField(max_length=255)
+    followee = models.ForeignKey(User, on_delete=models.CASCADE, related_name="remote_followee")
+    created_at = models.DateTimeField(auto_now_add=True)
+
 class FollowRequests(models.Model):
     # represents a follow request, i.e. sender requested to follow receiver
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sender")  
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name="receiver")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class RemoteFollowRequests(models.Model):
+    # represents a remote follow request
+    sender_name = models.CharField(max_length=100)
+    sender_id = models.CharField(max_length=255)
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name="remote_receiver")
     created_at = models.DateTimeField(auto_now_add=True)
 
 class Friendship(models.Model):
