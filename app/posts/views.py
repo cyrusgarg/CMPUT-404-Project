@@ -225,6 +225,8 @@ def delete_post(request, post_id):
     post.visibility = "DELETED"  # Change visibility to DELETED instead of removing from DB / 更改可见性为 DELETED 而非直接删除（GJ）
     post.save()
     
+    send_post_to_remote_recipients(post, request, is_update=True)
+
     return redirect("posts:index")  # Redirect back to post list / 返回帖子列表（GJ）
 
 @login_required
@@ -483,7 +485,7 @@ def send_post_to_remote_recipients(post, request,is_update=False):
 
     recipients = set()
 
-    if post.visibility == "PUBLIC":
+    if post.visibility == "PUBLIC" or post.visibility == "DELETED":
          # Add remote followers
         for remote_follower in remote_followers:
             print("Line 489")
