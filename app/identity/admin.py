@@ -1,12 +1,10 @@
 from django.contrib import admin
-from .models import Following, FollowRequests, Friendship, RemoteNode, RemoteFollower, RemoteFollowRequests
+from .models import Following, FollowRequests, Friendship, RemoteNode, RemoteAuthor
+
 
 admin.site.register(Following)
 admin.site.register(FollowRequests)
 admin.site.register(Friendship)
-admin.site.register(RemoteFollower)
-admin.site.register(RemoteFollowRequests)
-
 
 @admin.register(RemoteNode)
 class RemoteNodeAdmin(admin.ModelAdmin):
@@ -24,3 +22,9 @@ class RemoteNodeAdmin(admin.ModelAdmin):
         queryset.update(is_active=False)
         self.message_user(request, f"{queryset.count()} nodes have been deactivated.")
     deactivate_nodes.short_description = "Deactivate selected nodes"
+
+@admin.register(RemoteAuthor)
+class RemoteAuthorAdmin(admin.ModelAdmin):
+    list_display = ['display_name', 'node', 'host', 'last_updated']
+    list_filter = ['node', 'last_updated']
+    search_fields = ['display_name', 'author_id', 'github']

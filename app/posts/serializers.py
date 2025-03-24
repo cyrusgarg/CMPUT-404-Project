@@ -207,7 +207,7 @@ class PostSerializer(serializers.ModelSerializer):
         try:
             return f"data:image/jpeg;base64,{base64.b64encode(image_file.read()).decode('utf-8')}"
         except Exception as e:
-            print(f"⚠️ Error encoding image: {e}")
+            print(f"Error encoding image: {e}")
             return None
 
 class LikeSerializer(serializers.ModelSerializer):
