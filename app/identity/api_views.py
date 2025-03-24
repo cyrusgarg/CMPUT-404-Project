@@ -937,7 +937,6 @@ def followers(request, author_id):
     remote_follows = RemoteFollower.objects.filter(followee=author.user).order_by('-created_at')
     remote_followers = []
     for follow in remote_follows:
-        print(follow.follower_id)
         response = requests.get(follow.follower_id)
         if(response.status_code == 200):
             remote_followers.append(response.json())
