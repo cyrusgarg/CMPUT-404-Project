@@ -297,8 +297,8 @@ def remoteAccept(request):
         RemoteFollower.objects.create(follower_id=sender_id, followee=receiver)
 
         # check if there is a corresponding friendship to be created
-        if(RemoteFollowee.objects.filter(follower=receiver, followee_id=sender_id).exists() and not RemoteFriendship.objects.filter(local=receiver, remote=followee_id)):
-            RemoteFriendship.objects.create(local=receiver, remote=followee_id)
+        if(RemoteFollowee.objects.filter(follower=receiver, followee_id=sender_id).exists() and not RemoteFriendship.objects.filter(local=receiver, remote=sender_id)):
+            RemoteFriendship.objects.create(local=receiver, remote=sender_id)
 
         return redirect(reverse('identity:requests', kwargs={'username': receiver.username}))
     return HttpResponse("Error in accepting the follow request")
