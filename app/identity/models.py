@@ -50,7 +50,8 @@ class Author(models.Model):
             "github": self.github,
             "profileImage": self.profile_image.url if self.profile_image else "",
             "page": f"{base_url}/authors/{self.display_name.split(' ', 1)[0].lower()}",
-            "url": f"{base_url}/authors/{self.author_id}"
+            #"url": f"{base_url}/authors/{self.author_id}"
+
         }
     github_username = models.CharField(max_length=100, blank=True, null=True)
 
@@ -100,9 +101,14 @@ class Following(models.Model):
 
 class RemoteFollower(models.Model):
     # represents a remote follower
-    follower_name = models.CharField(max_length=100)
     follower_id = models.CharField(max_length=255)
     followee = models.ForeignKey(User, on_delete=models.CASCADE, related_name="remote_followee")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class RemoteFollowee(models.Model):
+    # represents a remote following
+    follower = models.ForeignKey(User, on_delete=models.CASCADE, related_name="remote_follower")
+    followee_id = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
 
 class FollowRequests(models.Model):
@@ -124,6 +130,11 @@ class Friendship(models.Model):
     user2 = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user2")
     created_at = models.DateTimeField(auto_now_add=True)
 
+class RemoteFriendship(models.Model):
+    # represents a remote friendship between two users
+    local = models.ForeignKey(User, on_delete=models.CASCADE, related_name="local")
+    remote = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
 
 class RemoteNode(models.Model):
     """Model representing a remote node to share content with"""
