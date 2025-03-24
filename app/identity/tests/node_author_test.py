@@ -1,16 +1,20 @@
 import base64
+import uuid
 import json
 from django.test import TestCase, Client, RequestFactory
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import exceptions
-from identity.models import RemoteNode, FollowRequests, Following, Author, RemoteFollower
+from identity.models import RemoteNode, FollowRequests, Following, Author, RemoteFollower, RemoteAuthor, RemoteFollowee, RemoteFriendship
 from posts.models import Post
 from identity.authentication import NodeBasicAuthentication
 from identity.forms import RemoteNodeForm
 from rest_framework.test import APIClient
 from django.core.files.uploadedfile import SimpleUploadedFile
 from unittest.mock import patch
+from identity.views import AuthorListView
+from identity.api_views import inbox
+from django.shortcuts import get_object_or_404
 
 User = get_user_model()
 
@@ -46,7 +50,6 @@ class NodeAdminTestCase(TestCase):
         credentials = f"{self.node.username}:{self.node.password}"
         auth_header = "Basic " + base64.b64encode(credentials.encode()).decode('utf-8')
         
-        # Assuming you have a URL name for NodeAuthTestView, e.g., 'node-auth-test-view'
         url = '/api/node-auth-test/'  # hardcoded URL
         response = self.client.get(url, HTTP_AUTHORIZATION=auth_header)
         
@@ -179,67 +182,231 @@ class AuthorAndFollowTestCase(TestCase):
         self.author1 = self.user1.author_profile
         self.author2 = self.user2.author_profile
 
-    def test_follow_remote_author(self):
+        # Create a dummy remote node (ensuring node is not null)
+        self.remote_node = RemoteNode.objects.create(
+            name="Remote Node",
+            host_url="http://remotehost.com",
+            username="remoteuser",
+            password="remotepass",
+            is_active=True
+        )
+
+        # Create a RemoteAuthor for user2 so that remote follow can be tested.
+        self.remote_author = RemoteAuthor.objects.create(
+            author_id=self.author2.author_id,
+            display_name=self.author2.display_name,
+            host="http://remotehost.com",
+            node=self.remote_node  # supply the dummy remote node here
+        )
+
+    @patch('identity.views.requests.get')
+    @patch('identity.views.requests.post')
+    def test_follow_remote_author(self, mock_post, mock_get):
         """
         Story: As an author, I want to follow remote authors so that I can see their public posts.
-        This test simulates sending a follow request from user1 to user2.
+        This test simulates sending a follow request from a local author to a remote author.
         """
-        follow_url = reverse('identity:follow') 
-        response = self.client.post(follow_url, {'sender': self.user1.username, 'receiver': self.user2.username})
-        # Expecting a redirect on success.
+        # Build the expected followee URL based on the remote author's data.
+        followee_url = f"http://remotehost.com/api/authors/{self.remote_author.author_id}"
+        
+        # Simulate a successful GET request to retrieve remote author info.
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.json.return_value = {
+            "id": followee_url,
+            "display_name": self.remote_author.display_name
+        }
+        
+        # Simulate a successful POST request to the remote inbox.
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.text = "OK"
+        
+        # Use the URL for the remote follow view
+        follow_url = reverse('identity:remote-follow')
+
+        # Send POST data using the keys expected by remoteFollow: "follower" and "followee_id"
+        response = self.client.post(follow_url, {
+            "follower": self.user1.username,
+            "followee_id": self.remote_author.author_id
+        })
+        
+        # Expect a redirect upon success.
         self.assertEqual(response.status_code, 302)
-        # Confirm that a follow request was created.
-        self.assertTrue(FollowRequests.objects.filter(sender=self.user1, receiver=self.user2).exists())
+        
+        # Confirm that a RemoteFollowee object was created with the correct remote followee ID.
+        self.assertTrue(RemoteFollowee.objects.filter(
+            follower=self.user1,
+            followee_id=followee_url
+        ).exists())
 
-    # def test_share_public_image(self):
-    #     """
-    #     Story: As a node admin, I want to share public images with users on other nodes so that they are visible externally.
-    #     This test simulates sharing a public post that contains an image.
-    #     NOTE: This test assumes that a Post model exists and that the share_post_with_nodes view works as expected.
-    #     """
-    #     # Create a dummy image file using SimpleUploadedFile
-    #     dummy_image = SimpleUploadedFile(
-    #         "test.jpg",
-    #         b"dummyimagecontent",  # Replace with valid image binary data if needed
-    #         content_type="image/jpeg"
-    #     )
+# This test case is for extended functionality beyond the basic node authentication tests.
+class ExtendedFunctionalityTestCase(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.factory = RequestFactory()
+        # Create a local user and associated author profile.
+        self.user = User.objects.create_user(
+            username="test", password="test", email="test@gmail.com"
+        )
+        self.author = self.user.author_profile
+        # Create an initial public post.
+        self.post = Post.objects.create(
+            title="Original Title",
+            description="Test description",
+            content="Test content",
+            contentType="text/plain",
+            visibility="PUBLIC",
+            author=self.user,
+        )
+        # Create an active remote node.
+        self.node = RemoteNode.objects.create(
+            name="Test Node",
+            host_url="http://[2605:fd00:4:1001:f816:3eff:fed0:ce37]",
+            username="test1",
+            password="Smriti21!",
+            is_active=True
+        )
 
-    #     # Create a dummy public post with the image in the image field and plain content.
-    #     post = Post.objects.create(
-    #         title='Test Public Post',
-    #         description='A public post with an image',
-    #         content='Test content without markdown image',
-    #         contentType='text/plain',
-    #         visibility='PUBLIC',
-    #         author=self.user1,
-    #         image=dummy_image
-    #     )
+        # Build the inbox URL for our local author using their unique author_id.
+        self.inbox_url = f"/api/authors/{self.author.author_id}/inbox/"
+    
+    def _post_to_inbox(self, payload):
+        """
+        Helper method: use RequestFactory to build a POST request and call the inbox view directly.
+        """
+        request = self.factory.post(self.inbox_url,
+                                    data=json.dumps(payload),
+                                    content_type='application/json')
+        # Call the inbox view directly.
+        response = inbox(request, author_id=self.author.author_id)
+        return response
 
-    #     # Create a dummy remote follower to simulate an external recipient.
-    #     # This follower_id should be a URL that includes the recipient's author id.
-    #     dummy_follower_url = "http://remotehost.com/authors/1234"
-    #     RemoteFollower.objects.create(
-    #         follower_id=dummy_follower_url,
-    #         followee_id=1 # dummy followee_id
-    #     )
+    def _remote_author_payload(self, extra_payload):
+        """
+        Helper: Returns a dictionary with remote author data added.
+        """
+        remote_author_data = {
+            "id": f"http://[2605:fd00:4:1001:f816:3eff:fed0:ce37]/api/authors/{self.author.author_id}",
+            "displayName": self.author.display_name,
+            "host": "http://[2605:fd00:4:1001:f816:3eff:fed0:ce37]"
+        }
+        payload = extra_payload.copy()
+        payload["author"] = remote_author_data
+        return payload
 
-    #     # Create a dummy request using RequestFactory.
-    #     request = self.factory.get('/dummy/')
+    def test_resend_edited_post(self):
+        """
+        As an author, when I edit a post my node should resend the updated post data to remote nodes.
+        Here we simulate that by POSTing an updated post payload to our inbox endpoint.
+        """
+        # Prepare a payload that mimics a remote node sending an updated post.
+        payload = self._remote_author_payload({
+            "type": "post",
+            "id": f"http://[2605:fd00:4:1001:f816:3eff:fed0:ce37]/api/posts/{self.post.id}",  # full URL ending with post id
+            "title": "Edited Title",
+            "description": "Updated description",
+            "content": "Updated content",
+            "contentType": "text/plain",
+            "visibility": "PUBLIC",
+        })
+        response = self._post_to_inbox(payload)
+        # The inbox view should update the existing post and return status 200.
+        self.assertEqual(response.status_code, 200)
+        # Verify that the post has been updated.
+        self.post.refresh_from_db()
+        self.assertEqual(self.post.title, "Edited Title")
+        self.assertEqual(self.post.description, "Updated description")
 
-    #     # Patch the requests.request call to avoid making an actual HTTP request.
-    #     with patch('posts.views.requests.request') as mock_req:
-    #         # Configure the mock to return a dummy response with status_code 200.
-    #         dummy_response = type("DummyResponse", (), {"status_code": 200, "text": "OK"})
-    #         mock_req.return_value = dummy_response
+    def test_send_post_to_remote_followers(self):
+        """
+        As an author, when I create a new post my node should send it to my remote followers.
+        Here we simulate a remote node sending a new post to our inbox.
+        """
+        # Generate a valid UUID for the new post.
+        new_post_uuid = str(uuid.uuid4())
+        payload = self._remote_author_payload({
+            "type": "post",
+            "id": f"http://[2605:fd00:4:1001:f816:3eff:fed0:ce37]/api/posts/{new_post_uuid}",
+            "title": "New Post Title",
+            "description": "New post description",
+            "content": "New post content",
+            "contentType": "text/plain",
+            "visibility": "PUBLIC",
+        })
+        response = self._post_to_inbox(payload)
+        # Expecting creation (HTTP 201) because the post didn't exist.
+        self.assertEqual(response.status_code, 201)
+        # Verify that the new post exists in the database.
+        new_post = Post.objects.filter(id=new_post_uuid).first()
+        self.assertIsNotNone(new_post)
+        self.assertEqual(new_post.title, "New Post Title")
 
-    #         # Import and call the function that sends the post to remote recipients.
-    #         from posts.views import send_post_to_remote_recipients
-    #         send_post_to_remote_recipients(post, request)
+    def test_resend_deleted_post(self):
+        """
+        As an author, when I delete a post my node should resend a notification (via the inbox)
+        so that remote nodes no longer show the deleted post.
+        Here we simulate that by sending an update with visibility set to "DELETED".
+        """
+        payload = self._remote_author_payload({
+            "type": "post",
+            "id": f"http://example.com/api/posts/{self.post.id}",
+            "title": self.post.title,
+            "description": self.post.description,
+            "content": self.post.content,
+            "contentType": self.post.contentType,
+            "visibility": "DELETED",
+        })
+        response = self._post_to_inbox(payload)
+        self.assertEqual(response.status_code, 200)
+        # Verify that the post's visibility is updated to DELETED.
+        self.post.refresh_from_db()
+        self.assertEqual(self.post.visibility, "DELETED")
 
-    #         # Assert that requests.request was called (meaning at least one remote recipient was processed).
-    #         self.assertTrue(mock_req.called)
-    #         # Retrieve the URL from the call arguments to validate it includes the expected recipient's inbox endpoint.
-    #         called_args, called_kwargs = mock_req.call_args
-    #         # The second positional argument is the inbox_url.
-    #         inbox_url = called_args[1]
-    #         self.assertIn("http://remotehost.com/api/authors/1234/inbox", inbox_url)
+    def test_api_object_identification(self):
+        """
+        As a node admin, I want API objects (like authors and posts) to be identified by their full URL,
+        to prevent collisions between different nodes' numbering schemes.
+        This test checks that the API view for authors includes a profile_url for each object.
+        """
+        # We'll simulate calling the AuthorListView to get the list of authors.
+        view = AuthorListView()
+        request = self.factory.get('/dummy/')
+        view.request = request
+        view.kwargs = {}    # Set empty kwargs to avoid AttributeError
+        
+        # Calling get_queryset() will combine local and remote authors.
+        # (Ensure at least one local and, if possible, one remote author exist.)
+        object_list = view.get_queryset()
+        view.object_list = object_list
+        context = view.get_context_data()
+        
+        # Check that each author object in the context has a non-empty profile_url.
+        for author_data in context.get("authors", []):
+            self.assertIn("profile_url", author_data)
+            self.assertTrue(author_data["profile_url"])
+
+    def test_share_public_image(self):
+        """
+        As a node admin, when a public post includes an image it should be sent (via the inbox)
+        so that remote nodes can display the image.
+        In this test we simulate a remote node sending a post with an image URL.
+        """
+        # Instead of uploading a file, we simulate sending an image URL as part of the payload.
+        new_post_uuid = str(uuid.uuid4())   # Generate a valid UUID for the new post.
+        image_url = "http://example.com/media/test.jpg"
+        payload = self._remote_author_payload({
+            "type": "post",
+            "id": f"http://example.com/api/posts/{new_post_uuid}",
+            "title": "Post with Image",
+            "description": "Image post description",
+            "content": "Content with image",
+            "contentType": "text/plain",
+            "visibility": "PUBLIC",
+            "image": image_url
+        })
+        response = self._post_to_inbox(payload)
+        # Expecting creation (HTTP 201) since it's a new post.
+        self.assertEqual(response.status_code, 201)
+        new_post = Post.objects.filter(id=new_post_uuid).first()
+        self.assertIsNotNone(new_post)
+        # Verify that the image field is set
+        self.assertEqual(new_post.image, image_url)
