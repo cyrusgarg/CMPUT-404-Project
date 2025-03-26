@@ -336,9 +336,11 @@ def like_post(request, post_id):
     # Check if the user already liked the post
     like, created = Like.objects.get_or_create(user=request.user, post=post)
     
+    if created:
+        send_like_to_remote_receipients(like,request,is_update=false)
     if not created:
         like.delete()   # If the user already liked, remove the like
-
+    
     # Dynamically calculate the like count:
     like_count = Like.objects.filter(post=post).count()
 
@@ -552,6 +554,42 @@ def send_post_to_remote_recipients(post, request,is_update=False):
 
         except requests.RequestException as e:
             print(f" Error sending post to {inbox_url}: {e}")
+
+def send_like_to_remote_recipients(like, request, is_update=False):
+    """
+    Sends a like object to the remote recipient (the author of the liked post).
+    Uses `LikeSerializer` to format the data properly.
+    """
+    post = like.post
+    post_author = post.author.author_profile  # Author of the post being liked
+
+    # Check if the post author is remote (only send if they are on a different node)
+    if post_author.host != f"http://{request.get_host()}":
+        author_id=post_author.author_id.split("_")[-1]
+        inbox_url = f"{post_author.host}/api/authors/{author_id}/inbox"
+
+        # Serialize the like object
+        serializer = LikeSerializer(like, context={'request': request})
+        like_data = serializer.data  # Convert to JSON format
+
+        try:
+            response = requests.post(
+                inbox_url,
+                json=like_data,
+                headers={"Content-Type": "application/json"},
+                #auth=("node_username", "node_password")  # Uncomment if authentication is required
+            )
+
+            if response.status_code in [200, 201]:
+                print(f"Like sent successfully to {post_author.author_id}")
+            else:
+                print(f"Failed to send like to {post_author.author_id}: {response.status_code}, {response.text}")
+
+        except requests.RequestException as e:
+            print(f"Error sending like to {post_author.author_id}: {e}")
+
+
+
 
 #just for testing
 def send_post_to_remote(post, request,is_update=False):
