@@ -882,6 +882,8 @@ def inbox(request, author_id):
         return Response({"error": "Unsupported object type"}, status=400)
 
     elif obj_type == "like":
+        print("like body\n",data)
+        return Response(status=200)
         # Process a like object.
         liker_author_url = data.get("author", {}).get("id")
         if not liker_author_url:

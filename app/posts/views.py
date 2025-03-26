@@ -337,7 +337,7 @@ def like_post(request, post_id):
     like, created = Like.objects.get_or_create(user=request.user, post=post)
     
     if created:
-        send_like_to_remote_receipients(like,request,is_update=false)
+        send_like_to_remote_recipients(like, request, is_update=False)
     if not created:
         like.delete()   # If the user already liked, remove the like
     
@@ -565,7 +565,7 @@ def send_like_to_remote_recipients(like, request, is_update=False):
 
     # Check if the post author is remote (only send if they are on a different node)
     if post_author.host != f"http://{request.get_host()}":
-        author_id=post_author.author_id.split("_")[-1]
+        author_id=post_author.author_id
         inbox_url = f"{post_author.host}/api/authors/{author_id}/inbox"
 
         # Serialize the like object
@@ -587,8 +587,6 @@ def send_like_to_remote_recipients(like, request, is_update=False):
 
         except requests.RequestException as e:
             print(f"Error sending like to {post_author.author_id}: {e}")
-
-
 
 
 #just for testing
