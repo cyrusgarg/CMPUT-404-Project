@@ -21,6 +21,7 @@ from .authentication import NodeBasicAuthentication
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 import requests
 from urllib.parse import unquote
+from django.conf import settings
 
 try:
     from bs4 import BeautifulSoup
@@ -818,44 +819,40 @@ def inbox(request, author_id):
     author = get_object_or_404(Author, author_id=author_id)
     data = request.data
     obj_type = data.get("type", "").lower()
-    remote_host = data.get("author", {}).get("host", settings.SITE_URL).rstrip("/").split("/")[-1]
-    if not remote_host:
-        return Response({"error": "Missing remote host"}, status=status.HTTP_400_BAD_REQUEST)
 
     if obj_type == "post":
-        post_uuid = data.get("id", "").split("/")[-1]
-        unique_post_id = f"{remote_host}_{post_uuid}" # Create a unique ID by appending the remote host
-        data["id"] = unique_post_id  # Override the post ID to ensure uniqueness
-        author_data = data.get("author", {})  # Extract remote author data
-        remote_author_uuid = author_data.get("id", "").split("/")[-1]
+        post_id = data.get("id", "").split("/")[-1]
 
-        #Generate a **globally unique author_id** based on host + UUID
-        unique_author_id = f"{remote_host}_{remote_author_uuid}"  # Example: remote1-uuid
-
-        # Check if the remote author already exists
-        remote_author = Author.objects.filter(author_id=unique_author_id).first()
+        # Extract remote author data
+        author_data = data.get("author", {})
+        remote_author_id = author_data.get("id", "").split("/")[-1]
+        remote_host=author_data.get("host", settings.SITE_URL)
+        # Try to fetch the existing remote author
+        remote_author = Author.objects.filter(author_id=remote_author_id,host=remote_host).first()
 
         if not remote_author:
             # Ensure we get a unique username for this remote author
-            username = f"{remote_host}_{remote_author_uuid}"  # Unique username prefix
+            username = f"remote_{remote_author_id[:8]}"  # Unique username prefix
             user, created = User.objects.get_or_create(username=username)
 
             # Create the Author object only if it doesn't already exist
-            
-            remote_author = Author.objects.create(
-                user=user,
-                author_id=unique_author_id,
-                display_name=author_data.get("displayName", "Unknown Author"),
-                github=author_data.get("github", ""),
-                host=author_data.get("host", settings.SITE_URL),
-                profile_image=author_data.get("profileImage", ""),
-            )
+            if not hasattr(user, "author_profile"):
+                remote_author = Author.objects.create(
+                    user=user,
+                    author_id=remote_author_id,
+                    display_name=author_data.get("displayName", "Unknown Author"),
+                    github=author_data.get("github", ""),
+                    host=author_data.get("host", settings.SITE_URL),
+                    profile_image=author_data.get("profileImage", ""),
+                )
+            else:
+                remote_author = user.author_profile  # Use the existing author
 
         # Attach the correct author to the post data
         data["author"] = remote_author.user.id  # Ensure it's the linked user
 
         # Check if post exists
-        existing_post = Post.objects.filter(id=unique_post_id).first()
+        existing_post = Post.objects.filter(id=post_id,author=remote_author.user).first()
 
         if existing_post:
             # Update existing post manually
@@ -870,7 +867,7 @@ def inbox(request, author_id):
 
         # **Manually create the post (without serializer)**
         new_post = Post.objects.create(
-            id=unique_post_id,
+            id=post_id,
             author=remote_author.user,  # Assign author here directly
             title=data.get("title", ""),
             description=data.get("description", ""),
