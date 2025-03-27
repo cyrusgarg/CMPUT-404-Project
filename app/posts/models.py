@@ -115,16 +115,16 @@ class Like(models.Model):
         #     return self.fqid  # Return the stored remote FQID
         if self.post:
             author = self.post.author.author_profile
-            return f"https://{request.get_host()}/api/authors/{author.author_id}/posts/{self.post.id}"
+            return f"http://{request.get_host()}/api/authors/{author.author_id}/posts/{self.post.id}"
         if self.comment:
             author = self.comment.user.author_profile
-            return f"https://{request.get_host()}/api/authors/{author.author_id}/posts/{self.comment.post.id}/comments/{self.comment.id}"
+            return f"http://{request.get_host()}/api/authors/{author.author_id}/posts/{self.comment.post.id}/comments/{self.comment.id}"
         return ""
 
     def get_id(self,request):
         """Return the full API URL for this like."""
         author = self.user.author_profile
-        return f"https://{request.get_host()}/api/authors/{author.author_id}/liked/{self.id}"
+        return f"http://{request.get_host()}/api/authors/{author.author_id}/liked/{self.id}"
 
 class Comment(models.Model):
     """Model to represent comments on a post."""
@@ -139,7 +139,7 @@ class Comment(models.Model):
     def get_absolute_url(self,request=None):
         """Returns the full API URL for this comment."""
         author = self.user.author_profile  # Get the corresponding Author profile
-        base_url = f"https://{request.get_host()}" if request else "https://default-host.com"
+        base_url = f"http://{request.get_host()}" if request else "http://default-host.com"
         return f"{base_url}/api/authors/{author.author_id}/commented/{self.id}"
 
     def get_like_url(self,request=None):
@@ -149,7 +149,7 @@ class Comment(models.Model):
     def to_dict(self,request):
         """Formats the comment into the required JSON structure."""
         author = self.user.author_profile  # Get the Author profile from User
-        base_url = f"https://{request.get_host()}" if request else "https://127.0.0.1"
+        base_url = f"http://{request.get_host()}" if request else "http://127.0.0.1"
         return {
             "type": "comment",
             "id": self.get_absolute_url(request=request),
