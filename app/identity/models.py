@@ -9,7 +9,8 @@ from django.contrib import admin
 from .id_mapping import get_numeric_id_for_author
 
 class Author(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='author_profile')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='author_profile', blank=True, null=True)  # Allow null user
+    #user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='author_profile')
     bio = models.TextField(blank=True)
     profile_image = models.ImageField(upload_to='profile_images/', blank=True, null=True)
     display_name = models.CharField(max_length=100)
