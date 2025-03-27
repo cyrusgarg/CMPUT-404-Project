@@ -477,7 +477,7 @@ def send_post_to_remote_recipients(post, request,is_update=False):
     post_data = {
         "type": "post",
         "id": f"{post.id}",
-        "author":author.to_dict(request),
+        "author":author.to_dict(),
         "title": post.title,
         "description": post.description,
         "contentType": post.contentType,
@@ -562,12 +562,10 @@ def send_like_to_remote_recipients(like, request, is_update=False):
     """
     post = like.post
     post_author = post.author.author_profile  # Author of the post being liked
-
     # Check if the post author is remote (only send if they are on a different node)
     if post_author.host != f"http://{request.get_host()}":
         author_id=post_author.author_id
         inbox_url = f"{post_author.host}/api/authors/{author_id}/inbox"
-
         # Serialize the like object
         serializer = LikeSerializer(like, context={'request': request})
         like_data = serializer.data  # Convert to JSON format
