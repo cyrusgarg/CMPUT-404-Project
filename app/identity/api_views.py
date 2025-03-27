@@ -826,31 +826,54 @@ def inbox(request, author_id):
         # Extract remote author data
         author_data = data.get("author", {})
         remote_author_id = author_data.get("id", "").split("/")[-1]
-        remote_host=author_data.get("host", settings.SITE_URL)
+        remote_host=author_data.get("host","")
+        #print("remote_host:",remote_host)
         # Try to fetch the existing remote author
         remote_author = Author.objects.filter(author_id=remote_author_id,host=remote_host).first()
 
         if not remote_author:
-            # Ensure we get a unique username for this remote author
-            username = f"remote_{remote_author_id[:8]}"  # Unique username prefix
-            user, created = User.objects.get_or_create(username=username)
+            # Create the Author first
+            remote_author, created = Author.objects.get_or_create(
+                author_id=remote_author_id,
+                host=remote_host,
+                defaults={  # Only set these values if creating a new author
+                    "display_name": author_data.get("displayName", "Unknown Author"),
+                    "github": author_data.get("github", ""),
+                    "profile_image": author_data.get("profileImage", ""),
+                }
+            )
 
-            # Create the Author object only if it doesn't already exist
-            if not hasattr(user, "author_profile"):
-                remote_author = Author.objects.create(
-                    user=user,
-                    author_id=remote_author_id,
-                    display_name=author_data.get("displayName", "Unknown Author"),
-                    github=author_data.get("github", ""),
-                    host=author_data.get("host", settings.SITE_URL),
-                    profile_image=author_data.get("profileImage", ""),
-                )
+        if remote_author.user is None:
+            username = f"remote_{remote_author_id}"  # Unique username
+            
+            # Check if a user with this username already exists
+            user = User.objects.filter(username=username).first()
+
+            if user:
+                # If the user exists, ensure it isn't already linked to another author
+                existing_author = Author.objects.filter(user=user).first()
+
+                if existing_author:
+                    print(f"User {username} is already linked to an existing Author. Using existing author.")
+                    #existing_author=remote_author
+                    remote_author=existing_author
+                    remote_author.host=remote_host
+                else:
+                    # Assign the existing user to the remote_author
+                    remote_author.user = user
+                    remote_author.save(update_fields=["user"])
             else:
-                remote_author = user.author_profile  # Use the existing author
+                # Create a new User and assign it to the Author
+                user = User.objects.create(username=username)
+                remote_author.user = user
+                remote_author.save(update_fields=["user"])
 
+        #could be add more parameters
+        remote_author.host=remote_host
+        remote_author.save()
         # Attach the correct author to the post data
-        data["author"] = remote_author.user.id  # Ensure it's the linked user
-
+        #data["author"] = remote_author.user.id  # Ensure it's the linked user
+        #print("Inside the post inbox, printing remote_author host",author_data.get("host", settings.SITE_URL))
         # Check if post exists
         existing_post = Post.objects.filter(id=post_id,author=remote_author.user).first()
 
@@ -876,13 +899,19 @@ def inbox(request, author_id):
             visibility=data.get("visibility", "PUBLIC"),
             image=data.get("image", None),  # Handle image if present
         )
+        #existing_post=Post.objects.filter(id=post_id,author=remote_author.user).first() #debugging line
+        #print("Newly createed post object:\n",PostSerializer(new_post, context={'request': request}).data)
 
         return Response(PostSerializer(new_post, context={'request': request}).data, status=201)
 
         return Response({"error": "Unsupported object type"}, status=400)
 
     elif obj_type == "like":
+<<<<<<< HEAD
         print("like body\n",data)
+=======
+        print("Like object\n",data)
+>>>>>>> 7cc772e0ebf5dbbf6c92b2d48365409c990cad57
         return Response(status=200)
         # Process a like object.
         liker_author_url = data.get("author", {}).get("id")
@@ -1078,3 +1107,34 @@ class NodeAuthTestView(APIView):
             "message": "Authentication successful",
             "node": getattr(request.auth, 'name', 'Unknown') if request.auth else "No Auth"
         })
+
+# if not hasattr(user, "author_profile"):
+#                 remote_author = Author.objects.create(
+#                     user=user,
+#                     author_id=remote_author_id,
+#                     display_name=author_data.get("displayName", "Unknown Author"),
+#                     github=author_data.get("github", ""),
+#                     host=remote_host,
+#                     profile_image=author_data.get("profileImage", ""),
+#                 )
+#             else:
+#                 remote_author = user.author_profile
+
+# if not remote_author:
+#             # Ensure we get a unique username for this remote author
+#             username = f"remote_{remote_author_id}"  # Unique username prefix
+#             print("inside Post inbox, line 837")
+#             user, created = User.objects.get_or_create(username=username)
+
+#             # Create the Author object only if it doesn't already exist
+#             remote_author, author_created = Author.objects.get_or_create(
+#                 user=user,
+#                 defaults={
+#                     "author_id": remote_author_id,
+#                     "display_name": author_data.get("displayName", "Unknown Author"),
+#                     "github": author_data.get("github", ""),
+#                     "host": remote_host,
+#                     "profile_image": author_data.get("profileImage", ""),
+#                 },
+#             )
+
