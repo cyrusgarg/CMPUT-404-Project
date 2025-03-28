@@ -962,15 +962,89 @@ def inbox(request, author_id):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     elif obj_type == "comment":
+        """
+        Process a comment received in the inbox.
+        """
+        comment_id = data.get("id", "").split("/")[-1]
+
+        # Extract remote author data
+        author_data = data.get("author", {})
+        remote_author_id = author_data.get("id", "").split("/")[-1]
+        remote_host = author_data.get("host", "")
+
+        # Try to fetch the existing remote author
+        remote_author = Author.objects.filter(author_id=remote_author_id, host=remote_host).first()
+
+        if not remote_author:
+            # Create the Author if it doesn't exist
+            remote_author, created = Author.objects.get_or_create(
+                author_id=remote_author_id,
+                host=remote_host,
+                defaults={
+                    "display_name": author_data.get("displayName", "Unknown Author"),
+                    "github": author_data.get("github", ""),
+                    "profile_image": author_data.get("profileImage", ""),
+                }
+            )
+
+        if remote_author.user is None:
+            username = f"remote_{remote_author_id}"  # Unique username
+            
+            user = User.objects.filter(username=username).first()
+            if user:
+                existing_author = Author.objects.filter(user=user).first()
+                if existing_author:
+                    remote_author = existing_author
+                else:
+                    remote_author.user = user
+                    remote_author.save(update_fields=["user"])
+            else:
+                user = User.objects.create(username=username)
+                existing_author = Author.objects.filter(user=user).first()
+                if existing_author:
+                    remote_author = existing_author
+                else:
+                    remote_author.user = user
+                    remote_author.save(update_fields=["user"])
+
+        remote_author.host = remote_host
+        remote_author.save()
+
+        # Ensure post exists before adding the comment
+        post_url = data.get("post", "")
+        post_id = post_url.split("/")[-1]
+        post = Post.objects.filter(id=post_id).first()
+
+        if not post:
+            return Response({"error": "Referenced post not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if the comment exists
+        existing_comment = Comment.objects.filter(id=comment_id, user=remote_author.user, post=post).first()
+
+        if existing_comment:
+            # Update existing comment manually
+            existing_comment.content = data.get("comment", existing_comment.content)
+            existing_comment.save()
+            return Response(CommentSerializer(existing_comment, context={'request': request}).data, status=status.HTTP_200_OK)
+
+        # **Manually create the comment (without serializer)**
+        new_comment = Comment.objects.create(
+            id=comment_id,
+            user=remote_author.user,
+            post=post,
+            content=data.get("comment", ""),
+        )
+
+        return Response(CommentSerializer(new_comment, context={'request': request}).data, status=status.HTTP_201_CREATED)
         # Process a comment object using CommentSerializer.
-        data = dict(request.data)
-        data.pop("type", None)  # Remove the extra "type" field if present
-        serializer = CommentSerializer(data=data, context={'request': request, 'inbox_author': author})
-        if serializer.is_valid():
-            comment_instance = serializer.save()
-            # Optionally, re-serialize the saved comment if we need any changes
-            response_serializer = CommentSerializer(comment_instance, context={'request': request})
-            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        # data = dict(request.data)
+        # data.pop("type", None)  # Remove the extra "type" field if present
+        # serializer = CommentSerializer(data=data, context={'request': request, 'inbox_author': author})
+        # if serializer.is_valid():
+        #     comment_instance = serializer.save()
+        #     # Optionally, re-serialize the saved comment if we need any changes
+        #     response_serializer = CommentSerializer(comment_instance, context={'request': request})
+        #     return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
     elif obj_type == "follow":
         # Process a follow request.
