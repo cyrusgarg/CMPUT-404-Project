@@ -13,7 +13,7 @@ SITE HOSTED ON:
 | Site URL  | CCID |
 | ------------- | ------------- |
 |   | soojeon1 |
-| [http://[2605:fd00:4:1001:f816:3eff:fe39:c1b6]/authors/] | cyrus1  |
+| http://[2605:fd00:4:1001:f816:3eff:fe39:c1b6]/authors/ | cyrus1  |
 |   | jingyao7  |
 |   |  mohapat2 |
 |   | samyak1 |
