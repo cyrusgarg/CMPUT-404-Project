@@ -14,8 +14,8 @@ SITE HOSTED ON:
 | ------------- | ------------- |
 |   | soojeon1 |
 | http://[2605:fd00:4:1001:f816:3eff:fe39:c1b6]/authors/ | cyrus1  |
-|   | jingyao7  |
-|   |  mohapat2 |
+|    | jingyao7  |
+| http://[2605:fd00:4:1001:f816:3eff:fed0:ce37]/authors/   |  mohapat2 |
 |   | samyak1 |
 | http://[2605:fd00:4:1001:f816:3eff:fe1a:a199]/authors/ | abenoy |
 
