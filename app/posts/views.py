@@ -606,7 +606,7 @@ def send_comment_to_remote_recipients(comment, request, is_update=False):
     """
     post = comment.post
     post_author = post.author.author_profile  # Get the author of the post
-    author_id=post_author.author_id.split("_")[-1]
+    author_id=post.author.username.split("_")[-1]
     # Check if the post author is remote (only send if they are on a different node)
     if post_author.host != f"http://{request.get_host()}":
         parsed_url = urlparse(post_author.host)
