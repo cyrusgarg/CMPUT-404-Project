@@ -414,13 +414,13 @@ def like_comment(request, post_id, comment_id):
 
     if not created:
         # If the like already exists, remove it (unlike)
-        send_like_to_remote_receipients(like,request,is_update=false)
+        send_like_to_remote_recipients(like,request,is_update=False)
         like.delete()
         comment.likes.remove(user)
         liked = False
     else:
         comment.likes.add(user)
-        send_like_to_remote_receipients(like,request,is_update=false)
+        send_like_to_remote_recipients(like,request,is_update=False)
         liked = True
 
     # Update the like count
