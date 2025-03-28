@@ -339,8 +339,9 @@ def like_post(request, post_id):
     if created:
         send_like_to_remote_recipients(like, request, is_update=False)
     if not created:
+        send_like_to_remote_receipients(like,request,is_update=false)
         like.delete()   # If the user already liked, remove the like
-    
+        
     # Dynamically calculate the like count:
     like_count = Like.objects.filter(post=post).count()
 
@@ -365,6 +366,7 @@ def add_comment(request, post_id):
             user=request.user,  # Ensure user is authenticated
             content=content
         )
+        send_comment_to_remote_recipients(comment, request, is_update=False)
         return JsonResponse({
             "message": "Comment added successfully",
             "comment": {
@@ -412,11 +414,13 @@ def like_comment(request, post_id, comment_id):
 
     if not created:
         # If the like already exists, remove it (unlike)
+        send_like_to_remote_receipients(like,request,is_update=false)
         like.delete()
         comment.likes.remove(user)
         liked = False
     else:
         comment.likes.add(user)
+        send_like_to_remote_receipients(like,request,is_update=false)
         liked = True
 
     # Update the like count
@@ -593,6 +597,44 @@ def send_like_to_remote_recipients(like, request, is_update=False):
 
         except requests.RequestException as e:
             print(f"Error sending like to {post_author.author_id}: {e}")
+
+
+def send_comment_to_remote_recipients(comment, request, is_update=False):
+    """
+    Sends a comment object to the remote recipient (the author of the post being commented on).
+    Uses `CommentSerializer` to format the data properly.
+    """
+    post = comment.post
+    post_author = post.author.author_profile  # Get the author of the post
+    author_id=post_author.author_id.split("_")[-1]
+    # Check if the post author is remote (only send if they are on a different node)
+    if post_author.host != f"http://{request.get_host()}":
+        parsed_url = urlparse(post_author.host)
+        base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        #author_id = post_author.author_id
+
+        inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+        print("inbox url",inbox_url)
+        # Serialize the comment object
+        serializer = CommentSerializer(comment, context={'request': request})
+        comment_data = serializer.data  # Convert to JSON format
+
+        try:
+            response = requests.post(
+                inbox_url,
+                json=comment_data,
+                headers={"Content-Type": "application/json"},
+                # Uncomment below if authentication is needed
+                # auth=("node_username", "node_password")
+            )
+
+            if response.status_code in [200, 201]:
+                print(f"Comment sent successfully to {author_id}")
+            else:
+                print(f"Failed to send comment to {author_id}: {response.status_code}, {response.text}")
+
+        except requests.RequestException as e:
+            print(f"Error sending comment to {author_id}: {e}")
 
 #just for testing
 def send_post_to_remote(post, request,is_update=False):
