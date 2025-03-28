@@ -857,7 +857,7 @@ def inbox(request, author_id):
                     print(f"User {username} is already linked to an existing Author. Using existing author.")
                     #existing_author=remote_author
                     remote_author=existing_author
-                    remote_author.host=remote_host
+                    #remote_author.host=remote_host
                 else:
                     # Assign the existing user to the remote_author
                     remote_author.user = user
@@ -865,10 +865,20 @@ def inbox(request, author_id):
             else:
                 # Create a new User and assign it to the Author
                 user = User.objects.create(username=username)
-                remote_author.user = user
-                remote_author.save(update_fields=["user"])
+                # Now, double-check if an Author already exists for this user
+                existing_author = Author.objects.filter(user=user).first()
+                
+                if existing_author:
+                    print(f"Warning: An Author already exists for {username}. Using existing Author.")
+                    remote_author = existing_author
+                else:
+                    remote_author.user = user
+                    remote_author.save(update_fields=["user"])  # Ensure only the user field is updated
+                # remote_author.user = user
+                # remote_author.save(update_fields=["user"])
 
         #could be add more parameters
+        #remote_author.author_id = remote_author_id #shouldn't do it
         remote_author.host=remote_host
         remote_author.save()
         # Attach the correct author to the post data
