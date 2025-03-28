@@ -926,10 +926,52 @@ def inbox(request, author_id):
         if not liker_author_url:
             return Response({"error": "Missing liker author information."}, status=status.HTTP_400_BAD_REQUEST)
         # Extract the author_id from the URL
-        liker = Author.objects.filter(author_id=liker_author_url.rstrip("/").split("/")[-1]).first()
-        if not liker:
-            #create it 
-            return Response({"error": "Liker author not found."}, status=status.HTTP_400_BAD_REQUEST)
+        # liker = Author.objects.filter(author_id=liker_author_url.rstrip("/").split("/")[-1]).first()
+        # Extract the liker (author) data
+        author_data = data.get("author", {})
+        remote_author_id = author_data.get("id", "").split("/")[-1]
+        remote_host = author_data.get("host", "")
+
+        # Try to fetch the existing remote author
+        remote_author = Author.objects.filter(author_id=remote_author_id, host=remote_host).first()
+
+        if not remote_author:
+            # Create the Author if it doesn't exist
+            remote_author, created = Author.objects.get_or_create(
+                author_id=remote_author_id,
+                host=remote_host,
+                defaults={
+                    "display_name": author_data.get("displayName", "Unknown Author"),
+                    "github": author_data.get("github", ""),
+                    "profile_image": author_data.get("profileImage", ""),
+                }
+            )
+
+        if remote_author.user is None:
+            username = f"remote_{remote_author_id}"  # Unique username
+
+            user = User.objects.filter(username=username).first()
+            if user:
+                existing_author = Author.objects.filter(user=user).first()
+                if existing_author:
+                    remote_author = existing_author
+                else:
+                    remote_author.user = user
+                    remote_author.save(update_fields=["user"])
+            else:
+                user = User.objects.create(username=username)
+                existing_author = Author.objects.filter(user=user).first()
+                if existing_author:
+                    remote_author = existing_author
+                else:
+                    remote_author.user = user
+                    remote_author.save(update_fields=["user"])
+
+        remote_author.host = remote_host
+        remote_author.save()
+        # if not liker:
+        #     #create it 
+        #     return Response({"error": "Liker author not found."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Determine whether this is a like for a post or a comment.
         object_url = data.get("object")
@@ -945,16 +987,21 @@ def inbox(request, author_id):
             post = Post.objects.filter(id=ref_id).first()
             if not post:
                 return Response({"error": "Post not found."}, status=status.HTTP_404_NOT_FOUND)
-            if Like.objects.filter(user=liker.user, post=post).exists():
+            # if Like.objects.filter(user=liker.user, post=post).exists():
+            if Like.objects.filter(user=remote_author.user, post=post).exists():
                 return Response({"error": "You have already liked this post."}, status=status.HTTP_400_BAD_REQUEST)
-            like_instance = Like.objects.create(user=liker.user, post=post)
+            like_instance = Like.objects.create(user=remote_author.user, post=post)
+            # like_instance = Like.objects.create(user=liker.user, post=post)
         elif ref_type in ["comments", "comment"]:
             comment = Comment.objects.filter(id=ref_id).first()
             if not comment:
                 return Response({"error": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
-            if Like.objects.filter(user=liker.user, comment=comment).exists():
+            # if Like.objects.filter(user=liker.user, comment=comment).exists():
+            #     return Response({"error": "You have already liked this comment."}, status=status.HTTP_400_BAD_REQUEST)
+            # like_instance = Like.objects.create(user=liker.user, comment=comment)
+            if Like.objects.filter(user=remote_author.user, comment=comment).exists():
                 return Response({"error": "You have already liked this comment."}, status=status.HTTP_400_BAD_REQUEST)
-            like_instance = Like.objects.create(user=liker.user, comment=comment)
+            like_instance = Like.objects.create(user=remote_author.user, comment=comment)
         else:
             return Response({"error": "Invalid object reference."}, status=status.HTTP_400_BAD_REQUEST)
 
