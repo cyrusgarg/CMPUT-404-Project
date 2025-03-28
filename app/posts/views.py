@@ -339,7 +339,7 @@ def like_post(request, post_id):
     if created:
         send_like_to_remote_recipients(like, request, is_update=False)
     if not created:
-        send_like_to_remote_receipients(like,request,is_update=false)
+        send_like_to_remote_recipients(like,request,is_update=False)
         like.delete()   # If the user already liked, remove the like
         
     # Dynamically calculate the like count:
