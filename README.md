@@ -16,7 +16,7 @@ SITE HOSTED ON:
 | http://[2605:fd00:4:1001:f816:3eff:fe39:c1b6]/authors/ | cyrus1  |
 | http://2605:fd00:4:1001:f816:3eff:fe6a:6265/authors/ | jingyao7  |
 | http://[2605:fd00:4:1001:f816:3eff:fed0:ce37]/authors/   |  mohapat2 |
-| http://[2605:fd00:4:1001:f816:3eff:fe42:abb6]/authors/  | samyak1 |
+| http://[2605:fd00:4:1001:f816:3eff:feb6:16ee]/authors/  | samyak1 |
 | http://[2605:fd00:4:1001:f816:3eff:fe1a:a199]/authors/ | abenoy |
 
  
