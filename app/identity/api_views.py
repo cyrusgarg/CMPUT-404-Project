@@ -995,7 +995,8 @@ def inbox(request, author_id):
                 #return Response({"error": "You have already liked this post."}, status=status.HTTP_400_BAD_REQUEST)
             like_instance = Like.objects.create(user=remote_author.user, post=post)
             # like_instance = Like.objects.create(user=liker.user, post=post)
-        elif ref_type in ["comments", "comment"]:
+        elif ref_type in ["comments", "comment","commented"]:
+            print("Line 998")
             comment = Comment.objects.filter(id=ref_id).first()
             if not comment:
                 return Response({"error": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
@@ -1003,8 +1004,16 @@ def inbox(request, author_id):
             #     return Response({"error": "You have already liked this comment."}, status=status.HTTP_400_BAD_REQUEST)
             # like_instance = Like.objects.create(user=liker.user, comment=comment)
             if Like.objects.filter(user=remote_author.user, comment=comment).exists():
-                return Response({"error": "You have already liked this comment."}, status=status.HTTP_400_BAD_REQUEST)
+                like=Like.objects.filter(user=remote_author.user, comment=comment)
+                like.delete()
+                comment.likes.remove(remote_author.user)
+                comment.like_count = comment.likes.count()
+                comment.save()
+                return Response({"you successful deleted the like"}, status=204)
             like_instance = Like.objects.create(user=remote_author.user, comment=comment)
+            comment.likes.add(remote_author.user)
+            comment.like_count = comment.likes.count()
+            comment.save()
         else:
             return Response({"error": "Invalid object reference."}, status=status.HTTP_400_BAD_REQUEST)
 
