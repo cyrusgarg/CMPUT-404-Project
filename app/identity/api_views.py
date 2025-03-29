@@ -989,7 +989,10 @@ def inbox(request, author_id):
                 return Response({"error": "Post not found."}, status=status.HTTP_404_NOT_FOUND)
             # if Like.objects.filter(user=liker.user, post=post).exists():
             if Like.objects.filter(user=remote_author.user, post=post).exists():
-                return Response({"error": "You have already liked this post."}, status=status.HTTP_400_BAD_REQUEST)
+                like=Like.objects.filter(user=remote_author.user, post=post)
+                like.delete()
+                return Response({"Successfully unliked it"}, status=200)
+                #return Response({"error": "You have already liked this post."}, status=status.HTTP_400_BAD_REQUEST)
             like_instance = Like.objects.create(user=remote_author.user, post=post)
             # like_instance = Like.objects.create(user=liker.user, post=post)
         elif ref_type in ["comments", "comment"]:

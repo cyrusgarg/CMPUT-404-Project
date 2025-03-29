@@ -46,7 +46,7 @@ class Author(models.Model):
         return {
             "type": "author",
             "id": f"{base_url}/api/authors/{self.author_id}",
-            "host": base_url,
+            "host": f"{base_url}/api/",
             "displayName": self.display_name,
             "github": self.github,
             "profileImage": self.profile_image.url if self.profile_image else "",

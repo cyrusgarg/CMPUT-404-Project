@@ -414,13 +414,13 @@ def like_comment(request, post_id, comment_id):
 
     if not created:
         # If the like already exists, remove it (unlike)
-        send_like_to_remote_recipients(like,request,is_update=False)
+        send_Comment_like_to_remote_recipients(like,request,is_update=False)
         like.delete()
         comment.likes.remove(user)
         liked = False
     else:
         comment.likes.add(user)
-        send_like_to_remote_recipients(like,request,is_update=False)
+        send_Comment_like_to_remote_recipients(like,request,is_update=False)
         liked = True
 
     # Update the like count
@@ -502,7 +502,7 @@ def send_post_to_remote_recipients(post, request,is_update=False):
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
             author_id = parsed_url.path.strip("/").split("/")[-1]
             #print("baseHost:",base_host,"author_id:",author_id)
-            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+            inbox_url = f"{base_host}authors/{author_id}/inbox"
             print("inbox url:",inbox_url)
             recipients.add(inbox_url)
 
@@ -514,7 +514,7 @@ def send_post_to_remote_recipients(post, request,is_update=False):
             parsed_url = urlparse(remote_friend.remote)
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
             author_id = parsed_url.path.strip("/").split("/")[-1]
-            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+            inbox_url = f"{base_host}authors/{author_id}/inbox"
             print("inbox url:",inbox_url)
             recipients.add(inbox_url)
 
@@ -528,7 +528,7 @@ def send_post_to_remote_recipients(post, request,is_update=False):
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
             author_id = parsed_url.path.strip("/").split("/")[-1]
             #print("baseHost:",base_host,"author_id:",author_id)
-            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+            inbox_url = f"{base_host}authors/{author_id}/inbox"
             recipients.add(inbox_url)
           
     # # Convert image to base64 if it exists
@@ -575,7 +575,7 @@ def send_like_to_remote_recipients(like, request, is_update=False):
     # Check if the post author is remote (only send if they are on a different node)
     if post_author.host != f"http://{request.get_host()}":
         author_id=post.author.username.split("_")[-1]
-        inbox_url = f"{post_author.host}/api/authors/{author_id}/inbox"
+        inbox_url = f"{post_author.host}authors/{author_id}/inbox"
         print("inbox url:",inbox_url)
 
         # Serialize the like object
@@ -598,6 +598,44 @@ def send_like_to_remote_recipients(like, request, is_update=False):
         except requests.RequestException as e:
             print(f"Error sending like to {post_author.author_id}: {e}")
 
+def send_Comment_like_to_remote_recipients(like, request, is_update=False):
+    """
+    Sends a like object to the remote recipient (the author of the liked post).
+    Uses `LikeSerializer` to format the data properly.
+    """
+    comment = like.comment
+    post_author = comment.post.author.author_profile  # Author of the post being liked
+    #post_author_dict=post.author.author_profile.to_dict()
+    # print("Inside post view,printing post username",post.author.username)
+    # print("Inside post view,printing post author host",post.author.author_profile.host)
+    # print("Inside post view,printing post author display name",post.author.author_profile.display_name)
+    # print("post_author dict:\n",post_author_dict)
+    # print("post_author.host:",post_author.host,"\nhttp://{request.get_host()}:",f"http://{request.get_host()}")
+    # Check if the post author is remote (only send if they are on a different node)
+    if post_author.host != f"http://{request.get_host()}":
+        author_id=post_author.user.username.split("_")[-1]
+        inbox_url = f"{post_author.host}authors/{author_id}/inbox"
+        print("inbox url:",inbox_url)
+
+        # Serialize the like object
+        serializer = LikeSerializer(like, context={'request': request})
+        like_data = serializer.data  # Convert to JSON format
+
+        try:
+            response = requests.post(
+                inbox_url,
+                json=like_data,
+                headers={"Content-Type": "application/json"},
+                #auth=("node_username", "node_password")  # Uncomment if authentication is required
+            )
+
+            if response.status_code in [200, 201]:
+                print(f"Like sent successfully to {author_id}")
+            else:
+                print(f"Failed to send like to {author_id}: {response.status_code}, {response.text}")
+
+        except requests.RequestException as e:
+            print(f"Error sending like to {author_id}: {e}")
 
 def send_comment_to_remote_recipients(comment, request, is_update=False):
     """
@@ -613,7 +651,7 @@ def send_comment_to_remote_recipients(comment, request, is_update=False):
         base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
         #author_id = post_author.author_id
 
-        inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+        inbox_url = f"{base_host}authors/{author_id}/inbox"
         print("inbox url",inbox_url)
         # Serialize the comment object
         serializer = CommentSerializer(comment, context={'request': request})
