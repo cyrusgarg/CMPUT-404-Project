@@ -502,7 +502,7 @@ def send_post_to_remote_recipients(post, request,is_update=False):
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
             author_id = parsed_url.path.strip("/").split("/")[-1]
             #print("baseHost:",base_host,"author_id:",author_id)
-            inbox_url = f"{base_host}authors/{author_id}/inbox"
+            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
             print("inbox url:",inbox_url)
             recipients.add(inbox_url)
 
@@ -514,7 +514,7 @@ def send_post_to_remote_recipients(post, request,is_update=False):
             parsed_url = urlparse(remote_friend.remote)
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
             author_id = parsed_url.path.strip("/").split("/")[-1]
-            inbox_url = f"{base_host}authors/{author_id}/inbox"
+            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
             print("inbox url:",inbox_url)
             recipients.add(inbox_url)
 
@@ -528,7 +528,7 @@ def send_post_to_remote_recipients(post, request,is_update=False):
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
             author_id = parsed_url.path.strip("/").split("/")[-1]
             #print("baseHost:",base_host,"author_id:",author_id)
-            inbox_url = f"{base_host}authors/{author_id}/inbox"
+            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
             recipients.add(inbox_url)
           
     # # Convert image to base64 if it exists
@@ -651,7 +651,7 @@ def send_comment_to_remote_recipients(comment, request, is_update=False):
         base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
         #author_id = post_author.author_id
 
-        inbox_url = f"{base_host}authors/{author_id}/inbox"
+        inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
         print("inbox url",inbox_url)
         # Serialize the comment object
         serializer = CommentSerializer(comment, context={'request': request})
