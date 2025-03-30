@@ -187,7 +187,8 @@ class RemoteAuthor(models.Model):
     github = models.URLField(blank=True, null=True)
     profile_image = models.URLField(blank=True, null=True)
     last_updated = models.DateTimeField(auto_now=True)
-
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="remote_authors")
+    
     def __str__(self):
         return f"{self.display_name} ({self.node.name})"
 

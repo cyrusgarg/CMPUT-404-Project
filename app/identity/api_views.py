@@ -803,6 +803,7 @@ def extract_uuid_from_url(url):
     # Remove trailing slash and split the path
     segments = parsed.path.rstrip('/').split('/')
     return segments[-1] if segments else None
+    
 
 @api_view(['POST','PUT'])
 @permission_classes([AllowAny])
@@ -829,54 +830,39 @@ def inbox(request, author_id):
         remote_host=author_data.get("host","")
         #print("remote_host:",remote_host)
         # Try to fetch the existing remote author
-        remote_author = Author.objects.filter(author_id=remote_author_id,host=remote_host).first()
+        #remote_author = Author.objects.filter(author_id=remote_author_id,host=remote_host).first()
+        local_author = Author.objects.filter(author_id=remote_author_id,host=remote_host).first()
+        remote_author = RemoteAuthor.objects.filter(author_id=remote_author_id, host=remote_host).first()
 
         if not remote_author:
             # Create the Author first
-            remote_author, created = Author.objects.get_or_create(
-                author_id=remote_author_id,
-                host=remote_host,
-                defaults={  # Only set these values if creating a new author
-                    "display_name": author_data.get("displayName", "Unknown Author"),
-                    "github": author_data.get("github", ""),
-                    "profile_image": author_data.get("profileImage", ""),
-                }
-            )
-
-        if remote_author.user is None:
-            username = f"remote_{remote_author_id}"  # Unique username
+            username = f"remote_{remote_author_id}"  # Ensure uniqueness
+            user, user_created = User.objects.get_or_create(username=username)
             
-            # Check if a user with this username already exists
-            user = User.objects.filter(username=username).first()
+            if not local_author:
+                node = RemoteNode.objects.filter(host_url__icontains=remote_host).first()
+                if not node:
+                    # Create a default RemoteNode if needed
+                    node = RemoteNode.objects.create(
+                        name=f"Auto-created for {remote_host}",
+                        host_url=remote_host,
+                        username="default",
+                        password="default"
+                    )
 
-            if user:
-                # If the user exists, ensure it isn't already linked to another author
-                existing_author = Author.objects.filter(user=user).first()
-
-                if existing_author:
-                    print(f"User {username} is already linked to an existing Author. Using existing author.")
-                    #existing_author=remote_author
-                    remote_author=existing_author
-                    #remote_author.host=remote_host
-                else:
-                    # Assign the existing user to the remote_author
-                    remote_author.user = user
-                    remote_author.save(update_fields=["user"])
-            else:
-                # Create a new User and assign it to the Author
-                user = User.objects.create(username=username)
-                # Now, double-check if an Author already exists for this user
-                existing_author = Author.objects.filter(user=user).first()
-                
-                if existing_author:
-                    print(f"Warning: An Author already exists for {username}. Using existing Author.")
-                    remote_author = existing_author
-                else:
-                    remote_author.user = user
-                    remote_author.save(update_fields=["user"])  # Ensure only the user field is updated
-                # remote_author.user = user
-                # remote_author.save(update_fields=["user"])
-
+                remote_author, created = RemoteAuthor.objects.get_or_create(
+                    node=node,
+                    author_id=remote_author_id,
+                    host=remote_host,
+                    defaults={
+                        "display_name": author_data.get("displayName", "Unknown Author"),
+                        "github": author_data.get("github", ""),
+                        "profile_image": author_data.get("profileImage", ""),
+                        "user": user  # Assign the user
+                    }
+                )
+        if not remote_author.user:
+            return Response({"error": "Remote author does not have a linked user."}, status=400)
         #could be add more parameters
         #remote_author.author_id = remote_author_id #shouldn't do it
         remote_author.host=remote_host
@@ -1280,3 +1266,38 @@ class NodeAuthTestView(APIView):
 #                 },
 #             )
 
+
+
+# if remote_author.user is None:
+#             username = f"remote_{remote_author_id}"  # Unique username
+            
+#             # Check if a user with this username already exists
+#             user = User.objects.filter(username=username).first()
+
+#             if user:
+#                 # If the user exists, ensure it isn't already linked to another author
+#                 existing_author = Author.objects.filter(user=user).first()
+
+#                 if existing_author:
+#                     print(f"User {username} is already linked to an existing Author. Using existing author.")
+#                     #existing_author=remote_author
+#                     remote_author=existing_author
+#                     #remote_author.host=remote_host
+#                 else:
+#                     # Assign the existing user to the remote_author
+#                     remote_author.user = user
+#                     remote_author.save(update_fields=["user"])
+#             else:
+#                 # Create a new User and assign it to the Author
+#                 user = User.objects.create(username=username)
+#                 # Now, double-check if an Author already exists for this user
+#                 existing_author = Author.objects.filter(user=user).first()
+                
+#                 if existing_author:
+#                     print(f"Warning: An Author already exists for {username}. Using existing Author.")
+#                     remote_author = existing_author
+#                 else:
+#                     remote_author.user = user
+#                     remote_author.save(update_fields=["user"])  # Ensure only the user field is updated
+#                 # remote_author.user = user
+#                 # remote_author.save(update_fields=["user"])
