@@ -21,6 +21,7 @@ from .authentication import NodeBasicAuthentication
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 import requests
 from urllib.parse import unquote
+from rest_framework.authentication import SessionAuthentication
 from django.conf import settings
 
 try:
@@ -30,8 +31,8 @@ except ImportError:
     BS4_AVAILABLE = False
 
 @api_view(['GET', 'POST'])
-@permission_classes([AllowAny])  # Allow any user to access, then control with logic
-@authentication_classes([NodeBasicAuthentication])  # Add this line
+@permission_classes([IsAuthenticated])
+@authentication_classes([NodeBasicAuthentication, SessionAuthentication])
 
 def author_posts(request, author_id):
     """
@@ -805,7 +806,8 @@ def extract_uuid_from_url(url):
     return segments[-1] if segments else None
 
 @api_view(['POST','PUT'])
-@permission_classes([AllowAny])
+@authentication_classes([NodeBasicAuthentication])
+@permission_classes([IsAuthenticated])
 def inbox(request, author_id):
     """
     POST: Accepts remote objects (posts, follow requests, likes, comments)
@@ -913,8 +915,6 @@ def inbox(request, author_id):
         #print("Newly createed post object:\n",PostSerializer(new_post, context={'request': request}).data)
 
         return Response(PostSerializer(new_post, context={'request': request}).data, status=201)
-
-        return Response({"error": "Unsupported object type"}, status=400)
 
     elif obj_type == "like":
         print("like body\n",data)
@@ -1136,6 +1136,8 @@ def inbox(request, author_id):
         RemoteFollowRequests.objects.create(sender_name=sender_name, sender_id=sender_author_url, receiver=author.user)
 
         return Response("Follow request sent", status=status.HTTP_201_CREATED)
+
+    return Response({"error": "Unsupported object type"}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
