@@ -335,12 +335,18 @@ def like_post(request, post_id):
 
     # Check if the user already liked the post
     like, created = Like.objects.get_or_create(user=request.user, post=post)
-    
-    if created:
+    is_remote_author = post.author.username.startswith("remote_")
+
+    if created and is_remote_author:
+        
         send_like_to_remote_recipients(like, request, is_update=False)
-    if not created:
-        send_like_to_remote_recipients(like,request,is_update=False)
+    elif not created and is_remote_author:
+        # If unliking a remote author's post
+        send_like_to_remote_recipients(like, request, is_update=False)
         like.delete()   # If the user already liked, remove the like
+    elif not created:
+        # Just delete the like for local posts
+        like.delete()
         
     # Dynamically calculate the like count:
     like_count = Like.objects.filter(post=post).count()
@@ -566,7 +572,7 @@ def send_like_to_remote_recipients(like, request, is_update=False):
     """
     post = like.post
     #post_author = post.author.author_profile  # Author of the post being liked
-    
+    post_author = post.author.remote_author
     #post_author_dict=post.author.author_profile.to_dict()
     # print("Inside post view,printing post username",post.author.username)
     # print("Inside post view,printing post author host",post.author.author_profile.host)
@@ -575,7 +581,6 @@ def send_like_to_remote_recipients(like, request, is_update=False):
     # print("post_author.host:",post_author.host,"\nhttp://{request.get_host()}:",f"http://{request.get_host()}")
     # Check if the post author is remote (only send if they are on a different node)
     if post_author.host != f"http://{request.get_host()}":
-        post_author = post.author.remote_author
         author_id=post.author.username.split("_")[-1]
         inbox_url = f"{post_author.host}authors/{author_id}/inbox"
         print("inbox url:",inbox_url)
