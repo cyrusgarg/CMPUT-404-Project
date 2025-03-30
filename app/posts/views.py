@@ -565,7 +565,8 @@ def send_like_to_remote_recipients(like, request, is_update=False):
     Uses `LikeSerializer` to format the data properly.
     """
     post = like.post
-    post_author = post.author.author_profile  # Author of the post being liked
+    #post_author = post.author.author_profile  # Author of the post being liked
+    post_author = post.author.remote_author
     #post_author_dict=post.author.author_profile.to_dict()
     # print("Inside post view,printing post username",post.author.username)
     # print("Inside post view,printing post author host",post.author.author_profile.host)
@@ -604,7 +605,8 @@ def send_Comment_like_to_remote_recipients(like, request, is_update=False):
     Uses `LikeSerializer` to format the data properly.
     """
     comment = like.comment
-    post_author = comment.post.author.author_profile  # Author of the post being liked
+    #post_author = comment.post.author.author_profile  # Author of the post being liked
+    post_author = comment.post.author.remote_author
     #post_author_dict=post.author.author_profile.to_dict()
     # print("Inside post view,printing post username",post.author.username)
     # print("Inside post view,printing post author host",post.author.author_profile.host)
@@ -643,7 +645,8 @@ def send_comment_to_remote_recipients(comment, request, is_update=False):
     Uses `CommentSerializer` to format the data properly.
     """
     post = comment.post
-    post_author = post.author.author_profile  # Get the author of the post
+    #post_author = post.author.author_profile  # Get the author of the post
+    post_author = post.author.remote_author
     author_id=post.author.username.split("_")[-1]
     # Check if the post author is remote (only send if they are on a different node)
     if post_author.host != f"http://{request.get_host()}":
