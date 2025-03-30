@@ -488,8 +488,49 @@ def fetch_remote_authors(request, node_id):
             if response and response.status_code == 200:
                 authors_data = response.json()
                 
-                # Based on the API structure in your curl output
-                if 'type' in authors_data and authors_data['type'] == 'authors' and 'src' in authors_data:
+                # Updated to check for 'authors' key instead of 'src'
+                if 'type' in authors_data and authors_data['type'] == 'authors' and 'authors' in authors_data:
+                    authors_list = authors_data['authors']
+                    
+                    authors_count = 0
+                    for author_data in authors_list:
+                        # Extract ID from the full URL
+                        author_id = author_data.get('id', '')
+                        if '/' in author_id:
+                            author_id = author_id.split('/')[-1]
+                        
+                        # Update or create the remote author
+                        RemoteAuthor.objects.update_or_create(
+                            node=node,
+                            author_id=author_id,
+                            defaults={
+                                'display_name': author_data.get('displayName', 'Unknown'),
+                                'host': author_data.get('host', ''),
+                                'github': author_data.get('github', ''),
+                                'profile_image': author_data.get('profileImage', '')
+                            }
+                        )
+                        authors_count += 1
+                    
+                    total_authors_count += authors_count
+                    
+                    # Check if there's a next page
+                    if 'next' in authors_data and authors_data['next']:
+                        # Extract the relative path from the next URL
+                        full_next_url = authors_data['next']
+                        if full_next_url.startswith("http"):
+                            # Extract just the path and query string
+                            from urllib.parse import urlparse
+                            parsed_url = urlparse(full_next_url)
+                            next_page_url = parsed_url.path
+                            if parsed_url.query:
+                                next_page_url += "?" + parsed_url.query
+                        else:
+                            next_page_url = full_next_url
+                    else:
+                        next_page_url = None
+                elif 'type' in authors_data and authors_data['type'] == 'authors' and 'src' in authors_data:
+                    # Backward compatibility for nodes still using 'src'
                     authors_list = authors_data['src']
                     
                     authors_count = 0
