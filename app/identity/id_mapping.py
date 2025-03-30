@@ -1,4 +1,5 @@
 # identity/id_mapper.py
+import uuid
 from django.core.cache import cache
 
 
@@ -24,23 +25,28 @@ def get_numeric_id_for_author(uuid_id):
     
     return mapping[uuid_str]
 
+
 def get_uuid_for_numeric_id(numeric_id):
     """
     Reverse lookup: converts a sequential numeric ID back to the original UUID.
-    Uses the same cache mapping as get_numeric_id_for_author.
+    If the numeric ID is not found, generates a new UUID and stores it.
     """
     # Cache key for the mapping
     mapping_key = "author_uuid_to_numeric_mapping"
     # Get the current mapping from cache
     mapping = cache.get(mapping_key, {})
-    
+
     # Create reverse mapping (numeric_id -> uuid)
     reverse_mapping = {v: k for k, v in mapping.items()}
-    
+
     # Look up the UUID for this numeric ID
     uuid_str = reverse_mapping.get(numeric_id)
-    
+
     if uuid_str is None:
-        return None
-    
-    return uuid_str
+        # Generate a new UUID since it doesn't exist
+        new_uuid = str(uuid.uuid4())  
+        mapping[new_uuid] = numeric_id  # Store the new mapping
+        cache.set(mapping_key, mapping)  # Save the updated mapping
+        return new_uuid  # Return the newly generated UUID
+
+    return uuid_str 
