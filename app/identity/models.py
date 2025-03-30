@@ -181,13 +181,13 @@ class RemoteNode(models.Model):
 class RemoteAuthor(models.Model):
     """Model representing an author from a remote node"""
     node = models.ForeignKey(RemoteNode, on_delete=models.CASCADE, related_name='authors')
-    author_id = models.CharField(max_length=255)
+    author_id = models.CharField(max_length=255, unique=True)
     display_name = models.CharField(max_length=255)
     host = models.URLField(max_length=255)
     github = models.URLField(blank=True, null=True)
     profile_image = models.URLField(blank=True, null=True)
     last_updated = models.DateTimeField(auto_now=True)
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="remote_authors")
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="remote_author", blank=True, null=True)
     
     def __str__(self):
         return f"{self.display_name} ({self.node.name})"
@@ -195,3 +195,11 @@ class RemoteAuthor(models.Model):
     class Meta:
         unique_together = ['node', 'author_id']
         ordering = ['display_name']
+
+    def save(self, *args, **kwargs):
+        """Ensure a corresponding User is created when saving a RemoteAuthor"""
+        if not self.user:
+            username = f"remote_{self.author_id}"  # Ensure unique remote username
+            user, created = User.objects.get_or_create(username=username)
+            self.user = user  # Link the user
+        super().save(*args, **kwargs)

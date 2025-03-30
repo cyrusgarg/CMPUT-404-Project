@@ -849,7 +849,7 @@ def inbox(request, author_id):
                         username="default",
                         password="default"
                     )
-
+                print("line 852")
                 remote_author, created = RemoteAuthor.objects.get_or_create(
                     node=node,
                     author_id=remote_author_id,
