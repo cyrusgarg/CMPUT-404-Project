@@ -523,8 +523,12 @@ def send_post_to_remote_recipients(post, request,is_update=False):
             parsed_url = urlparse(remote_friend.remote)
             print("line519:",parsed_url)
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+            path = f"{parsed_url.path}"
+            parts = path.strip("/").split("/")  # Remove leading/trailing slashes & split
+            if len(parts) > 1:
+                extracted = "/".join(parts[:-1])  # Join everything except the last part
             author_id = parsed_url.path.strip("/").split("/")[-1]
-            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+            inbox_url = f"{base_host}/{extracted}/{author_id}/inbox"
             print("inbox url:",inbox_url)
             recipients.add(inbox_url)
 
@@ -536,9 +540,13 @@ def send_post_to_remote_recipients(post, request,is_update=False):
             #print("delete")
             parsed_url = urlparse(remote_follower.follower_id)
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+            path = f"{parsed_url.path}"
+            parts = path.strip("/").split("/")  # Remove leading/trailing slashes & split
+            if len(parts) > 1:
+                extracted = "/".join(parts[:-1])  # Join everything except the last part
             author_id = parsed_url.path.strip("/").split("/")[-1]
             #print("baseHost:",base_host,"author_id:",author_id)
-            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+            inbox_url = f"{base_host}/{extracted}/{author_id}/inbox"
             recipients.add(inbox_url)
           
     # # Convert image to base64 if it exists
