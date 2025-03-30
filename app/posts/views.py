@@ -130,15 +130,12 @@ def post_detail(request, post_id):
         comment.refresh_from_db()
         comment.is_liked_by_user = comment.likes.filter(id=user.id).exists()
 
-    if remote_node and not post.visibility == "DELETED":
-        return render(request, "posts/post_detail.html", {"post": post, "user": request.user.username, "comments": comments}) 
-
-    if post.visibility == "DELETED" and not user.is_superuser:
+    if post.visibility == "DELETED" and not user.is_superuser or remote_node and post.visibility == "DELETED" and not user.is_superuser:
         return HttpResponseForbidden("You do not have permission to view this post.")  # Forbidden response if post is deleted / 如果帖子已删除且用户非管理员，则返回403（GJ）
 
-    if post.visibility == "FRIENDS" and user != post.author and post.author.id not in mutual_friends_ids:
+    if post.visibility == "FRIENDS" and user != post.author and post.author.id not in mutual_friends_ids and not user.is_superuser and not remote_node:
         return HttpResponseForbidden("You do not have permission to view this post.")  # Prevent unauthorized friend-only access / 防止未授权用户访问仅好友可见帖子（GJ）
-        
+          
     return render(request, "posts/post_detail.html", {"post": post, "user": request.user.username, "comments": comments}) 
 
 def image_to_base64(image_file):
