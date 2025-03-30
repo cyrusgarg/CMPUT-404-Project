@@ -630,7 +630,7 @@ class AuthorPagination(PageNumberPagination):
             "count": self.page.paginator.count,
             "next": self.get_next_link(),  # Link to next page
             "previous": self.get_previous_link(),  # Link to previous page
-            "authors": data  # Serialized list of authors
+            "src": data  # Serialized list of authors
         })
     
 
