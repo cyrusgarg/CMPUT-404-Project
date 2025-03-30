@@ -29,7 +29,7 @@ except ImportError:
     BS4_AVAILABLE = False
 
 @api_view(['GET', 'POST'])
-@permission_classes([AllowAny])  # Allow any user to access, then control with logic
+@permission_classes([IsAuthenticated])
 @authentication_classes([NodeBasicAuthentication])  # Add this line
 
 def author_posts(request, author_id):
@@ -804,7 +804,8 @@ def extract_uuid_from_url(url):
     return segments[-1] if segments else None
 
 @api_view(['POST','PUT'])
-@permission_classes([AllowAny])
+@authentication_classes([NodeBasicAuthentication])
+@permission_classes([IsAuthenticated])
 def inbox(request, author_id):
     """
     POST: Accepts remote objects (posts, follow requests, likes, comments)
@@ -877,8 +878,6 @@ def inbox(request, author_id):
         )
 
         return Response(PostSerializer(new_post, context={'request': request}).data, status=201)
-
-        return Response({"error": "Unsupported object type"}, status=400)
 
     elif obj_type == "like":
         # Process a like object.
@@ -962,6 +961,8 @@ def inbox(request, author_id):
         RemoteFollowRequests.objects.create(sender_name=sender_name, sender_id=sender_author_url, receiver=author.user)
 
         return Response("Follow request sent", status=status.HTTP_201_CREATED)
+        
+    return Response({"error": "Unsupported object type"}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
