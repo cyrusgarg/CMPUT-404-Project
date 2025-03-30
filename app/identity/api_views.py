@@ -822,12 +822,13 @@ def inbox(request, author_id):
 
     if obj_type == "post":
         post_id = data.get("id", "").split("/")[-1]
-
+        print("Line825, post id:",post_id)
         # Extract remote author data
         author_data = data.get("author", {})
         remote_author_id = author_data.get("id", "").split("/")[-1]
         remote_host=author_data.get("host","")
-        #print("remote_host:",remote_host)
+        print("Line 830 remote_host:",remote_host)
+        print("Line 831 remote_author_id:",remote_author_id)
         # Try to fetch the existing remote author
         remote_author = Author.objects.filter(author_id=remote_author_id,host=remote_host).first()
 
