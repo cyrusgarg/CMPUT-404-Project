@@ -211,7 +211,7 @@ def remoteFollow(request):
     follower = get_object_or_404(Author, user__username=request.POST["follower"])
     local_followee = get_object_or_404(RemoteAuthor, author_id=request.POST["followee_id"])
     
-    followee_response = requests.get(local_followee.host + "/api/authors/" + local_followee.author_id)
+    followee_response = requests.get(local_followee.host + "authors/" + local_followee.author_id)
 
     if followee_response.status_code != 200:
         return HttpResponse("Error retrieving remote user:", response.text)
@@ -240,7 +240,7 @@ def remoteFollow(request):
 def remoteUnfollow(request):
     follower = get_object_or_404(User, username=request.POST["follower"]) 
     followee = get_object_or_404(RemoteAuthor, author_id=request.POST["followee_id"])
-    followee_id = followee.host + "/api/authors/" + followee.author_id
+    followee_id = followee.host + "authors/" + followee.author_id
 
     follow = RemoteFollowee.objects.filter(follower=follower, followee_id=followee_id)
     if follow.exists():
@@ -578,7 +578,7 @@ class RemoteAuthorDetailView(LoginRequiredMixin, DetailView):
         # Check if the current user is following this remote author
         context['is_following'] = RemoteFollowee.objects.filter(
             follower=self.request.user,
-            followee_id=remote_author.host + "/api/authors/" + remote_author.author_id
+            followee_id=remote_author.host + "authors/" + remote_author.author_id
         ).exists()
         
         # Fetch posts and other details as before

@@ -5,6 +5,7 @@ from rest_framework.pagination import PageNumberPagination
 import markdown
 import base64
 from django.contrib.auth.models import User  # Import Django User model / 导入Django用户模型（GJ）
+from rest_framework.request import Request
 
 class PostSerializer(serializers.ModelSerializer):
     """
@@ -261,6 +262,10 @@ class CommentSerializer(serializers.ModelSerializer):
     def get_likes(self, obj):
         """Retrieve likes on this comment dynamically using request.get_host()."""
         request = self.context.get("request")
+
+        if request and not isinstance(request, Request):
+            request = Request(request)  # Convert Django's WSGIRequest to DRF's Request
+
         if request is None:
             return {
                 "type": "likes",
@@ -276,6 +281,8 @@ class CommentSerializer(serializers.ModelSerializer):
         likes = Like.objects.filter(comment=obj).order_by("-created_at")
 
         paginator = CommentLikePagination()
+        page_size = request.GET.get("size", 5) if hasattr(request, "GET") else 5
+        paginator.page_size = int(page_size)
         paginated_likes = paginator.paginate_queryset(likes, request)
         serializer = LikeSerializer(paginated_likes, many=True, context=self.context)
 

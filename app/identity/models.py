@@ -9,7 +9,8 @@ from django.contrib import admin
 from .id_mapping import get_numeric_id_for_author
 
 class Author(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='author_profile')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='author_profile', blank=True, null=True)  # Allow null user
+    #user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='author_profile')
     bio = models.TextField(blank=True)
     profile_image = models.ImageField(upload_to='profile_images/', blank=True, null=True)
     display_name = models.CharField(max_length=100)
@@ -45,7 +46,7 @@ class Author(models.Model):
         return {
             "type": "author",
             "id": f"{base_url}/api/authors/{self.author_id}",
-            "host": base_url,
+            "host": f"{base_url}/api/",
             "displayName": self.display_name,
             "github": self.github,
             "profileImage": self.profile_image.url if self.profile_image else "",
@@ -180,16 +181,25 @@ class RemoteNode(models.Model):
 class RemoteAuthor(models.Model):
     """Model representing an author from a remote node"""
     node = models.ForeignKey(RemoteNode, on_delete=models.CASCADE, related_name='authors')
-    author_id = models.CharField(max_length=255)
+    author_id = models.CharField(max_length=255, unique=True)
     display_name = models.CharField(max_length=255)
     host = models.URLField(max_length=255)
     github = models.URLField(blank=True, null=True)
     profile_image = models.URLField(blank=True, null=True)
     last_updated = models.DateTimeField(auto_now=True)
-
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="remote_author", blank=True, null=True)
+    
     def __str__(self):
         return f"{self.display_name} ({self.node.name})"
 
     class Meta:
         unique_together = ['node', 'author_id']
         ordering = ['display_name']
+
+    def save(self, *args, **kwargs):
+        """Ensure a corresponding User is created when saving a RemoteAuthor"""
+        if not self.user:
+            username = f"remote_{self.author_id}"  # Ensure unique remote username
+            user, created = User.objects.get_or_create(username=username)
+            self.user = user  # Link the user
+        super().save(*args, **kwargs)
