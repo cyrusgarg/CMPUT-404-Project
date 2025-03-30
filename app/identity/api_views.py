@@ -21,6 +21,9 @@ from .authentication import NodeBasicAuthentication
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 import requests
 from urllib.parse import unquote
+from rest_framework.authentication import SessionAuthentication
+from django.conf import settings
+from identity.id_mapping import get_uuid_for_numeric_id
 
 try:
     from bs4 import BeautifulSoup
@@ -29,8 +32,8 @@ except ImportError:
     BS4_AVAILABLE = False
 
 @api_view(['GET', 'POST'])
-@permission_classes([AllowAny])  # Allow any user to access, then control with logic
-@authentication_classes([NodeBasicAuthentication])  # Add this line
+@permission_classes([IsAuthenticated])
+@authentication_classes([NodeBasicAuthentication, SessionAuthentication])
 
 def author_posts(request, author_id):
     """
@@ -629,7 +632,7 @@ class AuthorPagination(PageNumberPagination):
             "count": self.page.paginator.count,
             "next": self.get_next_link(),  # Link to next page
             "previous": self.get_previous_link(),  # Link to previous page
-            "src": data  # Serialized list of authors
+            "authors": data  # Serialized list of authors
         })
     
 
@@ -803,8 +806,21 @@ def extract_uuid_from_url(url):
     segments = parsed.path.rstrip('/').split('/')
     return segments[-1] if segments else None
 
+def is_integer(value):
+    """Check if the value is an integer."""
+    return isinstance(value, int) or (isinstance(value, str) and value.isdigit())
+
+def is_uuid(value):
+    """Check if the value is a valid UUID."""
+    try:
+        uuid.UUID(str(value), version=4)
+        return True
+    except ValueError:
+        return False
+
 @api_view(['POST','PUT'])
-@permission_classes([AllowAny])
+@authentication_classes([NodeBasicAuthentication])
+@permission_classes([IsAuthenticated])
 def inbox(request, author_id):
     """
     POST: Accepts remote objects (posts, follow requests, likes, comments)
@@ -821,37 +837,75 @@ def inbox(request, author_id):
 
     if obj_type == "post":
         post_id = data.get("id", "").split("/")[-1]
-
+        print("Line825, post id:",post_id)
+        if is_integer(post_id):
+            post_id = get_uuid_for_numeric_id(int(post_id))
         # Extract remote author data
         author_data = data.get("author", {})
         remote_author_id = author_data.get("id", "").split("/")[-1]
-
+        if is_integer(remote_author_id):
+            remote_author_id = get_uuid_for_numeric_id(int(remote_author_id))
+        remote_host=author_data.get("host","")
+        print("Line 830 remote_host:",remote_host)
+        print("Line 831 remote_author_id:",remote_author_id)
         # Try to fetch the existing remote author
-        remote_author = Author.objects.filter(author_id=remote_author_id).first()
+        remote_author = Author.objects.filter(author_id=remote_author_id,host=remote_host).first()
 
         if not remote_author:
-            # Ensure we get a unique username for this remote author
-            username = f"remote_{remote_author_id[:8]}"  # Unique username prefix
-            user, created = User.objects.get_or_create(username=username)
+            # Create the Author first
+            remote_author, created = Author.objects.get_or_create(
+                author_id=remote_author_id,
+                host=remote_host,
+                defaults={  # Only set these values if creating a new author
+                    "display_name": author_data.get("displayName", "Unknown Author"),
+                    "github": author_data.get("github", ""),
+                    "profile_image": author_data.get("profileImage", ""),
+                }
+            )
 
-            # Create the Author object only if it doesn't already exist
-            if not hasattr(user, "author_profile"):
-                remote_author = Author.objects.create(
-                    user=user,
-                    author_id=remote_author_id,
-                    display_name=author_data.get("displayName", "Unknown Author"),
-                    github=author_data.get("github", ""),
-                    host=author_data.get("host", settings.SITE_URL),
-                    profile_image=author_data.get("profileImage", ""),
-                )
+        if remote_author.user is None:
+            username = f"remote_{remote_author_id}"  # Unique username
+            
+            # Check if a user with this username already exists
+            user = User.objects.filter(username=username).first()
+
+            if user:
+                # If the user exists, ensure it isn't already linked to another author
+                existing_author = Author.objects.filter(user=user).first()
+
+                if existing_author:
+                    print(f"User {username} is already linked to an existing Author. Using existing author.")
+                    #existing_author=remote_author
+                    remote_author=existing_author
+                    #remote_author.host=remote_host
+                else:
+                    # Assign the existing user to the remote_author
+                    remote_author.user = user
+                    remote_author.save(update_fields=["user"])
             else:
-                remote_author = user.author_profile  # Use the existing author
+                # Create a new User and assign it to the Author
+                user = User.objects.create(username=username)
+                # Now, double-check if an Author already exists for this user
+                existing_author = Author.objects.filter(user=user).first()
+                
+                if existing_author:
+                    print(f"Warning: An Author already exists for {username}. Using existing Author.")
+                    remote_author = existing_author
+                else:
+                    remote_author.user = user
+                    remote_author.save(update_fields=["user"])  # Ensure only the user field is updated
+                # remote_author.user = user
+                # remote_author.save(update_fields=["user"])
 
+        #could be add more parameters
+        #remote_author.author_id = remote_author_id #shouldn't do it
+        remote_author.host=remote_host
+        remote_author.save()
         # Attach the correct author to the post data
-        data["author"] = remote_author.user.id  # Ensure it's the linked user
-
+        #data["author"] = remote_author.user.id  # Ensure it's the linked user
+        #print("Inside the post inbox, printing remote_author host",author_data.get("host", settings.SITE_URL))
         # Check if post exists
-        existing_post = Post.objects.filter(id=post_id).first()
+        existing_post = Post.objects.filter(id=post_id,author=remote_author.user).first()
 
         if existing_post:
             # Update existing post manually
@@ -875,20 +929,67 @@ def inbox(request, author_id):
             visibility=data.get("visibility", "PUBLIC"),
             image=data.get("image", None),  # Handle image if present
         )
+        #existing_post=Post.objects.filter(id=post_id,author=remote_author.user).first() #debugging line
+        #print("Newly createed post object:\n",PostSerializer(new_post, context={'request': request}).data)
 
         return Response(PostSerializer(new_post, context={'request': request}).data, status=201)
 
-        return Response({"error": "Unsupported object type"}, status=400)
-
     elif obj_type == "like":
+        print("like body\n",data)
+        #print("Like object\n",data)
+
+        #return Response(status=200)
         # Process a like object.
         liker_author_url = data.get("author", {}).get("id")
         if not liker_author_url:
             return Response({"error": "Missing liker author information."}, status=status.HTTP_400_BAD_REQUEST)
         # Extract the author_id from the URL
-        liker = Author.objects.filter(author_id=liker_author_url.rstrip("/").split("/")[-1]).first()
-        if not liker:
-            return Response({"error": "Liker author not found."}, status=status.HTTP_400_BAD_REQUEST)
+        # liker = Author.objects.filter(author_id=liker_author_url.rstrip("/").split("/")[-1]).first()
+        # Extract the liker (author) data
+        author_data = data.get("author", {})
+        remote_author_id = author_data.get("id", "").split("/")[-1]
+        remote_host = author_data.get("host", "")
+
+        # Try to fetch the existing remote author
+        remote_author = Author.objects.filter(author_id=remote_author_id, host=remote_host).first()
+
+        if not remote_author:
+            # Create the Author if it doesn't exist
+            remote_author, created = Author.objects.get_or_create(
+                author_id=remote_author_id,
+                host=remote_host,
+                defaults={
+                    "display_name": author_data.get("displayName", "Unknown Author"),
+                    "github": author_data.get("github", ""),
+                    "profile_image": author_data.get("profileImage", ""),
+                }
+            )
+
+        if remote_author.user is None:
+            username = f"remote_{remote_author_id}"  # Unique username
+
+            user = User.objects.filter(username=username).first()
+            if user:
+                existing_author = Author.objects.filter(user=user).first()
+                if existing_author:
+                    remote_author = existing_author
+                else:
+                    remote_author.user = user
+                    remote_author.save(update_fields=["user"])
+            else:
+                user = User.objects.create(username=username)
+                existing_author = Author.objects.filter(user=user).first()
+                if existing_author:
+                    remote_author = existing_author
+                else:
+                    remote_author.user = user
+                    remote_author.save(update_fields=["user"])
+
+        remote_author.host = remote_host
+        remote_author.save()
+        # if not liker:
+        #     #create it 
+        #     return Response({"error": "Liker author not found."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Determine whether this is a like for a post or a comment.
         object_url = data.get("object")
@@ -904,16 +1005,33 @@ def inbox(request, author_id):
             post = Post.objects.filter(id=ref_id).first()
             if not post:
                 return Response({"error": "Post not found."}, status=status.HTTP_404_NOT_FOUND)
-            if Like.objects.filter(user=liker.user, post=post).exists():
-                return Response({"error": "You have already liked this post."}, status=status.HTTP_400_BAD_REQUEST)
-            like_instance = Like.objects.create(user=liker.user, post=post)
-        elif ref_type in ["comments", "comment"]:
+            # if Like.objects.filter(user=liker.user, post=post).exists():
+            if Like.objects.filter(user=remote_author.user, post=post).exists():
+                like=Like.objects.filter(user=remote_author.user, post=post)
+                like.delete()
+                return Response({"Successfully unliked it"}, status=200)
+                #return Response({"error": "You have already liked this post."}, status=status.HTTP_400_BAD_REQUEST)
+            like_instance = Like.objects.create(user=remote_author.user, post=post)
+            # like_instance = Like.objects.create(user=liker.user, post=post)
+        elif ref_type in ["comments", "comment","commented"]:
+            print("Line 998")
             comment = Comment.objects.filter(id=ref_id).first()
             if not comment:
                 return Response({"error": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
-            if Like.objects.filter(user=liker.user, comment=comment).exists():
-                return Response({"error": "You have already liked this comment."}, status=status.HTTP_400_BAD_REQUEST)
-            like_instance = Like.objects.create(user=liker.user, comment=comment)
+            # if Like.objects.filter(user=liker.user, comment=comment).exists():
+            #     return Response({"error": "You have already liked this comment."}, status=status.HTTP_400_BAD_REQUEST)
+            # like_instance = Like.objects.create(user=liker.user, comment=comment)
+            if Like.objects.filter(user=remote_author.user, comment=comment).exists():
+                like=Like.objects.filter(user=remote_author.user, comment=comment)
+                like.delete()
+                comment.likes.remove(remote_author.user)
+                comment.like_count = comment.likes.count()
+                comment.save()
+                return Response({"you successful deleted the like"}, status=204)
+            like_instance = Like.objects.create(user=remote_author.user, comment=comment)
+            comment.likes.add(remote_author.user)
+            comment.like_count = comment.likes.count()
+            comment.save()
         else:
             return Response({"error": "Invalid object reference."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -921,15 +1039,89 @@ def inbox(request, author_id):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     elif obj_type == "comment":
+        """
+        Process a comment received in the inbox.
+        """
+        comment_id = data.get("id", "").split("/")[-1]
+
+        # Extract remote author data
+        author_data = data.get("author", {})
+        remote_author_id = author_data.get("id", "").split("/")[-1]
+        remote_host = author_data.get("host", "")
+
+        # Try to fetch the existing remote author
+        remote_author = Author.objects.filter(author_id=remote_author_id, host=remote_host).first()
+
+        if not remote_author:
+            # Create the Author if it doesn't exist
+            remote_author, created = Author.objects.get_or_create(
+                author_id=remote_author_id,
+                host=remote_host,
+                defaults={
+                    "display_name": author_data.get("displayName", "Unknown Author"),
+                    "github": author_data.get("github", ""),
+                    "profile_image": author_data.get("profileImage", ""),
+                }
+            )
+
+        if remote_author.user is None:
+            username = f"remote_{remote_author_id}"  # Unique username
+            
+            user = User.objects.filter(username=username).first()
+            if user:
+                existing_author = Author.objects.filter(user=user).first()
+                if existing_author:
+                    remote_author = existing_author
+                else:
+                    remote_author.user = user
+                    remote_author.save(update_fields=["user"])
+            else:
+                user = User.objects.create(username=username)
+                existing_author = Author.objects.filter(user=user).first()
+                if existing_author:
+                    remote_author = existing_author
+                else:
+                    remote_author.user = user
+                    remote_author.save(update_fields=["user"])
+
+        remote_author.host = remote_host
+        remote_author.save()
+
+        # Ensure post exists before adding the comment
+        post_url = data.get("post", "")
+        post_id = post_url.split("/")[-1]
+        post = Post.objects.filter(id=post_id).first()
+
+        if not post:
+            return Response({"error": "Referenced post not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if the comment exists
+        existing_comment = Comment.objects.filter(id=comment_id, user=remote_author.user, post=post).first()
+
+        if existing_comment:
+            # Update existing comment manually
+            existing_comment.content = data.get("comment", existing_comment.content)
+            existing_comment.save()
+            return Response(CommentSerializer(existing_comment, context={'request': request}).data, status=status.HTTP_200_OK)
+
+        # **Manually create the comment (without serializer)**
+        new_comment = Comment.objects.create(
+            id=comment_id,
+            user=remote_author.user,
+            post=post,
+            content=data.get("comment", ""),
+        )
+
+        return Response(CommentSerializer(new_comment, context={'request': request}).data, status=status.HTTP_201_CREATED)
         # Process a comment object using CommentSerializer.
-        data = dict(request.data)
-        data.pop("type", None)  # Remove the extra "type" field if present
-        serializer = CommentSerializer(data=data, context={'request': request, 'inbox_author': author})
-        if serializer.is_valid():
-            comment_instance = serializer.save()
-            # Optionally, re-serialize the saved comment if we need any changes
-            response_serializer = CommentSerializer(comment_instance, context={'request': request})
-            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        # data = dict(request.data)
+        # data.pop("type", None)  # Remove the extra "type" field if present
+        # serializer = CommentSerializer(data=data, context={'request': request, 'inbox_author': author})
+        # if serializer.is_valid():
+        #     comment_instance = serializer.save()
+        #     # Optionally, re-serialize the saved comment if we need any changes
+        #     response_serializer = CommentSerializer(comment_instance, context={'request': request})
+        #     return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
     elif obj_type == "follow":
         # Process a follow request.
@@ -963,6 +1155,8 @@ def inbox(request, author_id):
 
         return Response("Follow request sent", status=status.HTTP_201_CREATED)
 
+    return Response({"error": "Unsupported object type"}, status=status.HTTP_400_BAD_REQUEST)
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def followers(request, author_id):
@@ -983,7 +1177,7 @@ def followers(request, author_id):
 
     return Response({
         "type":"followers",
-        "followers": local_followers + remote_followers
+        "authors": local_followers + remote_followers
     })
 
 @api_view(['DELETE', 'PUT','GET'])
@@ -1075,3 +1269,34 @@ class NodeAuthTestView(APIView):
             "message": "Authentication successful",
             "node": getattr(request.auth, 'name', 'Unknown') if request.auth else "No Auth"
         })
+
+# if not hasattr(user, "author_profile"):
+#                 remote_author = Author.objects.create(
+#                     user=user,
+#                     author_id=remote_author_id,
+#                     display_name=author_data.get("displayName", "Unknown Author"),
+#                     github=author_data.get("github", ""),
+#                     host=remote_host,
+#                     profile_image=author_data.get("profileImage", ""),
+#                 )
+#             else:
+#                 remote_author = user.author_profile
+
+# if not remote_author:
+#             # Ensure we get a unique username for this remote author
+#             username = f"remote_{remote_author_id}"  # Unique username prefix
+#             print("inside Post inbox, line 837")
+#             user, created = User.objects.get_or_create(username=username)
+
+#             # Create the Author object only if it doesn't already exist
+#             remote_author, author_created = Author.objects.get_or_create(
+#                 user=user,
+#                 defaults={
+#                     "author_id": remote_author_id,
+#                     "display_name": author_data.get("displayName", "Unknown Author"),
+#                     "github": author_data.get("github", ""),
+#                     "host": remote_host,
+#                     "profile_image": author_data.get("profileImage", ""),
+#                 },
+#             )
+

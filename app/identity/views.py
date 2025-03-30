@@ -17,6 +17,7 @@ from .forms import AuthorProfileForm, UserSignUpForm, RemoteNodeForm
 from .utils import send_to_node
 from django.http import JsonResponse
 import requests
+from requests.auth import HTTPBasicAuth
 
 class AuthorProfileView(DetailView):
     model = Author
@@ -211,7 +212,12 @@ def remoteFollow(request):
     follower = get_object_or_404(Author, user__username=request.POST["follower"])
     local_followee = get_object_or_404(RemoteAuthor, author_id=request.POST["followee_id"])
     
-    followee_response = requests.get(local_followee.host + "/api/authors/" + local_followee.author_id)
+    remote_node = local_followee.node
+    if not remote_node:
+        return HttpResponse("Remote node not found for this author.", status=400)
+
+    auth = HTTPBasicAuth(remote_node.username, remote_node.password)
+    followee_response = requests.get(local_followee.host + "authors/" + local_followee.author_id)
 
     if followee_response.status_code != 200:
         return HttpResponse("Error retrieving remote user:", response.text)
@@ -227,7 +233,10 @@ def remoteFollow(request):
         "object": followee
     }
 
-    response = requests.post(url, headers=headers, json=body)
+    response = requests.post(
+        url, headers=headers, json=body,
+        auth = HTTPBasicAuth(remote_node.username, remote_node.password)
+        )
 
     if not RemoteFollowee.objects.filter(follower=follower.user, followee_id=followee.get("id")).exists():
         RemoteFollowee.objects.create(follower=follower.user, followee_id=followee.get("id"))
@@ -240,7 +249,7 @@ def remoteFollow(request):
 def remoteUnfollow(request):
     follower = get_object_or_404(User, username=request.POST["follower"]) 
     followee = get_object_or_404(RemoteAuthor, author_id=request.POST["followee_id"])
-    followee_id = followee.host + "/api/authors/" + followee.author_id
+    followee_id = followee.host + "authors/" + followee.author_id
 
     follow = RemoteFollowee.objects.filter(follower=follower, followee_id=followee_id)
     if follow.exists():
@@ -488,8 +497,49 @@ def fetch_remote_authors(request, node_id):
             if response and response.status_code == 200:
                 authors_data = response.json()
                 
-                # Based on the API structure in your curl output
-                if 'type' in authors_data and authors_data['type'] == 'authors' and 'src' in authors_data:
+                # Updated to check for 'authors' key instead of 'src'
+                if 'type' in authors_data and authors_data['type'] == 'authors' and 'authors' in authors_data:
+                    authors_list = authors_data['authors']
+                    
+                    authors_count = 0
+                    for author_data in authors_list:
+                        # Extract ID from the full URL
+                        author_id = author_data.get('id', '')
+                        if '/' in author_id:
+                            author_id = author_id.split('/')[-1]
+                        
+                        # Update or create the remote author
+                        RemoteAuthor.objects.update_or_create(
+                            node=node,
+                            author_id=author_id,
+                            defaults={
+                                'display_name': author_data.get('displayName', 'Unknown'),
+                                'host': author_data.get('host', ''),
+                                'github': author_data.get('github', ''),
+                                'profile_image': author_data.get('profileImage', '')
+                            }
+                        )
+                        authors_count += 1
+                    
+                    total_authors_count += authors_count
+                    
+                    # Check if there's a next page
+                    if 'next' in authors_data and authors_data['next']:
+                        # Extract the relative path from the next URL
+                        full_next_url = authors_data['next']
+                        if full_next_url.startswith("http"):
+                            # Extract just the path and query string
+                            from urllib.parse import urlparse
+                            parsed_url = urlparse(full_next_url)
+                            next_page_url = parsed_url.path
+                            if parsed_url.query:
+                                next_page_url += "?" + parsed_url.query
+                        else:
+                            next_page_url = full_next_url
+                    else:
+                        next_page_url = None
+                elif 'type' in authors_data and authors_data['type'] == 'authors' and 'src' in authors_data:
+                    # Backward compatibility for nodes still using 'src'
                     authors_list = authors_data['src']
                     
                     authors_count = 0
@@ -578,7 +628,7 @@ class RemoteAuthorDetailView(LoginRequiredMixin, DetailView):
         # Check if the current user is following this remote author
         context['is_following'] = RemoteFollowee.objects.filter(
             follower=self.request.user,
-            followee_id=remote_author.host + "/api/authors/" + remote_author.author_id
+            followee_id=remote_author.host + "authors/" + remote_author.author_id
         ).exists()
         
         # Fetch posts and other details as before

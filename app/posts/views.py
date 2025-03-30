@@ -21,6 +21,7 @@ from identity.models import RemoteNode
 from django.http import HttpResponse, JsonResponse
 import base64
 from urllib.parse import urlparse
+from requests.auth import HTTPBasicAuth
 
 @login_required
 def index(request):
@@ -130,15 +131,12 @@ def post_detail(request, post_id):
         comment.refresh_from_db()
         comment.is_liked_by_user = comment.likes.filter(id=user.id).exists()
 
-    if remote_node and not post.visibility == "DELETED":
-        return render(request, "posts/post_detail.html", {"post": post, "user": request.user.username, "comments": comments}) 
-
-    if post.visibility == "DELETED" and not user.is_superuser:
+    if post.visibility == "DELETED" and not user.is_superuser or remote_node and post.visibility == "DELETED" and not user.is_superuser:
         return HttpResponseForbidden("You do not have permission to view this post.")  # Forbidden response if post is deleted / 如果帖子已删除且用户非管理员，则返回403（GJ）
 
-    if post.visibility == "FRIENDS" and user != post.author and post.author.id not in mutual_friends_ids:
+    if post.visibility == "FRIENDS" and user != post.author and post.author.id not in mutual_friends_ids and not user.is_superuser and not remote_node:
         return HttpResponseForbidden("You do not have permission to view this post.")  # Prevent unauthorized friend-only access / 防止未授权用户访问仅好友可见帖子（GJ）
-        
+          
     return render(request, "posts/post_detail.html", {"post": post, "user": request.user.username, "comments": comments}) 
 
 def image_to_base64(image_file):
@@ -337,10 +335,19 @@ def like_post(request, post_id):
 
     # Check if the user already liked the post
     like, created = Like.objects.get_or_create(user=request.user, post=post)
-    
-    if not created:
-        like.delete()   # If the user already liked, remove the like
+    is_remote_author = post.author.username.startswith("remote_")
 
+    if created and is_remote_author:
+        
+        send_like_to_remote_recipients(like, request, is_update=False)
+    elif not created and is_remote_author:
+        # If unliking a remote author's post
+        send_like_to_remote_recipients(like, request, is_update=False)
+        like.delete()   # If the user already liked, remove the like
+    elif not created:
+        # Just delete the like for local posts
+        like.delete()
+        
     # Dynamically calculate the like count:
     like_count = Like.objects.filter(post=post).count()
 
@@ -365,6 +372,7 @@ def add_comment(request, post_id):
             user=request.user,  # Ensure user is authenticated
             content=content
         )
+        send_comment_to_remote_recipients(comment, request, is_update=False)
         return JsonResponse({
             "message": "Comment added successfully",
             "comment": {
@@ -412,11 +420,13 @@ def like_comment(request, post_id, comment_id):
 
     if not created:
         # If the like already exists, remove it (unlike)
+        send_Comment_like_to_remote_recipients(like,request,is_update=False)
         like.delete()
         comment.likes.remove(user)
         liked = False
     else:
         comment.likes.add(user)
+        send_Comment_like_to_remote_recipients(like,request,is_update=False)
         liked = True
 
     # Update the like count
@@ -477,7 +487,7 @@ def send_post_to_remote_recipients(post, request,is_update=False):
     post_data = {
         "type": "post",
         "id": f"{post.id}",
-        "author":author.to_dict(request),
+        "author":author.to_dict(),
         "title": post.title,
         "description": post.description,
         "contentType": post.contentType,
@@ -495,10 +505,15 @@ def send_post_to_remote_recipients(post, request,is_update=False):
         for remote_follower in remote_followers:
             #print("Line 489")
             parsed_url = urlparse(remote_follower.follower_id)
+            print("line506:",parsed_url)
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+            path = f"{parsed_url.path}"
+            parts = path.strip("/").split("/")  # Remove leading/trailing slashes & split
+            if len(parts) > 1:
+                extracted = "/".join(parts[:-1])  # Join everything except the last part
             author_id = parsed_url.path.strip("/").split("/")[-1]
             #print("baseHost:",base_host,"author_id:",author_id)
-            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+            inbox_url = f"{base_host}/{extracted}/{author_id}/inbox"
             print("inbox url:",inbox_url)
             recipients.add(inbox_url)
 
@@ -508,9 +523,14 @@ def send_post_to_remote_recipients(post, request,is_update=False):
         remote_friends = RemoteFriendship.objects.filter(local=author.user)
         for remote_friend in remote_friends:
             parsed_url = urlparse(remote_friend.remote)
+            print("line519:",parsed_url)
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+            path = f"{parsed_url.path}"
+            parts = path.strip("/").split("/")  # Remove leading/trailing slashes & split
+            if len(parts) > 1:
+                extracted = "/".join(parts[:-1])  # Join everything except the last part
             author_id = parsed_url.path.strip("/").split("/")[-1]
-            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+            inbox_url = f"{base_host}/{extracted}/{author_id}/inbox"
             print("inbox url:",inbox_url)
             recipients.add(inbox_url)
 
@@ -522,9 +542,13 @@ def send_post_to_remote_recipients(post, request,is_update=False):
             #print("delete")
             parsed_url = urlparse(remote_follower.follower_id)
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+            path = f"{parsed_url.path}"
+            parts = path.strip("/").split("/")  # Remove leading/trailing slashes & split
+            if len(parts) > 1:
+                extracted = "/".join(parts[:-1])  # Join everything except the last part
             author_id = parsed_url.path.strip("/").split("/")[-1]
             #print("baseHost:",base_host,"author_id:",author_id)
-            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+            inbox_url = f"{base_host}/{extracted}/{author_id}/inbox"
             recipients.add(inbox_url)
           
     # # Convert image to base64 if it exists
@@ -540,11 +564,22 @@ def send_post_to_remote_recipients(post, request,is_update=False):
     for inbox_url in recipients:
         print(f"Sending post to {inbox_url}")
 
+        parsed_url = urlparse(inbox_url)
+        base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        serializer = PostSerializer(post, context={'request': request})
+        post_data = serializer.data  # Convert to JSON format
+        print("post_data:\n",post_data)
+        # Retrieve the corresponding RemoteNode for authentication
+        remote_node = RemoteNode.objects.filter(host_url__icontains=base_host).first()
+        if not remote_node:
+            print(f"Warning: Remote node not found for {base_host}. Skipping authentication.")
+            auth = None  # No authentication
         try:
             response = requests.post(
                 inbox_url,
                 json=post_data,
                 headers={"Content-Type": "application/json"},
+                auth = HTTPBasicAuth(remote_node.username, remote_node.password)
             )
 
             if response.status_code in [200, 201]:
@@ -554,6 +589,144 @@ def send_post_to_remote_recipients(post, request,is_update=False):
 
         except requests.RequestException as e:
             print(f" Error sending post to {inbox_url}: {e}")
+
+def send_like_to_remote_recipients(like, request, is_update=False):
+    """
+    Sends a like object to the remote recipient (the author of the liked post).
+    Uses `LikeSerializer` to format the data properly.
+    """
+    post = like.post
+    #post_author = post.author.author_profile  # Author of the post being liked
+    post_author = post.author.remote_author
+    #post_author_dict=post.author.author_profile.to_dict()
+    # print("Inside post view,printing post username",post.author.username)
+    # print("Inside post view,printing post author host",post.author.author_profile.host)
+    # print("Inside post view,printing post author display name",post.author.author_profile.display_name)
+    # print("post_author dict:\n",post_author_dict)
+    # print("post_author.host:",post_author.host,"\nhttp://{request.get_host()}:",f"http://{request.get_host()}")
+    # Check if the post author is remote (only send if they are on a different node)
+    if post_author.host != f"http://{request.get_host()}":
+        author_id=post.author.username.split("_")[-1]
+        inbox_url = f"{post_author.host}authors/{author_id}/inbox"
+        print("inbox url:",inbox_url)
+        
+        # Retrieve the corresponding RemoteNode for authentication
+        remote_node = RemoteNode.objects.filter(host_url__icontains=post_author.host).first()
+        if not remote_node:
+            print(f"Warning: Remote node not found for {base_host}. Skipping authentication.")
+            auth = None  # No authentication
+        # Serialize the like object
+        serializer = LikeSerializer(like, context={'request': request})
+        like_data = serializer.data  # Convert to JSON format
+        node_username = remote_node.username
+        node_password = remote_node.password
+        try:
+            response = requests.post(
+                inbox_url,
+                json=like_data,
+                headers={"Content-Type": "application/json"},
+                auth=HTTPBasicAuth(node_username, node_password)  # Use Basic Auth
+            )
+
+            if response.status_code in [200, 201]:
+                print(f"Like sent successfully to {post_author.author_id}")
+            else:
+                print(f"Failed to send like to {post_author.author_id}: {response.status_code}, {response.text}")
+
+        except requests.RequestException as e:
+            print(f"Error sending like to {post_author.author_id}: {e}")
+
+def send_Comment_like_to_remote_recipients(like, request, is_update=False):
+    """
+    Sends a like object to the remote recipient (the author of the liked post).
+    Uses `LikeSerializer` to format the data properly.
+    """
+    comment = like.comment
+    #post_author = comment.post.author.author_profile  # Author of the post being liked
+    post_author = comment.post.author.remote_author
+    #post_author_dict=post.author.author_profile.to_dict()
+    # print("Inside post view,printing post username",post.author.username)
+    # print("Inside post view,printing post author host",post.author.author_profile.host)
+    # print("Inside post view,printing post author display name",post.author.author_profile.display_name)
+    # print("post_author dict:\n",post_author_dict)
+    # print("post_author.host:",post_author.host,"\nhttp://{request.get_host()}:",f"http://{request.get_host()}")
+    # Check if the post author is remote (only send if they are on a different node)
+    if post_author.host != f"http://{request.get_host()}":
+        author_id=post_author.user.username.split("_")[-1]
+        inbox_url = f"{post_author.host}authors/{author_id}/inbox"
+        print("inbox url:",inbox_url)
+        remote_node = RemoteNode.objects.filter(host_url__icontains=post_author.host).first()
+        if not remote_node:
+            print(f"Remote node not found for host: {post_author.host}")
+            return
+
+        # Extract authentication credentials
+        node_username = remote_node.username
+        node_password = remote_node.password
+        # Serialize the like object
+        serializer = LikeSerializer(like, context={'request': request})
+        like_data = serializer.data  # Convert to JSON format
+
+        try:
+            response = requests.post(
+                inbox_url,
+                json=like_data,
+                headers={"Content-Type": "application/json"},
+                auth=HTTPBasicAuth(node_username, node_password)  # Use Basic Auth
+            )
+
+            if response.status_code in [200, 201]:
+                print(f"Like sent successfully to {author_id}")
+            else:
+                print(f"Failed to send like to {author_id}: {response.status_code}, {response.text}")
+
+        except requests.RequestException as e:
+            print(f"Error sending like to {author_id}: {e}")
+
+def send_comment_to_remote_recipients(comment, request, is_update=False):
+    """
+    Sends a comment object to the remote recipient (the author of the post being commented on).
+    Uses `CommentSerializer` to format the data properly.
+    """
+    post = comment.post
+    #post_author = post.author.author_profile  # Get the author of the post
+    post_author = post.author.remote_author
+    author_id=post.author.username.split("_")[-1]
+    # Check if the post author is remote (only send if they are on a different node)
+    if post_author.host != f"http://{request.get_host()}":
+        parsed_url = urlparse(post_author.host)
+        base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        #author_id = post_author.author_id
+        remote_node = RemoteNode.objects.filter(host_url__icontains=post_author.host).first()
+        if not remote_node:
+            print(f"Remote node not found for host: {post_author.host}")
+            return
+
+        # Extract authentication credentials
+        node_username = remote_node.username
+        node_password = remote_node.password
+        inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+        print("inbox url",inbox_url)
+        # Serialize the comment object
+        serializer = CommentSerializer(comment, context={'request': request})
+        comment_data = serializer.data  # Convert to JSON format
+
+        try:
+            response = requests.post(
+                inbox_url,
+                json=comment_data,
+                headers={"Content-Type": "application/json"},
+                # Uncomment below if authentication is needed
+                auth=HTTPBasicAuth(node_username, node_password)  # Use Basic Auth
+            )
+
+            if response.status_code in [200, 201]:
+                print(f"Comment sent successfully to {author_id}")
+            else:
+                print(f"Failed to send comment to {author_id}: {response.status_code}, {response.text}")
+
+        except requests.RequestException as e:
+            print(f"Error sending comment to {author_id}: {e}")
 
 #just for testing
 def send_post_to_remote(post, request,is_update=False):

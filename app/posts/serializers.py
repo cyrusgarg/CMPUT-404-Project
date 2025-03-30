@@ -4,7 +4,25 @@ from identity.models import Author
 from rest_framework.pagination import PageNumberPagination
 import markdown
 import base64
-from django.contrib.auth.models import User  # Import Django User model / 导入Django用户模型（GJ）
+from django.contrib.auth.models import User
+from rest_framework.request import Request
+
+class CommentLikePagination(PageNumberPagination):
+    """
+    Custom pagination for Comments and Likes.
+    Ensures proper structure with page number, size, and count.
+    """
+    page_size = 10  # Default hardcoded page size
+    max_page_size = 50  # Limit max likes/comments per request
+
+    def get_paginated_response_data(self, data):
+        """Return paginated response data without using Response object"""
+        return {
+            'count': self.page.paginator.count,
+            'next': self.get_next_link(),
+            'previous': self.get_previous_link(),
+            'results': data
+        }
 
 class PostSerializer(serializers.ModelSerializer):
     """
@@ -19,15 +37,12 @@ class PostSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default="post")
     page = serializers.SerializerMethodField()  # HTML Page URL
     id = serializers.CharField(required=False)  # Allow writing existing IDs
-    #id = serializers.SerializerMethodField()  # Full API URL for post
-    #author = serializers.JSONField(write_only=True, required=False)  # Accept author input
     author = serializers.SerializerMethodField()  # Full author details
     content = serializers.SerializerMethodField()  # Convert Markdown/Base64 images
     comments = serializers.SerializerMethodField()  # Include comments
     likes = serializers.SerializerMethodField()  # Include likes
     image = serializers.CharField(write_only=True, required=False)
-    #author = obj.author.author_profile.host serializers.CharField(source='author.username', read_only=True)  # Store author as username string / 将作者存储为用户名字符串（GJ）
-     
+ 
     class Meta:
         model = Post  # Specify model / 指定模型（GJ）
         fields = [
@@ -56,7 +71,7 @@ class PostSerializer(serializers.ModelSerializer):
         base_url = f"http://{request.get_host()}" if request else obj.author.author_profile.host
         return f"{base_url}/authors/{obj.author.author_profile.author_id}/posts/{obj.id}"
 
-    def get_author(self,obj,request=None):
+    def get_author(self, obj, request=None):
         """Returns the author details in the required format."""
         request = self.context.get("request")
         return obj.author.author_profile.to_dict(request=request) if hasattr(obj.author, 'author_profile') else None
@@ -64,6 +79,13 @@ class PostSerializer(serializers.ModelSerializer):
     def get_comments(self, obj):
         """Fetches comments in the required format."""
         request = self.context.get("request")
+        # Ensure we have a DRF Request object
+        if request and not isinstance(request, Request):
+            try:
+                request = Request(request._request)  # Try to access the underlying request
+            except AttributeError:
+                request = Request(request)  # Fall back to wrapping directly
+            
         if request is None:
             return {"type": "Comments", "id": obj.id, "page": obj.id, "page_number": 1, "size": 0, "count": 0, "src": []}
 
@@ -72,22 +94,38 @@ class PostSerializer(serializers.ModelSerializer):
         comments = Comment.objects.filter(post=obj).order_by("-created_at")
 
         paginator = CommentLikePagination()
-        paginated_comments = paginator.paginate_queryset(comments, request)
-        serializer = CommentSerializer(paginated_comments, many=True, context=self.context)
+        page_size = 10  # Hardcoded page size
+        paginator.page_size = page_size
+        
+        try:
+            paginated_comments = paginator.paginate_queryset(comments, request)
+            serializer = CommentSerializer(paginated_comments, many=True, context={"request": request})
+            page_number = paginator.page.number if hasattr(paginator, 'page') and paginator.page else 1
+        except Exception as e:
+            # Fallback if pagination fails
+            serializer = CommentSerializer(comments[:page_size], many=True, context={"request": request})
+            page_number = 1
 
         return {
             "type": "comments",
             "id": f"{base_url}/api/authors/{obj.author.author_profile.author_id}/posts/{obj.id}/comments",
             "page": f"{base_url}/authors/{obj.author.author_profile.author_id}/posts/{obj.id}/comments",
-            "page_number": paginator.page.number if paginator.page else 1,
-            "size": paginator.page.paginator.per_page if paginator.page else 50,
+            "page_number": page_number,
+            "size": page_size,
             "count": comments.count(),
-            "src": serializer.data  # Include paginated like objects
+            "src": serializer.data
         }
 
     def get_likes(self, obj):
         """Fetches likes for the post."""
         request = self.context.get("request")
+        # Ensure we have a DRF Request object
+        if request and not isinstance(request, Request):
+            try:
+                request = Request(request._request)  # Try to access the underlying request
+            except AttributeError:
+                request = Request(request)  # Fall back to wrapping directly
+            
         if request is None:
             return {"type": "likes", "id": obj.id, "page": obj.id, "page_number": 1, "size": 0, "count": 0, "src": []}
 
@@ -96,20 +134,29 @@ class PostSerializer(serializers.ModelSerializer):
         likes = Like.objects.filter(post=obj).order_by("-created_at")
 
         paginator = CommentLikePagination()
-        paginated_likes = paginator.paginate_queryset(likes, request)
-        serializer = LikeSerializer(paginated_likes, many=True, context=self.context)
+        page_size = 10  # Hardcoded page size
+        paginator.page_size = page_size
+        
+        try:
+            paginated_likes = paginator.paginate_queryset(likes, request)
+            serializer = LikeSerializer(paginated_likes, many=True, context={"request": request})
+            page_number = paginator.page.number if hasattr(paginator, 'page') and paginator.page else 1
+            page_size = paginator.page.paginator.per_page if hasattr(paginator, 'page') and paginator.page else page_size
+        except Exception as e:
+            # Fallback if pagination fails
+            serializer = LikeSerializer(likes[:page_size], many=True, context={"request": request})
+            page_number = 1
 
         return {
             "type": "likes",
             "id": f"{base_url}/api/authors/{obj.author.author_profile.author_id}/posts/{obj.id}/likes",
             "page": f"{base_url}/authors/{obj.author.author_profile.author_id}/posts/{obj.id}/likes",
-            "page_number": paginator.page.number if paginator.page else 1,
-            "size": paginator.page.paginator.per_page if paginator.page else 50,
+            "page_number": page_number,
+            "size": page_size,
             "count": likes.count(),
-            "src": serializer.data  # Include paginated like objects
+            "src": serializer.data
         }
         
-    
     def validate_visibility(self, value):
         """
         Validate that the visibility choice is valid.
@@ -131,10 +178,7 @@ class PostSerializer(serializers.ModelSerializer):
         Create a new Post instance.
         创建新的帖子实例。（GJ）
         """
-        print("134")
-        # author_data = validated_data.pop("author", None)  # Get author input
         validated_data.pop('type', None)  # Remove 'type' if present
-        #validated_data.pop("author", None)
 
         # Convert image if provided
         image = validated_data.pop("image", None)
@@ -155,15 +199,13 @@ class PostSerializer(serializers.ModelSerializer):
           禁止更改作者字段。（GJ）
         """
         request_user = self.context['request'].user
-        # request_obj = self.context['request']
-        # request_user = getattr(request_obj, 'node_user', request_obj.user)
         
-        #validated_data.pop('type', None)  # Remove 'type' if present
         if instance.author != request_user:
-            raise serializers.ValidationError("You do not have permission to edit this post.")  # Prevent unauthorized edits / 防止未授权编辑（GJ）
+            raise serializers.ValidationError("You do not have permission to edit this post.")
+            
         image = validated_data.pop("image", None)
-        # author_data = validated_data.pop("author", None)  # Ignore author updates
         validated_data.pop("author", None)  # Ignore author updates
+        
         instance.title = validated_data.get('title', instance.title)
         instance.description = validated_data.get('description', instance.description)
         instance.content = validated_data.get('content', instance.content)
@@ -184,6 +226,7 @@ class PostSerializer(serializers.ModelSerializer):
             print(f"Error encoding image: {e}")
             return None
 
+
 class LikeSerializer(serializers.ModelSerializer):
     """
     Serializer for Like model, ensuring response matches API expectations.
@@ -196,7 +239,7 @@ class LikeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Like
-        fields = ["type", "author", "published", "id","object"]
+        fields = ["type", "author", "published", "id", "object"]
 
     def get_id(self, obj):
         """Returns the full API URL for the like."""
@@ -213,22 +256,23 @@ class LikeSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         return obj.get_object_url(request=request)
 
+
 class CommentSerializer(serializers.ModelSerializer):
     """Serializer for Comment model to convert data into JSON format."""
-    
+
     type = serializers.CharField(default="comment", read_only=True)
     id = serializers.SerializerMethodField()
     author = serializers.SerializerMethodField()
     post = serializers.SerializerMethodField()
     page = serializers.SerializerMethodField()
-    published=serializers.SerializerMethodField()
+    published = serializers.SerializerMethodField()
     contentType = serializers.SerializerMethodField()
-    comment=serializers.SerializerMethodField()
+    comment = serializers.SerializerMethodField()
     likes = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
-        fields = ["type","author", "comment","contentType", "published","id", "post", "page","likes"]
+        fields = ["type", "author", "comment", "contentType", "published", "id", "post", "page", "likes"]
 
     def get_id(self, obj):
         request = self.context.get("request")
@@ -244,23 +288,30 @@ class CommentSerializer(serializers.ModelSerializer):
         base_url = f"http://{request.get_host()}" if request else obj.post.author.author_profile.host
         return f"{base_url}/authors/{obj.post.author.author_profile.author_id}/posts/{obj.post.id}"
 
-    def get_author(self,obj):
+    def get_author(self, obj):
         request = self.context.get("request")
-        base_url = f"http://{request.get_host()}" if request else obj.post.author.author_profile.host
         return obj.user.author_profile.to_dict(request=request)  # Use the `to_dict()` method
-    
-    def get_contentType(self,obj):
+
+    def get_contentType(self, obj):
         return obj.post.contentType
-    
-    def get_published(self,obj):
+
+    def get_published(self, obj):
         return obj.created_at.strftime("%Y-%m-%dT%H:%M:%S%z")
 
-    def get_comment(self,obj):
+    def get_comment(self, obj):
         return obj.content
 
     def get_likes(self, obj):
         """Retrieve likes on this comment dynamically using request.get_host()."""
         request = self.context.get("request")
+
+        # Ensure we have a DRF Request object
+        if request and not isinstance(request, Request):
+            try:
+                request = Request(request._request)  # Try to access the underlying request
+            except AttributeError:
+                request = Request(request)  # Fall back to wrapping directly
+
         if request is None:
             return {
                 "type": "likes",
@@ -276,19 +327,28 @@ class CommentSerializer(serializers.ModelSerializer):
         likes = Like.objects.filter(comment=obj).order_by("-created_at")
 
         paginator = CommentLikePagination()
-        paginated_likes = paginator.paginate_queryset(likes, request)
-        serializer = LikeSerializer(paginated_likes, many=True, context=self.context)
+        page_size = 10  # Hardcoded page size
+        paginator.page_size = page_size
+        
+        try:
+            paginated_likes = paginator.paginate_queryset(likes, request)
+            serializer = LikeSerializer(paginated_likes, many=True, context={"request": request})
+            page_number = paginator.page.number if hasattr(paginator, 'page') and paginator.page else 1
+        except Exception as e:
+            # Fallback if pagination fails
+            serializer = LikeSerializer(likes[:page_size], many=True, context={"request": request})
+            page_number = 1
 
         return {
             "type": "likes",
             "id": f"{base_url}/api/authors/{obj.user.author_profile.author_id}/commented/{obj.id}/likes",
             "page": f"{base_url}/api/authors/{obj.user.author_profile.author_id}/commented/{obj.id}/likes",
-            "page_number": paginator.page.number if paginator.page else 1,
-            "size": paginator.page.paginator.per_page if paginator.page else 50,
+            "page_number": page_number,
+            "size": page_size,
             "count": likes.count(),
             "src": serializer.data
         }
-    
+
     def create(self, validated_data):
         # Example: extract post id from the request data or context
         request = self.context.get("request")
@@ -323,38 +383,3 @@ class CommentSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Author information is missing.")
         
         return Comment.objects.create(**validated_data)
-
-            
-
-class CommentLikePagination(PageNumberPagination):
-    """
-    Custom pagination for Likes.
-    Ensures proper structure with page number, size, and count.
-    """
-    page_size_query_param = "size"  # Allow dynamic page size via query parameters
-    page_size = 5  # Default page size
-    max_page_size = 50  # Limit max likes per request
-
-
-
-#if author_data:
-        #     author_id = author_data.get("id", "").split("/")[-1]  # Extract author UUID
-        #     author = Author.objects.filter(author_id=author_id).first()
-        #     print("148")
-        #     if not author:
-        #         # Create new Author if author does not exist
-        #         username = f"remote_{author_id[:8]}"
-        #         user, created = User.objects.get_or_create(username=username)
-
-        #         # Create the author
-        #         author = Author.objects.create(
-        #             user=user,
-        #             author_id=author_id,
-        #             display_name=author_data.get("displayName", "Unknown Author"),
-        #             github=author_data.get("github", ""),
-        #             host=author_data.get("host", settings.SITE_URL),
-        #             profile_image=author_data.get("profileImage", ""),
-        #         )
-
-        #     validated_data["author"] = author.user  # Assign the user linked to the author    
-        #     print("165")
