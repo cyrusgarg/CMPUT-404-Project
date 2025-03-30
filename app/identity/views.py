@@ -578,7 +578,7 @@ class RemoteAuthorDetailView(LoginRequiredMixin, DetailView):
         # Check if the current user is following this remote author
         context['is_following'] = RemoteFollowee.objects.filter(
             follower=self.request.user,
-            followee_id=remote_author.host + "/api/authors/" + remote_author.author_id
+            followee_id=remote_author.host + "authors/" + remote_author.author_id
         ).exists()
         
         # Fetch posts and other details as before
