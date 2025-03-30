@@ -17,6 +17,7 @@ from .forms import AuthorProfileForm, UserSignUpForm, RemoteNodeForm
 from .utils import send_to_node
 from django.http import JsonResponse
 import requests
+from requests.auth import HTTPBasicAuth
 
 class AuthorProfileView(DetailView):
     model = Author
@@ -211,6 +212,11 @@ def remoteFollow(request):
     follower = get_object_or_404(Author, user__username=request.POST["follower"])
     local_followee = get_object_or_404(RemoteAuthor, author_id=request.POST["followee_id"])
     
+    remote_node = local_followee.node
+    if not remote_node:
+        return HttpResponse("Remote node not found for this author.", status=400)
+
+    auth = HTTPBasicAuth(remote_node.username, remote_node.password)
     followee_response = requests.get(local_followee.host + "authors/" + local_followee.author_id)
 
     if followee_response.status_code != 200:
@@ -227,7 +233,10 @@ def remoteFollow(request):
         "object": followee
     }
 
-    response = requests.post(url, headers=headers, json=body)
+    response = requests.post(
+        url, headers=headers, json=body,
+        auth = HTTPBasicAuth(remote_node.username, remote_node.password)
+        )
 
     if not RemoteFollowee.objects.filter(follower=follower.user, followee_id=followee.get("id")).exists():
         RemoteFollowee.objects.create(follower=follower.user, followee_id=followee.get("id"))

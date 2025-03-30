@@ -21,6 +21,7 @@ from identity.models import RemoteNode
 from django.http import HttpResponse, JsonResponse
 import base64
 from urllib.parse import urlparse
+from requests.auth import HTTPBasicAuth
 
 @login_required
 def index(request):
@@ -502,10 +503,15 @@ def send_post_to_remote_recipients(post, request,is_update=False):
         for remote_follower in remote_followers:
             #print("Line 489")
             parsed_url = urlparse(remote_follower.follower_id)
+            print("line506:",parsed_url)
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+            path = f"{parsed_url.path}"
+            parts = path.strip("/").split("/")  # Remove leading/trailing slashes & split
+            if len(parts) > 1:
+                extracted = "/".join(parts[:-1])  # Join everything except the last part
             author_id = parsed_url.path.strip("/").split("/")[-1]
             #print("baseHost:",base_host,"author_id:",author_id)
-            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+            inbox_url = f"{base_host}/{extracted}/{author_id}/inbox"
             print("inbox url:",inbox_url)
             recipients.add(inbox_url)
 
@@ -515,9 +521,14 @@ def send_post_to_remote_recipients(post, request,is_update=False):
         remote_friends = RemoteFriendship.objects.filter(local=author.user)
         for remote_friend in remote_friends:
             parsed_url = urlparse(remote_friend.remote)
+            print("line519:",parsed_url)
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+            path = f"{parsed_url.path}"
+            parts = path.strip("/").split("/")  # Remove leading/trailing slashes & split
+            if len(parts) > 1:
+                extracted = "/".join(parts[:-1])  # Join everything except the last part
             author_id = parsed_url.path.strip("/").split("/")[-1]
-            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+            inbox_url = f"{base_host}/{extracted}/{author_id}/inbox"
             print("inbox url:",inbox_url)
             recipients.add(inbox_url)
 
@@ -529,9 +540,13 @@ def send_post_to_remote_recipients(post, request,is_update=False):
             #print("delete")
             parsed_url = urlparse(remote_follower.follower_id)
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+            path = f"{parsed_url.path}"
+            parts = path.strip("/").split("/")  # Remove leading/trailing slashes & split
+            if len(parts) > 1:
+                extracted = "/".join(parts[:-1])  # Join everything except the last part
             author_id = parsed_url.path.strip("/").split("/")[-1]
             #print("baseHost:",base_host,"author_id:",author_id)
-            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+            inbox_url = f"{base_host}/{extracted}/{author_id}/inbox"
             recipients.add(inbox_url)
           
     # # Convert image to base64 if it exists
@@ -547,11 +562,22 @@ def send_post_to_remote_recipients(post, request,is_update=False):
     for inbox_url in recipients:
         print(f"Sending post to {inbox_url}")
 
+        parsed_url = urlparse(inbox_url)
+        base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        serializer = PostSerializer(post, context={'request': request})
+        post_data = serializer.data  # Convert to JSON format
+        print("post_data:\n",post_data)
+        # Retrieve the corresponding RemoteNode for authentication
+        remote_node = RemoteNode.objects.filter(host_url__icontains=base_host).first()
+        if not remote_node:
+            print(f"Warning: Remote node not found for {base_host}. Skipping authentication.")
+            auth = None  # No authentication
         try:
             response = requests.post(
                 inbox_url,
                 json=post_data,
                 headers={"Content-Type": "application/json"},
+                auth = HTTPBasicAuth(remote_node.username, remote_node.password)
             )
 
             if response.status_code in [200, 201]:
@@ -581,17 +607,23 @@ def send_like_to_remote_recipients(like, request, is_update=False):
         author_id=post.author.username.split("_")[-1]
         inbox_url = f"{post_author.host}authors/{author_id}/inbox"
         print("inbox url:",inbox_url)
-
+        
+        # Retrieve the corresponding RemoteNode for authentication
+        remote_node = RemoteNode.objects.filter(host_url__icontains=post_author.host).first()
+        if not remote_node:
+            print(f"Warning: Remote node not found for {base_host}. Skipping authentication.")
+            auth = None  # No authentication
         # Serialize the like object
         serializer = LikeSerializer(like, context={'request': request})
         like_data = serializer.data  # Convert to JSON format
-
+        node_username = remote_node.username
+        node_password = remote_node.password
         try:
             response = requests.post(
                 inbox_url,
                 json=like_data,
                 headers={"Content-Type": "application/json"},
-                #auth=("node_username", "node_password")  # Uncomment if authentication is required
+                auth=HTTPBasicAuth(node_username, node_password)  # Use Basic Auth
             )
 
             if response.status_code in [200, 201]:
@@ -621,7 +653,14 @@ def send_Comment_like_to_remote_recipients(like, request, is_update=False):
         author_id=post_author.user.username.split("_")[-1]
         inbox_url = f"{post_author.host}authors/{author_id}/inbox"
         print("inbox url:",inbox_url)
+        remote_node = RemoteNode.objects.filter(host_url__icontains=post_author.host).first()
+        if not remote_node:
+            print(f"Remote node not found for host: {post_author.host}")
+            return
 
+        # Extract authentication credentials
+        node_username = remote_node.username
+        node_password = remote_node.password
         # Serialize the like object
         serializer = LikeSerializer(like, context={'request': request})
         like_data = serializer.data  # Convert to JSON format
@@ -631,7 +670,7 @@ def send_Comment_like_to_remote_recipients(like, request, is_update=False):
                 inbox_url,
                 json=like_data,
                 headers={"Content-Type": "application/json"},
-                #auth=("node_username", "node_password")  # Uncomment if authentication is required
+                auth=HTTPBasicAuth(node_username, node_password)  # Use Basic Auth
             )
 
             if response.status_code in [200, 201]:
@@ -656,7 +695,14 @@ def send_comment_to_remote_recipients(comment, request, is_update=False):
         parsed_url = urlparse(post_author.host)
         base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
         #author_id = post_author.author_id
+        remote_node = RemoteNode.objects.filter(host_url__icontains=post_author.host).first()
+        if not remote_node:
+            print(f"Remote node not found for host: {post_author.host}")
+            return
 
+        # Extract authentication credentials
+        node_username = remote_node.username
+        node_password = remote_node.password
         inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
         print("inbox url",inbox_url)
         # Serialize the comment object
@@ -669,7 +715,7 @@ def send_comment_to_remote_recipients(comment, request, is_update=False):
                 json=comment_data,
                 headers={"Content-Type": "application/json"},
                 # Uncomment below if authentication is needed
-                # auth=("node_username", "node_password")
+                auth=HTTPBasicAuth(node_username, node_password)  # Use Basic Auth
             )
 
             if response.status_code in [200, 201]:

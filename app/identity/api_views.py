@@ -23,6 +23,7 @@ import requests
 from urllib.parse import unquote
 from rest_framework.authentication import SessionAuthentication
 from django.conf import settings
+from identity.id_mapping import get_uuid_for_numeric_id
 
 try:
     from bs4 import BeautifulSoup
@@ -805,6 +806,18 @@ def extract_uuid_from_url(url):
     segments = parsed.path.rstrip('/').split('/')
     return segments[-1] if segments else None
 
+def is_integer(value):
+    """Check if the value is an integer."""
+    return isinstance(value, int) or (isinstance(value, str) and value.isdigit())
+
+def is_uuid(value):
+    """Check if the value is a valid UUID."""
+    try:
+        uuid.UUID(str(value), version=4)
+        return True
+    except ValueError:
+        return False
+
 @api_view(['POST','PUT'])
 @authentication_classes([NodeBasicAuthentication])
 @permission_classes([IsAuthenticated])
@@ -824,12 +837,17 @@ def inbox(request, author_id):
 
     if obj_type == "post":
         post_id = data.get("id", "").split("/")[-1]
-
+        print("Line825, post id:",post_id)
+        if is_integer(post_id):
+            post_id = get_uuid_for_numeric_id(int(post_id))
         # Extract remote author data
         author_data = data.get("author", {})
         remote_author_id = author_data.get("id", "").split("/")[-1]
+        if is_integer(remote_author_id):
+            remote_author_id = get_uuid_for_numeric_id(int(remote_author_id))
         remote_host=author_data.get("host","")
-        #print("remote_host:",remote_host)
+        print("Line 830 remote_host:",remote_host)
+        print("Line 831 remote_author_id:",remote_author_id)
         # Try to fetch the existing remote author
         remote_author = Author.objects.filter(author_id=remote_author_id,host=remote_host).first()
 
