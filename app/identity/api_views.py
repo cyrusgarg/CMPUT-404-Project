@@ -928,6 +928,7 @@ def inbox(request, author_id):
             contentType=data.get("contentType", "text/plain"),
             visibility=data.get("visibility", "PUBLIC"),
             image=data.get("image", None),  # Handle image if present
+            remote_url=data.get("id", ""),  # Store the full original URL
         )
         #existing_post=Post.objects.filter(id=post_id,author=remote_author.user).first() #debugging line
         #print("Newly createed post object:\n",PostSerializer(new_post, context={'request': request}).data)

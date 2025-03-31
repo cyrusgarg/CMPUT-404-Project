@@ -610,21 +610,42 @@ def send_like_to_remote_recipients(like, request, is_update=False):
     """
     post = like.post
     post_author = post.author.author_profile  # Author of the post being liked
-    #post_author = post.author.remote_author
-    #post_author_dict=post.author.author_profile.to_dict()
-    # print("Inside post view,printing post username",post.author.username)
-    # print("Inside post view,printing post author host",post.author.author_profile.host)
-    # print("Inside post view,printing post author display name",post.author.author_profile.display_name)
-    # print("post_author dict:\n",post_author_dict)
-    # print("post_author.host:",post_author.host,"\nhttp://{request.get_host()}:",f"http://{request.get_host()}")
-    # Check if the post author is remote (only send if they are on a different node)
+    
     if post_author.host != f"http://{request.get_host()}":
-        #author_id=post.author.username.split("_")[-1]
-        author_id=post_author.author_id
-        inbox_url = f"{post_author.host}authors/{author_id}/inbox"
-        print("inbox url:",inbox_url)
-        parsed_url = urlparse(inbox_url)
+        remote_url = post.remote_url if hasattr(post, 'remote_url') and post.remote_url else None
+    
+        if not remote_url:
+            print("Error: No remote_url found for this post. Cannot send like.")
+            return
+        parsed_url = urlparse(remote_url)
         base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        
+        # Extract the path components
+        path_parts = parsed_url.path.strip("/").split("/")
+        
+        # Find the author ID in the path
+        # For a URL like 'http://3611d.yeg.rac.sh/service/api/authors/1/posts/2'
+        # We need to identify the author ID (1 in this case)
+        author_index = -1
+        for i, part in enumerate(path_parts):
+            if part == "authors" and i+1 < len(path_parts):
+                author_index = i+1
+                break
+        
+        if author_index == -1:
+            print(f"Error: Could not find author ID in URL: {remote_url}")
+            return
+            
+        remote_author_id = path_parts[author_index]
+        
+        # Construct the inbox URL using the same base structure
+        # For most nodes, the inbox is at /api/authors/{id}/inbox
+        service_path = ""
+        if "service" in path_parts:
+            service_path = "service/"
+            
+        inbox_url = f"{base_host}/{service_path}api/authors/{remote_author_id}/inbox"
+        print(f"Constructed inbox URL: {inbox_url}")
         # Retrieve the corresponding RemoteNode for authentication
         #remote_node = RemoteNode.objects.filter(host_url__icontains=post_author.host).first()
         remote_node = RemoteNode.objects.filter(host_url__icontains=base_host).first()
@@ -632,9 +653,24 @@ def send_like_to_remote_recipients(like, request, is_update=False):
         if not remote_node:
             print(f"Warning: Remote node not found for {base_host}. Skipping authentication.")
             auth = None  # No authentication
-        # Serialize the like object
-        serializer = LikeSerializer(like, context={'request': request})
-        like_data = serializer.data  # Convert to JSON format
+        
+        # Use the post's stored remote_url if available
+        original_post_url = post.remote_url if post.remote_url else None
+        # If we don't have a stored URL, construct one (but this might not be reliable)
+        if not original_post_url:
+            post_id = post.id
+            if is_uuid(post_id):
+                post_id = get_numeric_id_for_author(post_id)
+            original_post_url = f"{post_author.host}authors/{author_id}/posts/{post_id}"
+        # Create like data with the correct post reference
+        like_data = {
+            "type": "like",
+            "summary": f"{request.user.author_profile.display_name} likes your post",
+            "author": request.user.author_profile.to_dict(),
+            # Use the original post URL instead of your local URL format
+            "object": original_post_url
+        }
+        print("like data:\n",like_data)
         node_username = remote_node.username
         node_password = remote_node.password
         try:
@@ -819,4 +855,21 @@ def send_post_to_remote(post, request,is_update=False):
         #print(f"Error sending post to {recipient.author_id}: {e}")
 
 
+ #author_id=post.author.username.split("_")[-1]
+        # author_id=post_author.author_id
+        # if(is_uuid(author_id)): #for Enine
+        #     author_id=get_numeric_id_for_author(author_id)
 
+#post_author = post.author.remote_author
+    #post_author_dict=post.author.author_profile.to_dict()
+    # print("Inside post view,printing post username",post.author.username)
+    # print("Inside post view,printing post author host",post.author.author_profile.host)
+    # print("Inside post view,printing post author display name",post.author.author_profile.display_name)
+    # print("post_author dict:\n",post_author_dict)
+    # print("post_author.host:",post_author.host,"\nhttp://{request.get_host()}:",f"http://{request.get_host()}")
+    # Check if the post author is remote (only send if they are on a different node)
+ #Serialize the like object
+        # serializer = LikeSerializer(like, context={'request': request})
+        # like_data = serializer.data  # Convert to JSON format
+        # CRITICAL FIX: Use the remote post's original URL format
+        # This is what the other node expects for the post reference
