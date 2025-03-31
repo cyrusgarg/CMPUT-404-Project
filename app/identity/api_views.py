@@ -1175,7 +1175,7 @@ def followers(request, author_id):
     # get author, it's followers and then convert it into a json response
     author = get_object_or_404(Author, author_id=author_id)
     local_follows = Following.objects.filter(followee=author.user).order_by('-created_at')
-    local_followers = [get_object_or_404(Author, user=follow.follower) for follow in local_follows]
+    local_followers = [get_object_or_404(Author, user=follow.follower).to_dict() for follow in local_follows]
 
     remote_follows = RemoteFollower.objects.filter(followee=author.user).order_by('-created_at')
     remote_followers = []
