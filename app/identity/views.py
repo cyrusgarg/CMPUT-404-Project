@@ -622,7 +622,7 @@ class RemoteAuthorListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
+        context['node'] = self.node 
         # Add profile URL for each author
         for author in context['authors']:
             # For local authors
