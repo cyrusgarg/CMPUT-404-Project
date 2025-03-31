@@ -623,22 +623,21 @@ class RemoteAuthorListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['node'] = self.node 
-        # Add profile URL for each author
-        for author in context['authors']:
-            # For local authors
-            if author.get('is_local', False):
-                profile_url = reverse_lazy('identity:author-profile', 
-                                        kwargs={'author_id': author.get('id')})
-            else:
-                # For remote authors
-                profile_url = reverse_lazy('identity:remote-author-detail', 
-                                        kwargs={'node_id': author.get('node_id'), 'pk': author.get('id')})
-            
-            author['profile_url'] = profile_url
+        
+        # Delete or comment out these lines - they're causing the error:
+        # for author in context['authors']:
+        #     # For local authors
+        #     if author.get('is_local', False):
+        #         profile_url = reverse_lazy('identity:author-profile', 
+        #                                 kwargs={'author_id': author.get('id')})
+        #     else:
+        #         # For remote authors
+        #         profile_url = reverse_lazy('identity:remote-author-detail', 
+        #                                 kwargs={'node_id': author.get('node_id'), 'pk': author.get('id')})
+        #     
+        #     author['profile_url'] = profile_url
         
         return context
-    
-
 
 class RemoteAuthorDetailView(LoginRequiredMixin, DetailView):
     model = RemoteAuthor
