@@ -307,34 +307,35 @@ def remoteAccept(request):
     # query user DB to get the sender and receiver
     sender_id = request.POST["sender_id"]
     sender_name = request.POST["sender_name"]
-    receiver = get_object_or_404(User, username=request.POST["receiver"])
+    receiver_author = get_object_or_404(Author, author_id=request.POST["receiver_author_id"])
+    receiver = receiver_author.user
     
     # ensure database is consistent
-    request = RemoteFollowRequests.objects.filter(sender_id=sender_id, sender_name=sender_name, receiver=receiver)
-    if(request.exists() and not RemoteFollower.objects.filter(follower_id=sender_id, followee=receiver).exists()):
-        request.delete()
+    request_obj = RemoteFollowRequests.objects.filter(sender_id=sender_id, sender_name=sender_name, receiver=receiver)
+    if(request_obj.exists() and not RemoteFollower.objects.filter(follower_id=sender_id, followee=receiver).exists()):
+        request_obj.delete()
         RemoteFollower.objects.create(follower_id=sender_id, followee=receiver)
 
         # check if there is a corresponding friendship to be created
         if(RemoteFollowee.objects.filter(follower=receiver, followee_id=sender_id).exists() and not RemoteFriendship.objects.filter(local=receiver, remote=sender_id)):
             RemoteFriendship.objects.create(local=receiver, remote=sender_id)
 
-        return redirect(reverse('identity:requests', kwargs={'author_id': receiver.username}))
+        return redirect(reverse('identity:requests', kwargs={'author_id': receiver_author.author_id}))
     return HttpResponse("Error in accepting the follow request")
 
 def remoteDecline(request):
     # query user DB to get the sender and receiver
     sender_id = request.POST["sender_id"]
     sender_name = request.POST["sender_name"]
-    receiver = get_object_or_404(User, username=request.POST["receiver"])
-    request = RemoteFollowRequests.objects.filter(sender_id=sender_id, sender_name=sender_name, receiver=receiver)
+    receiver_author = get_object_or_404(Author, author_id=request.POST["receiver_author_id"])
+    receiver = receiver_author.user
+    request_obj = RemoteFollowRequests.objects.filter(sender_id=sender_id, sender_name=sender_name, receiver=receiver)
 
     # ensure database is consistent
-    if(request.exists()):
-        request.delete()
-        return redirect(reverse('identity:requests', kwargs={'author_id': receiver.username}))
+    if(request_obj.exists()):
+        request_obj.delete()
+        return redirect(reverse('identity:requests', kwargs={'author_id': receiver_author.author_id}))
     return HttpResponse("Error in declining the follow request")
-
 class AuthorProfileEditView(LoginRequiredMixin, UpdateView):
     model = Author
     form_class = AuthorProfileForm

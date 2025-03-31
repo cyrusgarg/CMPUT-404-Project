@@ -41,9 +41,9 @@ urlpatterns = [
     path('remote-accept', views.remoteAccept, name='remote-accept'),
     path('remote-decline', views.remoteDecline, name='remote-decline'),
     
-    # Changed from username to author_id
-    path('authors/<str:author_id>/', views.AuthorProfileView.as_view(), name='author-profile'),
-    path('authors/<str:author_id>/requests/', views.Requests.as_view(), name='requests'),
+    # Fixed paths to remove duplicate "authors/" in the URL
+    path('<str:author_id>/', views.AuthorProfileView.as_view(), name='author-profile'),
+    path('<str:author_id>/requests/', views.Requests.as_view(), name='requests'),
     path('nodes/<int:node_id>/authors/', RemoteAuthorListView.as_view(), name='remote-authors-list'),
     path('nodes/<int:node_id>/authors/<int:pk>/', RemoteAuthorDetailView.as_view(), name='remote-author-detail'),
     path('nodes/<int:node_id>/fetch/', fetch_remote_authors, name='fetch-remote-authors'),
