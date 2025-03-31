@@ -25,7 +25,7 @@ class AuthorProfileView(DetailView):
     context_object_name = 'author'
     
     def get_object(self):
-        return get_object_or_404(Author, user__username=self.kwargs['username'])
+        return get_object_or_404(Author, author_id=self.kwargs['author_id'])
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -110,7 +110,7 @@ class AuthorListView(ListView):
             # For local authors
             if author.get('is_local', False):
                 profile_url = reverse_lazy('identity:author-profile', 
-                                        kwargs={'username': author.get('username')})
+                                        kwargs={'author_id': author.get('id')})
             else:
                 # For remote authors
                 profile_url = reverse_lazy('identity:remote-author-detail', 
@@ -126,11 +126,13 @@ class Requests(ListView):
     context_object_name = 'requests'
 
     def get_queryset(self):
-        return FollowRequests.objects.filter(receiver__username=self.kwargs['username']).order_by('-created_at')
+        author = get_object_or_404(Author, author_id=self.kwargs['author_id'])
+        return FollowRequests.objects.filter(receiver=author.user).order_by('-created_at')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['remote_requests'] = RemoteFollowRequests.objects.filter(receiver__username=self.kwargs['username']).order_by('-created_at')
+        author = get_object_or_404(Author, author_id=self.kwargs['author_id'])
+        context['remote_requests'] = RemoteFollowRequests.objects.filter(receiver=author.user).order_by('-created_at')
         return context
 
 # --- GitHub Webhook View ---
@@ -179,20 +181,22 @@ def github_webhook(request):
         return HttpResponseBadRequest("Error processing webhook: " + str(e))
 
 def follow(request):
-    # query user DB to get the sender and receiver
-    sender = get_object_or_404(User, username=request.POST["sender"])
-    receiver = get_object_or_404(User, username=request.POST["receiver"])
+    # Extract the author from author_id
+    sender = request.user
+    receiver_author = get_object_or_404(Author, author_id=request.POST["receiver_author_id"])
+    receiver = receiver_author.user
 
     # ensure database is consistent
     if(not FollowRequests.objects.filter(sender=sender, receiver=receiver).exists() and not Following.objects.filter(follower=sender, followee=receiver).exists()):
         FollowRequests.objects.create(sender=sender, receiver=receiver)
-        return redirect(reverse('identity:author-profile', kwargs={'username': receiver.username}))
+        return redirect(reverse('identity:author-profile', kwargs={'author_id': receiver_author.author_id}))
     return HttpResponse("Error in sending a follow request")
 
 def unfollow(request):
-    # query user DB to get the follower and followee
-    follower = get_object_or_404(User, username=request.POST.get('follower'))
-    followee = get_object_or_404(User, username=request.POST.get('followee'))
+    # Extract the author from author_id
+    follower = request.user
+    followee_author = get_object_or_404(Author, author_id=request.POST.get('followee_author_id'))
+    followee = followee_author.user
     follow = Following.objects.filter(follower=follower, followee=followee)
 
     # ensure database is consistent
@@ -205,11 +209,11 @@ def unfollow(request):
         if(friendship.exists()):
             friendship.delete()
 
-        return redirect(reverse('identity:author-profile', kwargs={'username': followee.username}))
+        return redirect(reverse('identity:author-profile', kwargs={'author_id': followee_author.author_id}))
     return HttpResponse("Error during unfollowing")
 
 def remoteFollow(request):
-    follower = get_object_or_404(Author, user__username=request.POST["follower"])
+    follower = get_object_or_404(Author, author_id=request.POST["follower_author_id"])
     local_followee = get_object_or_404(RemoteAuthor, author_id=request.POST["followee_id"])
     
     remote_node = local_followee.node
@@ -247,7 +251,8 @@ def remoteFollow(request):
     return redirect(reverse('identity:remote-author-detail', kwargs={'node_id':local_followee.node.id, 'pk':local_followee.id}))
     
 def remoteUnfollow(request):
-    follower = get_object_or_404(User, username=request.POST["follower"]) 
+    follower_author = get_object_or_404(Author, author_id=request.POST["follower_author_id"])
+    follower = follower_author.user
     followee = get_object_or_404(RemoteAuthor, author_id=request.POST["followee_id"])
     followee_id = followee.host + "authors/" + followee.author_id
 
@@ -262,14 +267,15 @@ def remoteUnfollow(request):
     return HttpResponse("Error during unfollowing")
 
 def accept(request):
-    # query user DB to get the sender and receiver
-    sender = get_object_or_404(User, username=request.POST["sender"])
-    receiver = get_object_or_404(User, username=request.POST["receiver"])
+    # Extract the sender and receiver authors
+    sender_author = get_object_or_404(Author, author_id=request.POST["sender_author_id"])
+    sender = sender_author.user
+    receiver = request.user
     
     # ensure database is consistent
-    request = FollowRequests.objects.filter(sender=sender, receiver=receiver)
-    if(request.exists() and not Following.objects.filter(follower=sender, followee=receiver).exists()):
-        request.delete()
+    request_obj = FollowRequests.objects.filter(sender=sender, receiver=receiver)
+    if(request_obj.exists() and not Following.objects.filter(follower=sender, followee=receiver).exists()):
+        request_obj.delete()
         Following.objects.create(follower=sender, followee=receiver)
 
         # check if there is a corresponding friendship to be created
@@ -277,19 +283,24 @@ def accept(request):
         if(Following.objects.filter(follower=receiver, followee=sender).exists() and not Friendship.objects.filter(user1=user1, user2=user2)):
             Friendship.objects.create(user1=user1, user2=user2)
 
-        return redirect(reverse('identity:requests', kwargs={'username': receiver.username}))
+        # Get the receiver's author profile
+        receiver_author = get_object_or_404(Author, user=receiver)
+        return redirect(reverse('identity:requests', kwargs={'author_id': receiver_author.author_id}))
     return HttpResponse("Error in accepting the follow request")
 
 def decline(request):
-    # query user DB to get the sender and receiver
-    sender = get_object_or_404(User, username=request.POST["sender"])
-    receiver = get_object_or_404(User, username=request.POST["receiver"])
-    request = FollowRequests.objects.filter(sender=sender, receiver=receiver)
+    # Extract the sender author
+    sender_author = get_object_or_404(Author, author_id=request.POST["sender_author_id"])
+    sender = sender_author.user
+    receiver = request.user
+    request_obj = FollowRequests.objects.filter(sender=sender, receiver=receiver)
 
     # ensure database is consistent
-    if(request.exists()):
-        request.delete()
-        return redirect(reverse('identity:requests', kwargs={'username': receiver.username}))
+    if(request_obj.exists()):
+        request_obj.delete()
+        # Get the receiver's author profile
+        receiver_author = get_object_or_404(Author, user=receiver)
+        return redirect(reverse('identity:requests', kwargs={'author_id': receiver_author.author_id}))
     return HttpResponse("Error in declining the follow request")
 
 def remoteAccept(request):
@@ -308,7 +319,7 @@ def remoteAccept(request):
         if(RemoteFollowee.objects.filter(follower=receiver, followee_id=sender_id).exists() and not RemoteFriendship.objects.filter(local=receiver, remote=sender_id)):
             RemoteFriendship.objects.create(local=receiver, remote=sender_id)
 
-        return redirect(reverse('identity:requests', kwargs={'username': receiver.username}))
+        return redirect(reverse('identity:requests', kwargs={'author_id': receiver.username}))
     return HttpResponse("Error in accepting the follow request")
 
 def remoteDecline(request):
@@ -321,7 +332,7 @@ def remoteDecline(request):
     # ensure database is consistent
     if(request.exists()):
         request.delete()
-        return redirect(reverse('identity:requests', kwargs={'username': receiver.username}))
+        return redirect(reverse('identity:requests', kwargs={'author_id': receiver.username}))
     return HttpResponse("Error in declining the follow request")
 
 class AuthorProfileEditView(LoginRequiredMixin, UpdateView):
@@ -335,7 +346,7 @@ class AuthorProfileEditView(LoginRequiredMixin, UpdateView):
     
     def get_success_url(self):
         messages.success(self.request, "Your profile has been updated successfully!")
-        return reverse_lazy('identity:author-profile', kwargs={'username': self.request.user.username})
+        return reverse_lazy('identity:author-profile', kwargs={'author_id': self.request.user.author_profile.author_id})
     
 class UserSignUpView(CreateView):
     form_class = UserSignUpForm
@@ -611,7 +622,20 @@ class RemoteAuthorListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['node'] = self.node
+        
+        # Add profile URL for each author
+        for author in context['authors']:
+            # For local authors
+            if author.get('is_local', False):
+                profile_url = reverse_lazy('identity:author-profile', 
+                                        kwargs={'author_id': author.get('id')})
+            else:
+                # For remote authors
+                profile_url = reverse_lazy('identity:remote-author-detail', 
+                                        kwargs={'node_id': author.get('node_id'), 'pk': author.get('id')})
+            
+            author['profile_url'] = profile_url
+        
         return context
     
 

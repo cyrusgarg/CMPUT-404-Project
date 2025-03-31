@@ -78,6 +78,6 @@
     <!-- Link to view other posts / 查看其他帖子页面的链接（GJ） -->
     <a href="{% url 'posts:view_posts' %}">View Other Users' Posts</a>
     <br>
-    <a href="{% url 'identity:author-profile' username=request.user.username %}" class="btn btn-secondary">Back to Profile</a>
+    <a href="{% url 'identity:author-profile' author_id=request.user.author_profile.author_id %}" class="btn btn-secondary">Back to Profile</a>
 </body>
 </html>

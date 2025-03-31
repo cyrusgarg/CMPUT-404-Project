@@ -21,7 +21,15 @@
                         <span><strong>Likes:</strong> {{ post.likes.count }}</span>
                         <span><strong>Date:</strong> {{ post.published }}</span>
                     </div>
-                    <p><strong>User:</strong> {{ post.author.username }}</p>
+                    <p><strong>Author:</strong> 
+                        {% if post.author.author_profile %}
+                            <a href="{% url 'identity:author-profile' author_id=post.author.author_profile.author_id %}">
+                                {{ post.author.author_profile.display_name }}
+                            </a>
+                        {% else %}
+                            {{ post.author.username }}
+                        {% endif %}
+                    </p>
                     {% if post.visibility == "DELETED" %}
                         <p id="deleted-warning">[Deleted]</p>
                     {% endif %}
@@ -29,13 +37,13 @@
                 </div>
             </div>
         {% empty %}
-            <!-- Message when no visible posts are available / 没有可见帖子时显示消息（GJ） -->
-            <li>No posts available.</li>
+            <!-- Message when no visible posts are available -->
+            <p>No posts available.</p>
         {% endfor %}
-    </ul>
+    </div>
 
     <br>
-    <!-- Link to go back to the user's own posts page / 返回用户自己帖子页面的链接（GJ） -->
+    <!-- Link to go back to the user's own posts page -->
     <a href="{% url 'posts:index' %}">Back to My Posts</a>
 </body>
 </html>
