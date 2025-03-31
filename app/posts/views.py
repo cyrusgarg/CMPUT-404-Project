@@ -22,6 +22,8 @@ from django.http import HttpResponse, JsonResponse
 import base64
 from urllib.parse import urlparse
 from requests.auth import HTTPBasicAuth
+import uuid
+from identity.id_mapping import get_numeric_id_for_author
 
 @login_required
 def index(request):
@@ -471,6 +473,18 @@ def shared_post_view(request, post_id):
         "is_liked": is_liked
     })
 
+def is_integer(value):
+    """Check if the value is an integer."""
+    return isinstance(value, int) or (isinstance(value, str) and value.isdigit())
+
+def is_uuid(value):
+    """Check if the value is a valid UUID."""
+    try:
+        uuid.UUID(str(value), version=4)
+        return True
+    except ValueError:
+        return False
+
 def send_post_to_remote_recipients(post, request,is_update=False):
     """
     Sends a post (new or updated) to the appropriate remote recipients.
@@ -569,6 +583,7 @@ def send_post_to_remote_recipients(post, request,is_update=False):
         print("post_data:\n",post_data)
         # Retrieve the corresponding RemoteNode for authentication
         remote_node = RemoteNode.objects.filter(host_url__icontains=base_host).first()
+        print("Remote node:",remote_node.username, remote_node.password)
         if not remote_node:
             print(f"Warning: Remote node not found for {base_host}. Skipping authentication.")
             auth = None  # No authentication
@@ -594,8 +609,8 @@ def send_like_to_remote_recipients(like, request, is_update=False):
     Uses `LikeSerializer` to format the data properly.
     """
     post = like.post
-    #post_author = post.author.author_profile  # Author of the post being liked
-    post_author = post.author.remote_author
+    post_author = post.author.author_profile  # Author of the post being liked
+    #post_author = post.author.remote_author
     #post_author_dict=post.author.author_profile.to_dict()
     # print("Inside post view,printing post username",post.author.username)
     # print("Inside post view,printing post author host",post.author.author_profile.host)
@@ -604,12 +619,16 @@ def send_like_to_remote_recipients(like, request, is_update=False):
     # print("post_author.host:",post_author.host,"\nhttp://{request.get_host()}:",f"http://{request.get_host()}")
     # Check if the post author is remote (only send if they are on a different node)
     if post_author.host != f"http://{request.get_host()}":
-        author_id=post.author.username.split("_")[-1]
+        #author_id=post.author.username.split("_")[-1]
+        author_id=post_author.author_id
         inbox_url = f"{post_author.host}authors/{author_id}/inbox"
         print("inbox url:",inbox_url)
-        
+        parsed_url = urlparse(inbox_url)
+        base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
         # Retrieve the corresponding RemoteNode for authentication
-        remote_node = RemoteNode.objects.filter(host_url__icontains=post_author.host).first()
+        #remote_node = RemoteNode.objects.filter(host_url__icontains=post_author.host).first()
+        remote_node = RemoteNode.objects.filter(host_url__icontains=base_host).first()
+        print("Remote node:",remote_node.username, remote_node.password)
         if not remote_node:
             print(f"Warning: Remote node not found for {base_host}. Skipping authentication.")
             auth = None  # No authentication
@@ -640,8 +659,8 @@ def send_Comment_like_to_remote_recipients(like, request, is_update=False):
     Uses `LikeSerializer` to format the data properly.
     """
     comment = like.comment
-    #post_author = comment.post.author.author_profile  # Author of the post being liked
-    post_author = comment.post.author.remote_author
+    post_author = comment.post.author.author_profile  # Author of the post being liked
+    #post_author = comment.post.author.remote_author
     #post_author_dict=post.author.author_profile.to_dict()
     # print("Inside post view,printing post username",post.author.username)
     # print("Inside post view,printing post author host",post.author.author_profile.host)
@@ -653,7 +672,11 @@ def send_Comment_like_to_remote_recipients(like, request, is_update=False):
         author_id=post_author.user.username.split("_")[-1]
         inbox_url = f"{post_author.host}authors/{author_id}/inbox"
         print("inbox url:",inbox_url)
-        remote_node = RemoteNode.objects.filter(host_url__icontains=post_author.host).first()
+        #remote_node = RemoteNode.objects.filter(host_url__icontains=post_author.host).first()
+        parsed_url = urlparse(inbox_url)
+        base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        remote_node = RemoteNode.objects.filter(host_url__icontains=base_host).first()
+        print("Remote node:",remote_node.username, remote_node.password)
         if not remote_node:
             print(f"Remote node not found for host: {post_author.host}")
             return
@@ -687,15 +710,27 @@ def send_comment_to_remote_recipients(comment, request, is_update=False):
     Uses `CommentSerializer` to format the data properly.
     """
     post = comment.post
-    #post_author = post.author.author_profile  # Get the author of the post
-    post_author = post.author.remote_author
+    post_author = post.author.author_profile  # Get the author of the post
+    #post_author = post.author.remote_author
     author_id=post.author.username.split("_")[-1]
+    print("author_id:",author_id)
+    # if(is_uuid(author_id)): #for Enine
+    #     author_id=get_numeric_id_for_author(author_id)
     # Check if the post author is remote (only send if they are on a different node)
     if post_author.host != f"http://{request.get_host()}":
         parsed_url = urlparse(post_author.host)
         base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        path = f"{parsed_url.path}"
+        parts = path.strip("/").split("/")  # Remove leading/trailing slashes & split
+        if len(parts) > 1:
+            extracted = "/".join(parts[:-1])  # Join everything except the last part
+        #author_id = parsed_url.path.strip("/").split("/")[-1]
         #author_id = post_author.author_id
-        remote_node = RemoteNode.objects.filter(host_url__icontains=post_author.host).first()
+        #remote_node = RemoteNode.objects.filter(host_url__icontains=post_author.host).first()
+        #parsed_url = urlparse(inbox_url)
+        #base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        remote_node = RemoteNode.objects.filter(host_url__icontains=base_host).first()
+        print("Remote node:",remote_node.username, remote_node.password)
         if not remote_node:
             print(f"Remote node not found for host: {post_author.host}")
             return
@@ -703,11 +738,14 @@ def send_comment_to_remote_recipients(comment, request, is_update=False):
         # Extract authentication credentials
         node_username = remote_node.username
         node_password = remote_node.password
-        inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+        #inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
+        print("Line 742 author id:",author_id)
+        inbox_url = f"{base_host}/{extracted}/api/authors/{author_id}/inbox"
         print("inbox url",inbox_url)
         # Serialize the comment object
         serializer = CommentSerializer(comment, context={'request': request})
         comment_data = serializer.data  # Convert to JSON format
+        print("Comment_data:\n",comment_data)
 
         try:
             response = requests.post(
