@@ -67,10 +67,10 @@ class AuthorListView(ListView):
                 'github': author.github,
                 'host': author.host,
                 'is_local': True,
-                'username': author.user.username,
+               # 'username': author.user.username,
                 # Generate profile URL for local authors
-                'profile_url': reverse_lazy('identity:author-profile', 
-                                kwargs={'username': author.user.username})
+                #'profile_url': reverse_lazy('identity:author-profile', 
+                 #               kwargs={'username': author.user.username})
             })
         
         # Add remote authors
