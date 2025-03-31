@@ -53,7 +53,16 @@
     <ul id="comment-list">
         {% for comment in comments %}
             <li data-comment-id="{{ comment.id }}">
-                <strong>{{ comment.user.username }}</strong>: {{ comment.content }}
+                {% if comment.user.author_profile %}
+                    <strong>
+                        <a href="{% url 'identity:author-profile' author_id=comment.user.author_profile.author_id %}">
+                            {{ comment.user.author_profile.display_name }}
+                        </a>
+                    </strong>
+                {% else %}
+                    <strong>{{ comment.user.username }}</strong>
+                {% endif %}
+                : {{ comment.content }}
                 <p>Likes: <span class="like-count">{{ comment.like_count }}</span></p>
                 <!-- Like button for comment -->
                 <form action="{% url 'posts:like_comment' post.id comment.id %}" method="POST" class="like-comment-form">
@@ -73,7 +82,7 @@
         <p id="deleted-warning"><strong>This post has been deleted.</strong></p>
     {% endif %}
 
-    {% if user == post.author %}
+    {% if request.user == post.author %}
         <!-- If the logged-in user is the author, allow editing / 如果当前用户是帖子作者，则允许编辑（GJ） -->
         <a href="{% url 'posts:edit_post' post.id %}">Edit</a>
 
@@ -177,8 +186,17 @@
                         if (data.comment) {
                             const newComment = document.createElement("li");
                             newComment.setAttribute("data-comment-id", data.comment.id);
+                            
+                            // Create profile link if author data is available
+                            let authorDisplay = '';
+                            if (data.comment.author_id) {
+                                authorDisplay = `<strong><a href="/authors/${data.comment.author_id}/">${data.comment.author}</a></strong>`;
+                            } else {
+                                authorDisplay = `<strong>${data.comment.author}</strong>`;
+                            }
+                            
                             newComment.innerHTML = `
-                                <strong>${data.comment.author}</strong>: ${data.comment.content}
+                                ${authorDisplay}: ${data.comment.content}
                                 <p>Likes: <span class="like-count">0</span></p>
                                 <form action="/posts/{{ post.id }}/comment/${data.comment.id}/like/" method="POST" class="like-comment-form">
                                     <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">

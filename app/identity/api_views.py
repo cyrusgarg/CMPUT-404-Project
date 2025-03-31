@@ -928,6 +928,7 @@ def inbox(request, author_id):
             contentType=data.get("contentType", "text/plain"),
             visibility=data.get("visibility", "PUBLIC"),
             image=data.get("image", None),  # Handle image if present
+            remote_url=data.get("id", ""),  # Store the full original URL
         )
         #existing_post=Post.objects.filter(id=post_id,author=remote_author.user).first() #debugging line
         #print("Newly createed post object:\n",PostSerializer(new_post, context={'request': request}).data)
@@ -948,6 +949,8 @@ def inbox(request, author_id):
         # Extract the liker (author) data
         author_data = data.get("author", {})
         remote_author_id = author_data.get("id", "").split("/")[-1]
+        if is_integer(remote_author_id):
+            remote_author_id = get_uuid_for_numeric_id(int(remote_author_id))
         remote_host = author_data.get("host", "")
 
         # Try to fetch the existing remote author
@@ -1000,7 +1003,8 @@ def inbox(request, author_id):
             return Response({"error": "Invalid object URL."}, status=status.HTTP_400_BAD_REQUEST)
         ref_type = parts[-2].lower()
         ref_id = parts[-1]
-
+        if is_integer(ref_id):
+            ref_id = get_uuid_for_numeric_id(int(ref_id))
         if ref_type in ["posts", "post"]:
             post = Post.objects.filter(id=ref_id).first()
             if not post:
@@ -1043,10 +1047,13 @@ def inbox(request, author_id):
         Process a comment received in the inbox.
         """
         comment_id = data.get("id", "").split("/")[-1]
-
+        if is_integer(comment_id):
+            comment_id = get_uuid_for_numeric_id(int(comment_id))
         # Extract remote author data
         author_data = data.get("author", {})
         remote_author_id = author_data.get("id", "").split("/")[-1]
+        if is_integer(remote_author_id):
+            remote_author_id= get_uuid_for_numeric_id(int(remote_author_id))
         remote_host = author_data.get("host", "")
 
         # Try to fetch the existing remote author
@@ -1090,6 +1097,8 @@ def inbox(request, author_id):
         # Ensure post exists before adding the comment
         post_url = data.get("post", "")
         post_id = post_url.split("/")[-1]
+        if is_integer(post_id):
+            remote_author_id= get_uuid_for_numeric_id(int(post_id))
         post = Post.objects.filter(id=post_id).first()
 
         if not post:

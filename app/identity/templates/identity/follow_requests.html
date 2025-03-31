@@ -11,19 +11,17 @@
             <!-- Show each follow request with option to accept and decline -->
             {% for request in requests %}
                 <li>
-                    <a href="/authors/{{ request.sender.username }}">
-                        {{ request.sender.username }}
+                    <a href="{% url 'identity:author-profile' author_id=request.sender.author_profile.author_id %}">
+                        {{ request.sender.author_profile.display_name }}
                     </a>
-                    <form action="/authors/accept" method="post" style="display:inline;">
+                    <form action="{% url 'identity:accept' %}" method="post" style="display:inline;">
                         {% csrf_token %}
-                        <input type="hidden" name="sender" value="{{ request.sender.username }}">
-                        <input type="hidden" name="receiver" value="{{ request.receiver.username }}">
+                        <input type="hidden" name="sender_author_id" value="{{ request.sender.author_profile.author_id }}">
                         <button type="submit">Accept</button>
                     </form>
-                    <form action="/authors/decline" method="post" style="display:inline;">
+                    <form action="{% url 'identity:decline' %}" method="post" style="display:inline;">
                         {% csrf_token %}
-                        <input type="hidden" name="sender" value="{{ request.sender.username }}">
-                        <input type="hidden" name="receiver" value="{{ request.receiver.username }}">
+                        <input type="hidden" name="sender_author_id" value="{{ request.sender.author_profile.author_id }}">
                         <button type="submit">Decline</button>
                     </form>
                 </li>
@@ -44,18 +42,18 @@
                     <p>
                         {{ request.sender_name }}
                     </p>
-                    <form action="/authors/remote-accept" method="post" style="display:inline;">
+                    <form action="{% url 'identity:remote-accept' %}" method="post" style="display:inline;">
                         {% csrf_token %}
                         <input type="hidden" name="sender_name" value="{{ request.sender_name }}">
                         <input type="hidden" name="sender_id" value="{{ request.sender_id }}">
-                        <input type="hidden" name="receiver" value="{{ request.receiver.username }}">
+                        <input type="hidden" name="receiver_author_id" value="{{ request.receiver.author_profile.author_id }}">
                         <button type="submit">Accept</button>
                     </form>
-                    <form action="/authors/remote-decline" method="post" style="display:inline;">
+                    <form action="{% url 'identity:remote-decline' %}" method="post" style="display:inline;">
                         {% csrf_token %}
                         <input type="hidden" name="sender_name" value="{{ request.sender_name }}">
                         <input type="hidden" name="sender_id" value="{{ request.sender_id }}">
-                        <input type="hidden" name="receiver" value="{{ request.receiver.username }}">
+                        <input type="hidden" name="receiver_author_id" value="{{ request.receiver.author_profile.author_id }}">
                         <button type="submit">Decline</button>
                     </form>
                 </li>

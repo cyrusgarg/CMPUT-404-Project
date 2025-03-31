@@ -56,7 +56,16 @@
     <ul id="comment-list">
         {% for comment in comments %}
             <li data-comment-id="{{ comment.id }}">
-                <strong>{{ comment.user.username }}</strong>: {{ comment.content }}
+                {% if comment.user.author_profile %}
+                    <strong>
+                        <a href="{% url 'identity:author-profile' author_id=comment.user.author_profile.author_id %}">
+                            {{ comment.user.author_profile.display_name }}
+                        </a>
+                    </strong>
+                {% else %}
+                    <strong>{{ comment.user.username }}</strong>
+                {% endif %}
+                : {{ comment.content }}
                 <p>Likes: <span class="like-count">{{ comment.like_count }}</span></p>
                 <!-- Like button for comment (only if logged in) -->
                 {% if is_logged_in %}

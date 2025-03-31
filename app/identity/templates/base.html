@@ -2,8 +2,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>My Site</title>
+    <title>{% block title %}My Site{% endblock %}</title>
     <link rel="stylesheet" type="text/css" href="{% static 'identity/styles.css' %}">
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
     <header>

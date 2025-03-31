@@ -38,7 +38,7 @@ class Post(models.Model):
     published = models.DateTimeField("published", default=timezone.now)  # Use timezone-aware datetime
     visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default='UNLISTED')  # Post visibility settings / 帖子可见性设置（GJ）
     image = models.TextField(blank=True, null=True)  # To store the base64 string (optional)
-
+    remote_url = models.URLField(blank=True, null=True)  # Store the original FQID for remote posts
 
     def get_formatted_content(self):
         """ 
