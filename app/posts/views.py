@@ -801,7 +801,7 @@ def send_comment_to_remote_recipients(comment, request, is_update=False):
         # Serialize the comment object
         serializer = CommentSerializer(comment, context={'request': request})
         comment_data = serializer.data
-        
+        print("Comment_data\n:",comment_data)
         # Modify comment data to use the original post URL
         comment_data['post'] = original_post_url
         
