@@ -221,10 +221,13 @@ def remoteFollow(request):
         return HttpResponse("Remote node not found for this author.", status=400)
 
     auth = HTTPBasicAuth(remote_node.username, remote_node.password)
-    followee_response = requests.get(local_followee.host + "authors/" + local_followee.author_id)
+    if("http://35bff.yeg.rac.sh/" in local_followee.host):
+        followee_response = requests.get(local_followee.host + "authors/" + local_followee.author_id, auth = HTTPBasicAuth(remote_node.username, remote_node.password))
+    else:
+        followee_response = requests.get(local_followee.host + "authors/" + local_followee.author_id)
 
     if followee_response.status_code != 200:
-        return HttpResponse("Error retrieving remote user:", response.text)
+        return HttpResponse("Error retrieving remote user:", followee_response.text)
     
     followee = followee_response.json()
 
