@@ -27,8 +27,8 @@
                     {% else %}
                     <form action="/authors/follow" method="post" style="display: inline-block;">
                         {% csrf_token %}
-                        <input type="hidden" name="sender" value="{{ request.user.author_profile.author_id }}">
-                        <input type="hidden" name="receiver" value="{{ author.author_id }}">
+                        <input type="hidden" name="sender_author_id" value="{{ request.user.author_profile.author_id }}">
+                        <input type="hidden" name="receiver_author_id" value="{{ author.author_id }}">
                         <button type="submit" class="profile-button">Follow</button>
                     </form>
                 {% endif %}
