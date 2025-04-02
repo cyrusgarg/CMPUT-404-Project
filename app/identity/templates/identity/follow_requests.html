@@ -1,67 +1,337 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<style>
+    /* Import EB Garamond font */
+    @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&display=swap');
+    
+    /* Color Palette Variables */
+    :root {
+        --soft-pink: #deb1b8;
+        --light-cream: #f0e2d9;
+        --light-gray: #dbdbd3;
+        --sage-green: #b5c3b2;
+        --dark-gray: #4c545b;
+    }
+    
+    /* Body Background - Sage Green */
+    body {
+        background-color: var(--sage-green) !important;
+    }
+    
+    /* Main Container Styling */
+    .requests-page {
+        max-width: 800px;
+        margin: 2rem auto;
+        font-family: 'EB Garamond', serif !important;
+        color: var(--dark-gray);
+        animation: fadeIn 0.8s ease-in-out;
+    }
+    
+    /* Page Title */
+    .requests-page h2 {
+        font-size: 2.5rem;
+        color: var(--dark-gray);
+        margin-bottom: 1.5rem;
+        text-align: center;
+        font-weight: 700;
+        border-bottom: 3px solid var(--soft-pink);
+        padding-bottom: 0.5rem;
+        display: inline-block;
+        position: relative;
+        left: 50%;
+        transform: translateX(-50%);
+        animation: slideInDown 0.6s ease-out;
+    }
+    
+    /* Request Container Styling */
+    .requests-container, .remote-requests-container {
+        background-color: var(--light-cream);
+        border-radius: 12px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 20px rgba(76, 84, 91, 0.15);
+        position: relative;
+        overflow: hidden;
+        animation: fadeInUp 0.7s ease-out;
+    }
+    
+    /* Creating a subtle pattern in the background */
+    .requests-container::before, .remote-requests-container::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(219, 219, 211, 0.3) 25%, transparent 25%);
+        background-size: 20px 20px;
+        opacity: 0.4;
+        z-index: 0;
+    }
+    
+    .requests-container > *, .remote-requests-container > * {
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* Section Titles - CONSISTENT STYLING */
+    .requests-container h3, .remote-requests-container h3 {
+        color: var(--dark-gray);
+        font-size: 1.8rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+        border-bottom: 2px dashed var(--sage-green);
+        padding-bottom: 0.5rem;
+        animation: fadeIn 1s ease;
+        font-family: 'EB Garamond', serif !important;
+    }
+    
+    /* Request List Styling */
+    .requests-container ul, .remote-requests-container ul {
+        list-style-type: none;
+        padding: 0;
+    }
+    
+    .requests-container li, .remote-requests-container li {
+        background-color: var(--light-gray);
+        margin-bottom: 1rem;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 2px 5px rgba(76, 84, 91, 0.08);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        animation: fadeIn 1.2s ease;
+        flex-wrap: wrap;
+    }
+    
+    .requests-container li:hover, .remote-requests-container li:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 15px rgba(76, 84, 91, 0.12);
+    }
+    
+    /* User Link Styling */
+    .requests-container a, .remote-requests-container a, .remote-requests-container p {
+        color: var(--dark-gray);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 1.2rem;
+        transition: color 0.3s ease;
+        margin-right: 1rem;
+        flex: 1;
+    }
+    
+    .requests-container a:hover {
+        color: var(--soft-pink);
+    }
+    
+    /* Empty State Message - italic text */
+    .requests-container p, .remote-requests-container p {
+        color: var(--dark-gray);
+        font-size: 1.1rem;
+        font-style: italic;
+        text-align: center;
+        padding: 1rem 0;
+    }
+    
+    /* Button Styling */
+    button {
+        display: inline-block;
+        padding: 8px 16px;
+        margin: 0 5px;
+        background-color: var(--soft-pink);
+        color: var(--dark-gray);
+        text-decoration: none;
+        border-radius: 30px;
+        font-size: 1rem;
+        font-weight: 600;
+        border: none;
+        box-shadow: 0 4px 10px rgba(222, 177, 184, 0.3);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        font-family: 'EB Garamond', serif !important;
+    }
+    
+    button::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        transition: width 0.6s ease, height 0.6s ease;
+    }
+    
+    button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 15px rgba(222, 177, 184, 0.4);
+    }
+    
+    button:hover::after {
+        width: 200px;
+        height: 200px;
+    }
+    
+    button[type="submit"]:first-of-type {
+        background-color: var(--sage-green);
+        box-shadow: 0 4px 10px rgba(181, 195, 178, 0.3);
+    }
+    
+    button[type="submit"]:first-of-type:hover {
+        box-shadow: 0 8px 15px rgba(181, 195, 178, 0.4);
+    }
+    
+    button[type="submit"]:last-of-type {
+        background-color: var(--dark-gray);
+        color: var(--light-cream);
+        box-shadow: 0 4px 10px rgba(76, 84, 91, 0.3);
+    }
+    
+    button[type="submit"]:last-of-type:hover {
+        box-shadow: 0 8px 15px rgba(76, 84, 91, 0.4);
+    }
+    
+    /* Button Group */
+    .button-group {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .requests-page {
+            padding: 0 1rem;
+        }
+        
+        .requests-container, .remote-requests-container {
+            padding: 1rem;
+        }
+        
+        .requests-container li, .remote-requests-container li {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .requests-container a, .remote-requests-container a, .remote-requests-container p {
+            margin-bottom: 1rem;
+            margin-right: 0;
+        }
+        
+        .button-group {
+            align-self: flex-end;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        button {
+            padding: 6px 12px;
+            font-size: 0.9rem;
+        }
+    }
+    
+    /* Animation Keyframes */
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes slideInDown {
+        from {
+            transform: translateX(-50%) translateY(-30px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            transform: translateY(30px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+</style>
 
-<h2>Your Requests</h2>
+<div class="requests-page">
+    <h2>Your Requests</h2>
 
-<div class="requests-container">
-    <h3>Local Follow Requests</h3>
-    {% if requests %}
-        <ul>
-            <!-- Show each follow request with option to accept and decline -->
-            {% for request in requests %}
-                <li>
-                    <a href="{% url 'identity:author-profile' author_id=request.sender.author_profile.author_id %}">
-                        {{ request.sender.author_profile.display_name }}
-                    </a>
-                    <form action="{% url 'identity:accept' %}" method="post" style="display:inline;">
-                        {% csrf_token %}
-                        <input type="hidden" name="sender_author_id" value="{{ request.sender.author_profile.author_id }}">
-                        <button type="submit">Accept</button>
-                    </form>
-                    <form action="{% url 'identity:decline' %}" method="post" style="display:inline;">
-                        {% csrf_token %}
-                        <input type="hidden" name="sender_author_id" value="{{ request.sender.author_profile.author_id }}">
-                        <button type="submit">Decline</button>
-                    </form>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>No local follow requests at the moment.</p>
-    {% endif %}
+    <div class="requests-container">
+        <h3>Local Follow Requests</h3>
+        {% if requests %}
+            <ul>
+                <!-- Show each follow request with option to accept and decline -->
+                {% for request in requests %}
+                    <li>
+                        <a href="{% url 'identity:author-profile' author_id=request.sender.author_profile.author_id %}">
+                            {{ request.sender.author_profile.display_name }}
+                        </a>
+                        <div class="button-group">
+                            <form action="{% url 'identity:accept' %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="sender_author_id" value="{{ request.sender.author_profile.author_id }}">
+                                <button type="submit">Accept</button>
+                            </form>
+                            <form action="{% url 'identity:decline' %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="sender_author_id" value="{{ request.sender.author_profile.author_id }}">
+                                <button type="submit">Decline</button>
+                            </form>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No local follow requests at the moment.</p>
+        {% endif %}
+    </div>
+
+    <div class="remote-requests-container">
+        <h3>Remote Follow Requests</h3>
+        {% if remote_requests %}
+            <ul>
+                <!-- Show each follow request with option to accept and decline -->
+                {% for request in remote_requests %}
+                    <li>
+                        <p>
+                            {{ request.sender_name }}
+                        </p>
+                        <div class="button-group">
+                            <form action="{% url 'identity:remote-accept' %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="sender_name" value="{{ request.sender_name }}">
+                                <input type="hidden" name="sender_id" value="{{ request.sender_id }}">
+                                <input type="hidden" name="receiver_author_id" value="{{ request.receiver.author_profile.author_id }}">
+                                <button type="submit">Accept</button>
+                            </form>
+                            <form action="{% url 'identity:remote-decline' %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="sender_name" value="{{ request.sender_name }}">
+                                <input type="hidden" name="sender_id" value="{{ request.sender_id }}">
+                                <input type="hidden" name="receiver_author_id" value="{{ request.receiver.author_profile.author_id }}">
+                                <button type="submit">Decline</button>
+                            </form>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No remote follow requests at the moment.</p>
+        {% endif %}
+    </div>
 </div>
-
-<div class="remote-requests-container">
-    <h3>Remote Follow Requests</h3>
-    {% if remote_requests %}
-        <ul>
-            <!-- Show each follow request with option to accept and decline -->
-            {% for request in remote_requests %}
-                <li>
-                    <p>
-                        {{ request.sender_name }}
-                    </p>
-                    <form action="{% url 'identity:remote-accept' %}" method="post" style="display:inline;">
-                        {% csrf_token %}
-                        <input type="hidden" name="sender_name" value="{{ request.sender_name }}">
-                        <input type="hidden" name="sender_id" value="{{ request.sender_id }}">
-                        <input type="hidden" name="receiver_author_id" value="{{ request.receiver.author_profile.author_id }}">
-                        <button type="submit">Accept</button>
-                    </form>
-                    <form action="{% url 'identity:remote-decline' %}" method="post" style="display:inline;">
-                        {% csrf_token %}
-                        <input type="hidden" name="sender_name" value="{{ request.sender_name }}">
-                        <input type="hidden" name="sender_id" value="{{ request.sender_id }}">
-                        <input type="hidden" name="receiver_author_id" value="{{ request.receiver.author_profile.author_id }}">
-                        <button type="submit">Decline</button>
-                    </form>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>No remote follow requests at the moment.</p>
-    {% endif %}
-</div>
-
 {% endblock %}
