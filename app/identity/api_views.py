@@ -939,7 +939,7 @@ def inbox(request, author_id):
             existing_post.visibility = data.get("visibility", existing_post.visibility)
             existing_post.remote_url = data.get("id", existing_post.remote_url)
             existing_post.save()
-            print("existing post data\n:", existingpost.title,existing_post.visibility)
+            print("existing post data\n:", existing_post.title,existing_post.visibility)
             return Response(PostSerializer(existing_post, context={'request': request}).data, status=200)
 
         # Create a new post
