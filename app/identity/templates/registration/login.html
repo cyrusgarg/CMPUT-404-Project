@@ -1,6 +1,11 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Log In{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/login_styles.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="container mt-5">

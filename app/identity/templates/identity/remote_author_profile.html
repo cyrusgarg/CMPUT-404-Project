@@ -7,16 +7,16 @@
     <div class="profile-actions">
         {% if user.is_authenticated %}
             {% if is_following %}
-                <form action="/authors/remote-unfollow" method="post" style="display: inline-block;">
+                <form action="{% url 'identity:remote-unfollow' %}" method="post" style="display: inline-block;">
                     {% csrf_token %}
-                    <input type="hidden" name="follower" value="{{ request.user.username }}">
+                    <input type="hidden" name="follower_author_id" value="{{ request.user.author_profile.author_id }}">
                     <input type="hidden" name="followee_id" value="{{ remote_author.author_id }}">
                     <button type="submit" class="profile-button secondary">Unfollow</button>
                 </form>
             {% else %}
-                <form action="/authors/remote-follow" method="post" style="display: inline-block;">
+                <form action="{% url 'identity:remote-follow' %}" method="post" style="display: inline-block;">
                     {% csrf_token %}
-                    <input type="hidden" name="follower" value="{{ request.user.username }}">
+                    <input type="hidden" name="follower_author_id" value="{{ request.user.author_profile.author_id }}">
                     <input type="hidden" name="followee_id" value="{{ remote_author.author_id }}">
                     <button type="submit" class="profile-button">Follow</button>
                 </form>
@@ -38,7 +38,7 @@
     {% endif %}
     
     <div class="user-info">
-        <p>Username: {{ remote_author.display_name }}</p>
+        <p>Display Name: {{ remote_author.display_name }}</p>
         <p>Remote Author from {{ remote_author.node.name }}</p>
         
         {% if remote_author.github %}

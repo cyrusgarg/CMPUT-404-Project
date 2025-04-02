@@ -12,7 +12,14 @@
         <ul>
             {% for like in likes %}
                 <li>
-                    <strong>{{ like.user.username }}</strong>
+                    {% if like.user.author_profile %}
+                        <a href="{% url 'identity:author-profile' author_id=like.user.author_profile.author_id %}">
+                            <strong>{{ like.user.author_profile.display_name }}</strong>
+                        </a>
+                    {% else %}
+                        <strong>{{ like.user.username }}</strong>
+                    {% endif %}
+                    
                     <!-- Optionally, display more user info if available -->
                     {% if like.user.email %}
                         ({{ like.user.email }})
