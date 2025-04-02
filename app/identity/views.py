@@ -223,6 +223,8 @@ def remoteFollow(request):
     auth = HTTPBasicAuth(remote_node.username, remote_node.password)
     if("http://35bff.yeg.rac.sh/" in local_followee.host):
         followee_response = requests.get(local_followee.host + "authors/" + local_followee.author_id, auth = HTTPBasicAuth(remote_node.username, remote_node.password))
+    elif("http://[2605:fd00:4:1001:f816:3eff:fecd:2b99]:8000/"in local_followee.host):
+        followee_response = requests.get(local_followee.host + "/authors/" + local_followee.author_id, auth = HTTPBasicAuth(remote_node.username, remote_node.password))
     else:
         followee_response = requests.get(local_followee.host + "authors/" + local_followee.author_id)
 
