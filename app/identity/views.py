@@ -497,7 +497,7 @@ def test_basic_auth(request):
     return HttpResponse("Basic Auth test endpoint is working")
 
 def fetch_remote_authors(request, node_id):
-    """Fetch authors from a remote node and save them to the database"""
+    """Fetch only local authors from a remote node and save them to the database"""
     try:
         node = RemoteNode.objects.get(id=node_id, is_active=True)
         
@@ -512,14 +512,24 @@ def fetch_remote_authors(request, node_id):
             if response and response.status_code == 200:
                 authors_data = response.json()
                 
-                # Updated to check for 'authors' key instead of 'src'
-                if 'type' in authors_data and authors_data['type'] == 'authors' and 'authors' in authors_data:
-                    authors_list = authors_data['authors']
+                # Check for 'authors' key or 'src' key (for backward compatibility)
+                authors_list = []
+                if 'type' in authors_data and authors_data['type'] == 'authors':
+                    if 'authors' in authors_data:
+                        authors_list = authors_data['authors']
+                    elif 'src' in authors_data:
+                        authors_list = authors_data['src']
+                
+                authors_count = 0
+                for author_data in authors_list:
+                    # Extract ID and host from the full URL
+                    author_id = author_data.get('id', '')
+                    author_host = author_data.get('host', '')
                     
-                    authors_count = 0
-                    for author_data in authors_list:
-                        # Extract ID from the full URL
-                        author_id = author_data.get('id', '')
+                    # Skip remote authors on the remote node (only keep local authors of that node)
+                    # Check if the author's host matches the node's host
+                    if node.host.rstrip('/') in author_host.rstrip('/'):
+                        # Extract ID from the full URL if needed
                         if '/' in author_id:
                             author_id = author_id.split('/')[-1]
                         
@@ -535,75 +545,31 @@ def fetch_remote_authors(request, node_id):
                             }
                         )
                         authors_count += 1
-                    
-                    total_authors_count += authors_count
-                    
-                    # Check if there's a next page
-                    if 'next' in authors_data and authors_data['next']:
-                        # Extract the relative path from the next URL
-                        full_next_url = authors_data['next']
-                        if full_next_url.startswith("http"):
-                            # Extract just the path and query string
-                            from urllib.parse import urlparse
-                            parsed_url = urlparse(full_next_url)
-                            next_page_url = parsed_url.path
-                            if parsed_url.query:
-                                next_page_url += "?" + parsed_url.query
-                        else:
-                            next_page_url = full_next_url
+                
+                total_authors_count += authors_count
+                
+                # Check if there's a next page
+                if 'next' in authors_data and authors_data['next']:
+                    # Extract the relative path from the next URL
+                    full_next_url = authors_data['next']
+                    if full_next_url.startswith("http"):
+                        # Extract just the path and query string
+                        from urllib.parse import urlparse
+                        parsed_url = urlparse(full_next_url)
+                        next_page_url = parsed_url.path
+                        if parsed_url.query:
+                            next_page_url += "?" + parsed_url.query
                     else:
-                        next_page_url = None
-                elif 'type' in authors_data and authors_data['type'] == 'authors' and 'src' in authors_data:
-                    # Backward compatibility for nodes still using 'src'
-                    authors_list = authors_data['src']
-                    
-                    authors_count = 0
-                    for author_data in authors_list:
-                        # Extract ID from the full URL
-                        author_id = author_data.get('id', '')
-                        if '/' in author_id:
-                            author_id = author_id.split('/')[-1]
-                        
-                        # Update or create the remote author
-                        RemoteAuthor.objects.update_or_create(
-                            node=node,
-                            author_id=author_id,
-                            defaults={
-                                'display_name': author_data.get('displayName', 'Unknown'),
-                                'host': author_data.get('host', ''),
-                                'github': author_data.get('github', ''),
-                                'profile_image': author_data.get('profileImage', '')
-                            }
-                        )
-                        authors_count += 1
-                    
-                    total_authors_count += authors_count
-                    
-                    # Check if there's a next page
-                    if 'next' in authors_data and authors_data['next']:
-                        # Extract the relative path from the next URL
-                        full_next_url = authors_data['next']
-                        if full_next_url.startswith("http"):
-                            # Extract just the path and query string
-                            from urllib.parse import urlparse
-                            parsed_url = urlparse(full_next_url)
-                            next_page_url = parsed_url.path
-                            if parsed_url.query:
-                                next_page_url += "?" + parsed_url.query
-                        else:
-                            next_page_url = full_next_url
-                    else:
-                        next_page_url = None
+                        next_page_url = full_next_url
                 else:
                     next_page_url = None
-                    messages.warning(request, f"Unexpected API response format from {node.name}")
             else:
                 next_page_url = None
                 status = response.status_code if response else "Connection failed"
                 error_detail = response.text if response else "No response received"
                 messages.error(request, f"Failed to fetch authors from {node.name}. Status: {status}. Details: {error_detail}")
         
-        messages.success(request, f"Successfully fetched {total_authors_count} authors from {node.name}")
+        messages.success(request, f"Successfully fetched {total_authors_count} local authors from {node.name}")
         return redirect('identity:remote-authors-list', node_id=node_id)
     
     except RemoteNode.DoesNotExist:
