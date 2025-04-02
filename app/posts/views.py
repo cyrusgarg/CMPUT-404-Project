@@ -139,6 +139,8 @@ def post_detail(request, post_id):
 
     if post.visibility == "FRIENDS" and user != post.author and post.author.id not in mutual_friends_ids and not user.is_superuser and not remote_node:
         return HttpResponseForbidden("You do not have permission to view this post.")  # Prevent unauthorized friend-only access / 防止未授权用户访问仅好友可见帖子（GJ）
+    
+    print("post body while clicking post detail:\n",post.visibility)
           
     return render(request, "posts/post_detail.html", {"post": post, "user": request.user.username, "comments": comments}) 
 
@@ -506,7 +508,7 @@ def prepare_image_for_remote_post(post):
                 image_binary = base64.b64decode(encoded)
                 
                 return {
-                    'contentType': mime_type,  # e.g., 'image/jpeg', 'image/png'
+                    'contentType': mime_type +';base64',  # e.g., 'image/jpeg', 'image/png'
                     'content': base64.b64encode(image_binary).decode('utf-8')  # Re-encode to base64
                 }
             except Exception as e:
