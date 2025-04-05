@@ -14,8 +14,10 @@ To drop the postgress table
 To migrate in docker
     docker compose exec socialapp python manage.py makemigrations posts
     docker compose exec socialapp python manage.py makemigrations identity
+    docker compose exec socialapp python manage.py makemigrations
     docker compose exec socialapp python manage.py migrate posts
     docker compose exec socialapp python manage.py migrate identity
+    docker compose exec socialapp python manage.py migrate 
     docker compose exec socialapp python manage.py migrate posts zero
     docker compose exec socialapp python manage.py migrate posts
     docker compose exec socialapp python manage.py migrate identity zero

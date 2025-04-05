@@ -821,6 +821,7 @@ def is_uuid(value):
 @api_view(['POST','PUT'])
 @authentication_classes([NodeBasicAuthentication])
 @permission_classes([IsAuthenticated])
+#@permission_classes([AllowAny])
 def inbox(request, author_id):
     """
     POST: Accepts remote objects (posts, follow requests, likes, comments)
@@ -905,34 +906,71 @@ def inbox(request, author_id):
         #data["author"] = remote_author.user.id  # Ensure it's the linked user
         #print("Inside the post inbox, printing remote_author host",author_data.get("host", settings.SITE_URL))
         # Check if post exists
-        existing_post = Post.objects.filter(id=post_id,author=remote_author.user).first()
+        is_image_post = False
+        content_type = data.get("contentType", "text/plain")
+        if content_type.startswith("image/") or "base64" in content_type:
+            is_image_post = True
+        
+        # Check if post exists
+        existing_post = Post.objects.filter(id=post_id, author=remote_author.user).first()
 
         if existing_post:
             # Update existing post manually
             existing_post.title = data.get("title", existing_post.title)
             existing_post.description = data.get("description", existing_post.description)
-            existing_post.content = data.get("content", existing_post.content)
-            existing_post.contentType = data.get("contentType", existing_post.contentType)
+            
+            # Handle image content
+            if is_image_post:
+                # If it's an image post, store the content as the image
+                # Add the data:image/ prefix if not present
+                content = data.get("content", "")
+                if content and not content.startswith("data:image/"):
+                    content_type_prefix = content_type.split(";")[0]  # Get just "image/png" part
+                    existing_post.image = f"data:{content_type_prefix};base64,{content}"
+                else:
+                    existing_post.image = content
+                # Keep minimal content
+                existing_post.content = data.get("content", "")
+            else:
+                # Regular text post
+                existing_post.content = data.get("content", existing_post.content)
+            
+            existing_post.contentType = content_type
             existing_post.visibility = data.get("visibility", existing_post.visibility)
-            existing_post.image = data.get("image", existing_post.image)
+            existing_post.remote_url = data.get("id", existing_post.remote_url)
             existing_post.save()
+            print("existing post data\n:", existing_post.title,existing_post.visibility)
             return Response(PostSerializer(existing_post, context={'request': request}).data, status=200)
 
-        # **Manually create the post (without serializer)**
-        new_post = Post.objects.create(
-            id=post_id,
-            author=remote_author.user,  # Assign author here directly
-            title=data.get("title", ""),
-            description=data.get("description", ""),
-            content=data.get("content", ""),
-            contentType=data.get("contentType", "text/plain"),
-            visibility=data.get("visibility", "PUBLIC"),
-            image=data.get("image", None),  # Handle image if present
-            remote_url=data.get("id", ""),  # Store the full original URL
-        )
-        #existing_post=Post.objects.filter(id=post_id,author=remote_author.user).first() #debugging line
-        #print("Newly createed post object:\n",PostSerializer(new_post, context={'request': request}).data)
-
+        # Create a new post
+        post_data = {
+            "id": post_id,
+            "author": remote_author.user,
+            "title": data.get("title", ""),
+            "description": data.get("description", ""),
+            "contentType": content_type,
+            "visibility": data.get("visibility", "PUBLIC"),
+            "remote_url": data.get("id", ""),
+        }
+        
+        # Handle content based on content type
+        if is_image_post:
+            # This is an image post
+            content = data.get("content", "")
+            if content and not content.startswith("data:image/"):
+                content_type_prefix = content_type.split(";")[0]  # Get just "image/png" part
+                post_data["image"] = f"data:{content_type_prefix};base64,{content}"
+            else:
+                post_data["image"] = content
+            post_data["content"] = ""  # Empty or minimal content for image posts
+        else:
+            # Regular text post
+            post_data["content"] = data.get("content", "")
+            post_data["image"] = data.get("image", None)
+        
+        # Create the post
+        new_post = Post.objects.create(**post_data)
+        
         return Response(PostSerializer(new_post, context={'request': request}).data, status=201)
 
     elif obj_type == "like":

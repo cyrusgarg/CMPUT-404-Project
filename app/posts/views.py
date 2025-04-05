@@ -24,6 +24,7 @@ from urllib.parse import urlparse
 from requests.auth import HTTPBasicAuth
 import uuid
 from identity.id_mapping import get_numeric_id_for_author
+import re
 
 @login_required
 def index(request):
@@ -138,6 +139,8 @@ def post_detail(request, post_id):
 
     if post.visibility == "FRIENDS" and user != post.author and post.author.id not in mutual_friends_ids and not user.is_superuser and not remote_node:
         return HttpResponseForbidden("You do not have permission to view this post.")  # Prevent unauthorized friend-only access / 防止未授权用户访问仅好友可见帖子（GJ）
+    
+    print("post body while clicking post detail:\n",post.visibility)
           
     return render(request, "posts/post_detail.html", {"post": post, "user": request.user.username, "comments": comments}) 
 
@@ -487,6 +490,42 @@ def is_uuid(value):
     except ValueError:
         return False
 
+def prepare_image_for_remote_post(post):
+    """
+    Prepare image data for remote post transmission.
+    Converts base64 image to appropriate format for remote nodes.
+    """
+    if post.image:
+        # If it's a base64 data URL
+        if post.image.startswith('data:image/'):
+            # Split the base64 data URL
+            try:
+                # Separate the metadata from the actual base64 content
+                header, encoded = post.image.split(',', 1)
+                
+                # Extract the mime type
+                mime_type = header.split(':')[1].split(';')[0]
+                
+                # Decode the base64 content
+                image_binary = base64.b64decode(encoded)
+                
+                return {
+                    'contentType': mime_type +';base64',  # e.g., 'image/jpeg', 'image/png'
+                    'content': base64.b64encode(image_binary).decode('utf-8')  # Re-encode to base64
+                }
+            except Exception as e:
+                print(f"Error processing image: {e}")
+                return None
+        
+        # If it's already a URL
+        elif post.image.startswith('http://') or post.image.startswith('https://'):
+            return {
+                'contentType': 'image/url',
+                'content': post.image
+            }
+    
+    return None
+
 def send_post_to_remote_recipients(post, request,is_update=False):
     """
     Sends a post (new or updated) to the appropriate remote recipients.
@@ -497,19 +536,6 @@ def send_post_to_remote_recipients(post, request,is_update=False):
     """
     author = post.author.author_profile
     
-    # Prepare post data
-    post_data = {
-        "type": "post",
-        "id": f"{post.id}",
-        "author":author.to_dict(),
-        "title": post.title,
-        "description": post.description,
-        "contentType": post.contentType,
-        "content": post.content,
-        "visibility": post.visibility,
-        "image": post.image if post.image else None,  # Include image if available
-    }
-
     recipients = set()
 
     if post.visibility == "PUBLIC" or post.visibility == "DELETED":
@@ -565,14 +591,7 @@ def send_post_to_remote_recipients(post, request,is_update=False):
             inbox_url = f"{base_host}/{extracted}/{author_id}/inbox"
             recipients.add(inbox_url)
           
-    # # Convert image to base64 if it exists
-    # if post.image and not post.image.startswith("data:image"):
-    #     try:
-    #         with open(post.image.path, "rb") as img_file:
-    #             encoded_image = base64.b64encode(img_file.read()).decode("utf-8")
-    #             post_data["image"] = f"data:image/jpeg;base64,{encoded_image}"  # Assuming JPEG
-    #     except Exception as e:
-    #         print(f"Error encoding image: {e}")
+  
 
     # Send post to all recipients
     for inbox_url in recipients:
@@ -582,6 +601,11 @@ def send_post_to_remote_recipients(post, request,is_update=False):
         base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
         serializer = PostSerializer(post, context={'request': request})
         post_data = serializer.data  # Convert to JSON format
+        
+        image_data = prepare_image_for_remote_post(post)
+        if image_data:
+            post_data['contentType'] = image_data['contentType']
+            post_data['content'] = image_data['content']
         print("post_data:\n",post_data)
         # Retrieve the corresponding RemoteNode for authentication
         remote_node = RemoteNode.objects.filter(host_url__icontains=base_host).first()
@@ -604,7 +628,7 @@ def send_post_to_remote_recipients(post, request,is_update=False):
 
         except requests.RequestException as e:
             print(f" Error sending post to {inbox_url}: {e}")
-
+#post_author = post.author.author_profile
 def send_like_to_remote_recipients(like, request, is_update=False):
     """
     Sends a like object to the remote recipient (the author of the liked post).
@@ -664,11 +688,15 @@ def send_like_to_remote_recipients(like, request, is_update=False):
             if is_uuid(post_id):
                 post_id = get_numeric_id_for_author(post_id)
             original_post_url = f"{post_author.host}authors/{author_id}/posts/{post_id}"
+        local_author = request.user.author_profile
+        like_id = f"http://{request.get_host()}/api/authors/{local_author.author_id}/liked/{like.id}"
         # Create like data with the correct post reference
         like_data = {
             "type": "like",
             "summary": f"{request.user.author_profile.display_name} likes your post",
             "author": request.user.author_profile.to_dict(),
+            "id":like_id,
+            "published": like.created_at.isoformat() if hasattr(like, 'created_at') else timezone.now().isoformat(),
             # Use the original post URL instead of your local URL format
             "object": original_post_url
         }
@@ -697,6 +725,7 @@ def send_Comment_like_to_remote_recipients(like, request, is_update=False):
     Uses `LikeSerializer` to format the data properly.
     """
     comment = like.comment
+    post=comment.post
     post_author = comment.post.author.author_profile  # Author of the post being liked
     #post_author = comment.post.author.remote_author
     #post_author_dict=post.author.author_profile.to_dict()
@@ -723,9 +752,27 @@ def send_Comment_like_to_remote_recipients(like, request, is_update=False):
         node_username = remote_node.username
         node_password = remote_node.password
         # Serialize the like object
-        serializer = LikeSerializer(like, context={'request': request})
-        like_data = serializer.data  # Convert to JSON format
-
+        local_author = request.user.author_profile
+        
+        # Create a proper like ID in the format they expect
+        
+        original_post_url = post.remote_url if post.remote_url else None
+        parsed_url=urlparse(original_post_url)
+        base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        like_id = f"{base_host}/api/authors/{local_author.author_id}/liked/{like.id}"
+        match = re.match(r"(http://.*?/api/authors/[\w-]+/)", original_post_url)
+        if match:
+            extracted_url = match.group(1)
+            print(extracted_url)
+        # Create the full like data manually instead of using serializer
+        like_data = {
+            "type": "like",
+            "author": local_author.to_dict(),  # This should include all required author fields
+            "published": like.created_at.isoformat() if hasattr(like, 'created_at') else timezone.now().isoformat(),
+            "id": like_id,
+            "object": f"{extracted_url}commented/{comment.id}"
+        }
+        print("Comment like data:", like_data)
         try:
             response = requests.post(
                 inbox_url,
