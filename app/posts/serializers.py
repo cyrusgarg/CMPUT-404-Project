@@ -293,7 +293,8 @@ class CommentSerializer(serializers.ModelSerializer):
         return obj.user.author_profile.to_dict(request=request)  # Use the `to_dict()` method
 
     def get_contentType(self, obj):
-        return obj.post.contentType
+        return "text/plain"
+        #return obj.post.contentType
 
     def get_published(self, obj):
         return obj.created_at.strftime("%Y-%m-%dT%H:%M:%S%z")
