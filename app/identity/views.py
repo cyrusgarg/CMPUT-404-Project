@@ -524,9 +524,9 @@ def fetch_remote_authors(request, node_id):
                         author_id = author_data.get('id', '')
                         if '/' in author_id:
                             author_id = author_id.split('/')[-1]
-                        
+                        print("Line 527: Creating or updating user")
                         # Update or create the remote author
-                        RemoteAuthor.objects.update_or_create(
+                        remote_author, created = RemoteAuthor.objects.update_or_create(
                             node=node,
                             author_id=author_id,
                             defaults={
@@ -536,6 +536,11 @@ def fetch_remote_authors(request, node_id):
                                 'profile_image': author_data.get('profileImage', '')
                             }
                         )
+                        remote_author.save()
+                        if created:
+                            print(f"Line 541: Created RemoteAuthor: {remote_author.display_name} ({remote_author.author_id})")
+                        else:
+                            print(f"Line 543: Updated RemoteAuthor: {remote_author.display_name} ({remote_author.author_id})")
                         authors_count += 1
                     
                     total_authors_count += authors_count
@@ -567,7 +572,7 @@ def fetch_remote_authors(request, node_id):
                             author_id = author_id.split('/')[-1]
                         
                         # Update or create the remote author
-                        RemoteAuthor.objects.update_or_create(
+                        remote_author, created =RemoteAuthor.objects.update_or_create(
                             node=node,
                             author_id=author_id,
                             defaults={
@@ -577,6 +582,11 @@ def fetch_remote_authors(request, node_id):
                                 'profile_image': author_data.get('profileImage', '')
                             }
                         )
+                        remote_author.save()
+                        if created:
+                            print(f"Line 587: Created RemoteAuthor: {remote_author.display_name} ({remote_author.author_id})")
+                        else:
+                            print(f"Line 589: Updated RemoteAuthor: {remote_author.display_name} ({remote_author.author_id})")
                         authors_count += 1
                     
                     total_authors_count += authors_count
