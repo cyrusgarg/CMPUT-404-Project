@@ -953,8 +953,7 @@ def inbox(request, author_id):
         # Create a new post
         post_data = {
             "id": post_id,
-            #"author": remote_author.user,
-            "author": remote_author,
+            "author": remote_author.user,
             "title": data.get("title", ""),
             "description": data.get("description", ""),
             "contentType": content_type,
