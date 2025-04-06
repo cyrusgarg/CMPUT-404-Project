@@ -854,7 +854,8 @@ def inbox(request, author_id):
         print("Line 852: remote_author_id:",remote_author_id)
         # Try to fetch the existing remote author
         remote_author = RemoteAuthor.objects.filter(author_id=remote_author_id,host=remote_host).first()
-
+        print("Remote author display name:", remote_author.display_name)
+        remote_author_display_name=remote_author.display_name
         if not remote_author:
             print("Line 857: Remote author does not exits")
             # Create the Author first
@@ -960,7 +961,7 @@ def inbox(request, author_id):
             "visibility": data.get("visibility", "PUBLIC"),
             "remote_url": data.get("id", ""),
         }
-    
+        post_data["author"].author_profile.display_name=remote_author_display_name
         # Handle content based on content type
         if is_image_post:
             # This is an image post
@@ -977,7 +978,9 @@ def inbox(request, author_id):
             post_data["image"] = data.get("image", None)
         
         # Create the post
+        print("Author name:",post_data["author"].author_profile.display_name )
         new_post = Post.objects.create(**post_data)
+        new_post.author.author_profile.display_name=remote_author_display_name
         serializer = PostSerializer(new_post, context={'request': request})
         post_data = serializer.data
         print("newly created post\n",post_data)
