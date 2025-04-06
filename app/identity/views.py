@@ -49,16 +49,19 @@ class AuthorListView(ListView):
     
     def get_queryset(self):
         # Get local authors
-        local_authors = Author.objects.all()
+        local_authors = Author.objects.all().exclude(display_name__startswith='remote_')
         
         # Get remote authors from all active nodes
-        remote_authors = RemoteAuthor.objects.filter(node__is_active=True)
+        remote_authors = RemoteAuthor.objects.filter(node__is_active=True).exclude(display_name__startswith='remote_')
         
         # Combine local and remote authors into a single queryset
         combined_authors = []
         
         # Add local authors
         for author in local_authors:
+            if author.display_name.lower().startswith("remote_"):
+                print("Skipping author:", author.display_name)
+                continue
             combined_authors.append({
                 'id': str(author.author_id),  # Ensure string representation
                 'display_name': author.display_name,
@@ -637,7 +640,7 @@ class RemoteAuthorListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         self.node = get_object_or_404(RemoteNode, id=self.kwargs['node_id'], is_active=True)
-        return RemoteAuthor.objects.filter(node=self.node)
+        return RemoteAuthor.objects.filter(node=self.node).exclude(display_name__startswith='remote_')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
