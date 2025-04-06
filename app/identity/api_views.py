@@ -981,6 +981,7 @@ def inbox(request, author_id):
         print("Author name:",post_data["author"].author_profile.display_name )
         new_post = Post.objects.create(**post_data)
         new_post.author.author_profile.display_name=remote_author_display_name
+        new_post.author.author_profile.save(update_fields=["display_name"])
         serializer = PostSerializer(new_post, context={'request': request})
         post_data = serializer.data
         print("newly created post\n",post_data)
@@ -1146,7 +1147,10 @@ def inbox(request, author_id):
 
         remote_author.host = remote_host
         remote_author.save()
-
+        new_display_name = author_data.get("displayName")
+        if new_display_name and remote_author.display_name != new_display_name:
+            remote_author.display_name = new_display_name
+            remote_author.save(update_fields=["display_name"])
         # Ensure post exists before adding the comment
         post_url = data.get("post", "")
         post_id = post_url.split("/")[-1]
