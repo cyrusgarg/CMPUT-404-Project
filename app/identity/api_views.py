@@ -642,7 +642,8 @@ class AuthorListView(APIView):
     
     def get(self, request):
         """Return a paginated list of all authors"""
-        authors = Author.objects.all()
+        #authors = Author.objects.all()
+        authors = Author.objects.exclude(display_name__istartswith="remote_")
         
         # Apply pagination
         paginator = AuthorPagination()
@@ -693,8 +694,8 @@ class AuthorDetailView(APIView):
 @permission_classes([AllowAny])
 def author_list(request):
     """Return a paginated list of all authors"""
-    authors = Author.objects.all()
-    
+    #authors = Author.objects.all()
+    authors = Author.objects.exclude(display_name__istartswith="remote_")
     # Apply pagination
     paginator = AuthorPagination()
     paginated_authors = paginator.paginate_queryset(authors, request)
