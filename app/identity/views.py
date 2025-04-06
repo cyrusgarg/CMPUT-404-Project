@@ -76,6 +76,9 @@ class AuthorListView(ListView):
         # Add remote authors
         for author in remote_authors:
             # Try to extract numeric ID if possible
+            if author.display_name.lower().startswith("remote_"):
+                print("Skipping author:", author.display_name)
+                continue
             try:
                 # Attempt to extract a numeric ID from the author_id
                 numeric_id = int(''.join(filter(str.isdigit, str(author.id))))
