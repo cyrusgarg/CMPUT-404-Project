@@ -839,6 +839,7 @@ def inbox(request, author_id):
     obj_type = data.get("type", "").lower()
 
     if obj_type == "post":
+        print("post data\n",data)
         post_id = data.get("id", "").split("/")[-1]
         print("Line 842: post id:",post_id)
         if is_integer(post_id):
@@ -952,14 +953,15 @@ def inbox(request, author_id):
         # Create a new post
         post_data = {
             "id": post_id,
-            "author": remote_author.user,
+            #"author": remote_author.user,
+            "author": remote_author,
             "title": data.get("title", ""),
             "description": data.get("description", ""),
             "contentType": content_type,
             "visibility": data.get("visibility", "PUBLIC"),
             "remote_url": data.get("id", ""),
         }
-        
+    
         # Handle content based on content type
         if is_image_post:
             # This is an image post
@@ -977,7 +979,9 @@ def inbox(request, author_id):
         
         # Create the post
         new_post = Post.objects.create(**post_data)
-        
+        serializer = PostSerializer(new_post, context={'request': request})
+        post_data = serializer.data
+        print("newly created post\n",post_data)
         return Response(PostSerializer(new_post, context={'request': request}).data, status=201)
 
     elif obj_type == "like":
