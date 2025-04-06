@@ -24,7 +24,7 @@ from urllib.parse import unquote
 from rest_framework.authentication import SessionAuthentication
 from django.conf import settings
 from identity.id_mapping import get_uuid_for_numeric_id
-from identify.models import RemoteAuthor
+from identity.models import RemoteAuthor
 
 try:
     from bs4 import BeautifulSoup
