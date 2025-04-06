@@ -999,7 +999,8 @@ def inbox(request, author_id):
         remote_host = author_data.get("host", "")
 
         # Try to fetch the existing remote author
-        remote_author = Author.objects.filter(author_id=remote_author_id, host=remote_host).first()
+        #remote_author = Author.objects.filter(author_id=remote_author_id, host=remote_host).first()
+        remote_author = RemoteAuthor.objects.filter(author_id=remote_author_id,host=remote_host).first()
 
         if not remote_author:
             # Create the Author if it doesn't exist
@@ -1102,7 +1103,8 @@ def inbox(request, author_id):
         remote_host = author_data.get("host", "")
 
         # Try to fetch the existing remote author
-        remote_author = Author.objects.filter(author_id=remote_author_id, host=remote_host).first()
+        #remote_author = Author.objects.filter(author_id=remote_author_id, host=remote_host).first()
+        remote_author = RemoteAuthor.objects.filter(author_id=remote_author_id,host=remote_host).first()
 
         if not remote_author:
             # Create the Author if it doesn't exist
