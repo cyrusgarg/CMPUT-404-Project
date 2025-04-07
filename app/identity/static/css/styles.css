@@ -92,3 +92,8 @@
     color: #007BFF;
   }
   
+  header {
+    max-width: 1200px;
+    margin: 0 auto 20px auto; /* centers the header and preserves bottom margin */
+    padding: 0 15px; /* optional: adds horizontal padding */
+  }

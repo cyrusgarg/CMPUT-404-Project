@@ -2,28 +2,30 @@
 
 {% block content %}
 <style>
-    /* Import EB Garamond font */
-    @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&display=swap');
+    /* Import Nunito font */
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&display=swap');
     
-    /* Color Palette Variables */
+    /* New Color Palette Variables */
     :root {
-        --soft-pink: #deb1b8;
-        --light-cream: #f0e2d9;
-        --light-gray: #dbdbd3;
-        --sage-green: #b5c3b2;
-        --dark-gray: #4c545b;
+        --navy-blue: #5B6D92;
+        --light-blue: #D5E3E6;
+        --cream: #F0E2D2;
+        --off-white: #EFEEE5;
+        --terracotta: #D18266;
+        --dark-gray: #364042;
     }
     
-    /* Body Background - Sage Green */
+    /* Body Background - Light Blue */
     body {
-        background-color: var(--sage-green) !important;
+        background-color: var(--light-blue) !important;
+        font-family: 'Nunito', sans-serif !important;
     }
     
     /* Main Container Styling */
     .requests-page {
         max-width: 800px;
         margin: 2rem auto;
-        font-family: 'EB Garamond', serif !important;
+        font-family: 'Nunito', sans-serif !important;
         color: var(--dark-gray);
         animation: fadeIn 0.8s ease-in-out;
     }
@@ -35,7 +37,7 @@
         margin-bottom: 1.5rem;
         text-align: center;
         font-weight: 700;
-        border-bottom: 3px solid var(--soft-pink);
+        border-bottom: 3px solid var(--terracotta);
         padding-bottom: 0.5rem;
         display: inline-block;
         position: relative;
@@ -46,11 +48,11 @@
     
     /* Request Container Styling */
     .requests-container, .remote-requests-container {
-        background-color: var(--light-cream);
+        background-color: var(--cream);
         border-radius: 12px;
         padding: 1.5rem 2rem;
         margin-bottom: 2rem;
-        box-shadow: 0 8px 20px rgba(76, 84, 91, 0.15);
+        box-shadow: 0 8px 20px rgba(54, 64, 66, 0.15);
         position: relative;
         overflow: hidden;
         animation: fadeInUp 0.7s ease-out;
@@ -64,7 +66,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: linear-gradient(135deg, rgba(219, 219, 211, 0.3) 25%, transparent 25%);
+        background: linear-gradient(135deg, rgba(213, 227, 230, 0.3) 25%, transparent 25%);
         background-size: 20px 20px;
         opacity: 0.4;
         z-index: 0;
@@ -81,10 +83,10 @@
         font-size: 1.8rem;
         margin-bottom: 1rem;
         font-weight: 600;
-        border-bottom: 2px dashed var(--sage-green);
+        border-bottom: 2px dashed var(--navy-blue);
         padding-bottom: 0.5rem;
         animation: fadeIn 1s ease;
-        font-family: 'EB Garamond', serif !important;
+        font-family: 'Nunito', sans-serif !important;
     }
     
     /* Request List Styling */
@@ -94,14 +96,14 @@
     }
     
     .requests-container li, .remote-requests-container li {
-        background-color: var(--light-gray);
+        background-color: var(--off-white);
         margin-bottom: 1rem;
         padding: 1rem 1.5rem;
         border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        box-shadow: 0 2px 5px rgba(76, 84, 91, 0.08);
+        box-shadow: 0 2px 5px rgba(54, 64, 66, 0.08);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
         animation: fadeIn 1.2s ease;
         flex-wrap: wrap;
@@ -109,22 +111,23 @@
     
     .requests-container li:hover, .remote-requests-container li:hover {
         transform: translateY(-3px);
-        box-shadow: 0 8px 15px rgba(76, 84, 91, 0.12);
+        box-shadow: 0 8px 15px rgba(54, 64, 66, 0.12);
     }
     
     /* User Link Styling */
     .requests-container a, .remote-requests-container a, .remote-requests-container p {
-        color: var(--dark-gray);
+        color: var(--navy-blue);
         text-decoration: none;
         font-weight: 600;
         font-size: 1.2rem;
         transition: color 0.3s ease;
         margin-right: 1rem;
         flex: 1;
+        font-family: 'Nunito', sans-serif !important;
     }
     
     .requests-container a:hover {
-        color: var(--soft-pink);
+        color: var(--terracotta);
     }
     
     /* Empty State Message - italic text */
@@ -134,6 +137,7 @@
         font-style: italic;
         text-align: center;
         padding: 1rem 0;
+        font-family: 'Nunito', sans-serif !important;
     }
     
     /* Button Styling */
@@ -141,19 +145,19 @@
         display: inline-block;
         padding: 8px 16px;
         margin: 0 5px;
-        background-color: var(--soft-pink);
-        color: var(--dark-gray);
+        background-color: var(--terracotta);
+        color: var(--off-white);
         text-decoration: none;
-        border-radius: 30px;
-        font-size: 1rem;
-        font-weight: 600;
+        border-radius: 20px;
+        font-size: 0.95rem;
+        font-weight: 500;
         border: none;
-        box-shadow: 0 4px 10px rgba(222, 177, 184, 0.3);
+        box-shadow: 0 4px 10px rgba(209, 130, 102, 0.3);
         cursor: pointer;
         transition: all 0.3s ease;
         position: relative;
         overflow: hidden;
-        font-family: 'EB Garamond', serif !important;
+        font-family: 'Nunito', sans-serif !important;
     }
     
     button::after {
@@ -171,7 +175,8 @@
     
     button:hover {
         transform: translateY(-3px);
-        box-shadow: 0 8px 15px rgba(222, 177, 184, 0.4);
+        box-shadow: 0 8px 15px rgba(209, 130, 102, 0.4);
+        background-color: #c07058;
     }
     
     button:hover::after {
@@ -180,22 +185,24 @@
     }
     
     button[type="submit"]:first-of-type {
-        background-color: var(--sage-green);
-        box-shadow: 0 4px 10px rgba(181, 195, 178, 0.3);
+        background-color: var(--navy-blue);
+        box-shadow: 0 4px 10px rgba(91, 109, 146, 0.3);
     }
     
     button[type="submit"]:first-of-type:hover {
-        box-shadow: 0 8px 15px rgba(181, 195, 178, 0.4);
+        box-shadow: 0 8px 15px rgba(91, 109, 146, 0.4);
+        background-color: #4a5b7e;
     }
     
     button[type="submit"]:last-of-type {
         background-color: var(--dark-gray);
-        color: var(--light-cream);
-        box-shadow: 0 4px 10px rgba(76, 84, 91, 0.3);
+        color: var(--off-white);
+        box-shadow: 0 4px 10px rgba(54, 64, 66, 0.3);
     }
     
     button[type="submit"]:last-of-type:hover {
-        box-shadow: 0 8px 15px rgba(76, 84, 91, 0.4);
+        box-shadow: 0 8px 15px rgba(54, 64, 66, 0.4);
+        background-color: #2a3234;
     }
     
     /* Button Group */
@@ -203,6 +210,84 @@
         display: flex;
         align-items: center;
         flex-wrap: wrap;
+    }
+    
+    /* Unique enhancements for user profiles */
+    .user-info {
+        display: flex;
+        align-items: center;
+    }
+    
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: var(--navy-blue);
+        color: var(--off-white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 10px;
+        font-weight: 600;
+        font-size: 1.2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .user-avatar::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(45deg, var(--navy-blue), var(--terracotta));
+        opacity: 0.8;
+    }
+    
+    .user-avatar span {
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* Status indicator */
+    .request-status {
+        display: inline-block;
+        padding: 4px 8px;
+        background-color: var(--navy-blue);
+        color: var(--off-white);
+        border-radius: 12px;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-left: 8px;
+        opacity: 0.8;
+    }
+    
+    /* Request timestamp */
+    .request-time {
+        font-size: 0.8rem;
+        color: var(--dark-gray);
+        opacity: 0.7;
+        margin-top: 4px;
+        font-style: italic;
+        display: block;
+    }
+    
+    /* Empty state enhancement */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 0;
+    }
+    
+    .empty-state-icon {
+        font-size: 2.5rem;
+        color: var(--navy-blue);
+        opacity: 0.3;
+        margin-bottom: 1rem;
     }
     
     /* Responsive Adjustments */
@@ -265,10 +350,17 @@
             opacity: 1;
         }
     }
+    
+    /* Pulse animation for notifications */
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
 </style>
 
 <div class="requests-page">
-    <h2>Your Requests</h2>
+    <h2>Follow Requests</h2>
 
     <div class="requests-container">
         <h3>Local Follow Requests</h3>
@@ -277,9 +369,17 @@
                 <!-- Show each follow request with option to accept and decline -->
                 {% for request in requests %}
                     <li>
-                        <a href="{% url 'identity:author-profile' author_id=request.sender.author_profile.author_id %}">
-                            {{ request.sender.author_profile.display_name }}
-                        </a>
+                        <div class="user-info">
+                            <div class="user-avatar">
+                                <span>{{ request.sender.author_profile.display_name|slice:":1" }}</span>
+                            </div>
+                            <div>
+                                <a href="{% url 'identity:author-profile' author_id=request.sender.author_profile.author_id %}">
+                                    {{ request.sender.author_profile.display_name }}
+                                </a>
+                                <span class="request-time">Requested to follow you</span>
+                            </div>
+                        </div>
                         <div class="button-group">
                             <form action="{% url 'identity:accept' %}" method="post" style="display:inline;">
                                 {% csrf_token %}
@@ -296,7 +396,10 @@
                 {% endfor %}
             </ul>
         {% else %}
-            <p>No local follow requests at the moment.</p>
+            <div class="empty-state">
+                <div class="empty-state-icon">📭</div>
+                <p>No local follow requests at the moment.</p>
+            </div>
         {% endif %}
     </div>
 
@@ -307,9 +410,18 @@
                 <!-- Show each follow request with option to accept and decline -->
                 {% for request in remote_requests %}
                     <li>
-                        <p>
-                            {{ request.sender_name }}
-                        </p>
+                        <div class="user-info">
+                            <div class="user-avatar">
+                                <span>{{ request.sender_name|slice:":1" }}</span>
+                            </div>
+                            <div>
+                                <p>
+                                    {{ request.sender_name }}
+                                    <span class="request-status">Remote</span>
+                                </p>
+                                <span class="request-time">Requested to follow you</span>
+                            </div>
+                        </div>
                         <div class="button-group">
                             <form action="{% url 'identity:remote-accept' %}" method="post" style="display:inline;">
                                 {% csrf_token %}
@@ -330,7 +442,10 @@
                 {% endfor %}
             </ul>
         {% else %}
-            <p>No remote follow requests at the moment.</p>
+            <div class="empty-state">
+                <div class="empty-state-icon">🌎</div>
+                <p>No remote follow requests at the moment.</p>
+            </div>
         {% endif %}
     </div>
 </div>

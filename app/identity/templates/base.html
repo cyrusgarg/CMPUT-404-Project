@@ -7,8 +7,15 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <header>
-        <h1>Welcome to the Site</h1>
+    <header style="background-color: transparent; padding: 20px; position: relative; overflow: hidden; width: 100%; margin-bottom: 20px; display: flex; align-items: center;">
+        <div style="position: absolute; width: 200%; height: 200%; background: transparent; top: -50%; left: -50%; transform: rotate(45deg);"></div>
+        <div style="flex: 0 0 auto; margin-right: 20px;">
+            <img src="{% static 'identity/images/cohessivo-logo.png' %}" alt="Cohessivo Logo" style="width: 150px; height: auto;">
+        </div>
+        <div style="flex-grow: 1; text-align: center;">
+            <h1 style="font-family: 'Nunito', sans-serif; color: #4e5659; margin: 0; position: relative; font-weight: 600; font-size: 2.5em; letter-spacing: 0.05em; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);">Welcome to Streamly.</h1>
+        </div>
+        <div style="flex: 0 0 170px;"></div>
     </header>
     <main>
         {% block content %}

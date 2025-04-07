@@ -1,0 +1,263 @@
+/* Import Nunito font */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&display=swap');
+
+/* Base styles */
+body {
+    font-family: 'Nunito', sans-serif;
+    background-color: #EFEEE5;
+    color: #364042;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 30px;
+    background-color: #EFEEE5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+/* Typography */
+h1 {
+    color: #364042;
+    font-weight: 700;
+    margin-bottom: 15px;
+    font-size: 2.2rem;
+    display: inline-block;
+    position: relative;
+    padding-bottom: 12px;
+}
+
+h1:after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #5B6D92, #D18266);
+    border-radius: 2px;
+}
+
+p {
+    color: #5B6D92;
+    font-size: 1.1rem;
+    margin-bottom: 25px;
+}
+
+/* Button styles */
+.btn-primary {
+    background-color: #5B6D92;
+    border-color: #5B6D92;
+    color: #EFEEE5;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: #4a5a7a;
+    border-color: #4a5a7a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(91, 109, 146, 0.2);
+}
+
+/* Alert styles */
+.alert {
+    border-radius: 6px;
+    padding: 15px 20px;
+    margin-bottom: 25px;
+    border: none;
+}
+
+.alert-info {
+    background-color: #D5E3E6;
+    color: #364042;
+    border-left: 4px solid #5B6D92;
+}
+
+.alert-success {
+    background-color: #D5E3E6;
+    color: #364042;
+    border-left: 4px solid #5B6D92;
+}
+
+.alert-danger {
+    background-color: #F0E2D2;
+    color: #364042;
+    border-left: 4px solid #D18266;
+}
+
+/* Super specific table styling to override Bootstrap and any other framework */
+html body .container .table-responsive .table.table-striped {
+    width: 100%;
+    margin-bottom: 20px;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+html body .container .table-responsive .table.table-striped thead tr th {
+    background-color: #5B6D92 !important;
+    color: #EFEEE5 !important;
+    padding: 15px !important;
+    font-weight: 600 !important;
+    text-align: left !important;
+    border: none !important;
+    white-space: nowrap !important;
+}
+
+html body .container .table-responsive .table.table-striped tbody tr td {
+    padding: 15px !important;
+    vertical-align: middle !important;
+    border-top: 1px solid rgba(91, 109, 146, 0.1) !important;
+}
+
+/* Extremely specific selectors for row colors */
+html body .container .table-responsive .table.table-striped tbody tr {
+    background-color: #F0E2D2 !important;
+}
+
+html body .container .table-responsive .table.table-striped tbody tr.uniform-row {
+    background-color: #F0E2D2 !important;
+}
+/* Reset any hover effects that might interfere */
+html body .container .table-responsive .table.table-striped tbody tr:hover,
+html body .container .table-responsive .table.table-striped tbody tr:hover td,
+html body .container .table-responsive .table.table-striped tbody tr:focus,
+html body .container .table-responsive .table.table-striped tbody tr:active {
+    background-color: inherit !important;
+}
+
+/* Add a subtle border on hover instead of changing background */
+html body .container .table-responsive .table.table-striped tbody tr:hover {
+    background-color: #e8d7c7 !important;
+}
+
+html body .container .table-responsive .table.table-striped tbody tr:hover td {
+    box-shadow: none !important;
+    border-color: transparent !important;
+}
+
+/* Badge styles with specific selectors */
+html body .badge,
+html body span.badge {
+    padding: 8px 12px !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    border-radius: 20px !important;
+    display: inline-block !important;
+}
+
+html body .badge.bg-success,
+html body span.badge.bg-success,
+html body .badge.active,
+html body span.badge.active {
+    background-color: #5B6D92 !important;
+    color: #EFEEE5 !important;
+}
+
+html body .badge.bg-danger,
+html body span.badge.bg-danger,
+html body .badge.inactive,
+html body span.badge.inactive {
+    background-color: #D18266 !important;
+    color: #EFEEE5 !important;
+}
+
+/* Action buttons */
+.btn-sm {
+    padding: 5px 10px;
+    font-size: 0.85rem;
+    border-radius: 4px;
+    margin-right: 5px;
+}
+
+.btn-outline-primary {
+    color: #5B6D92;
+    border-color: #5B6D92;
+}
+
+.btn-outline-primary:hover {
+    background-color: #5B6D92;
+    color: #EFEEE5;
+}
+
+.btn-outline-danger {
+    color: #D18266;
+    border-color: #D18266;
+}
+
+.btn-outline-danger:hover {
+    background-color: #D18266;
+    color: #EFEEE5;
+}
+
+.btn-outline-success {
+    color: #5B6D92;
+    border-color: #5B6D92;
+}
+
+.btn-outline-success:hover {
+    background-color: #5B6D92;
+    color: #EFEEE5;
+}
+
+/* Links */
+a {
+    color: #5B6D92;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    color: #D18266;
+    text-decoration: none;
+}
+
+/* Add New Node button */
+a.btn.btn-primary.mb-3 {
+    margin-bottom: 25px;
+    display: inline-block;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+    .table thead {
+        display: none;
+    }
+    
+    .table, .table tbody, .table tr, .table td {
+        display: block;
+        width: 100%;
+    }
+    
+    .table tr {
+        margin-bottom: 15px;
+        border: 1px solid rgba(91, 109, 146, 0.2);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .table td {
+        text-align: right;
+        padding-left: 50%;
+        position: relative;
+    }
+    
+    .table td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 15px;
+        width: 45%;
+        text-align: left;
+        font-weight: 600;
+    }
+}
+
+.uniform-row {
+    background-color: #F0E2D2 !important;
+}

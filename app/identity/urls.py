@@ -18,7 +18,10 @@ urlpatterns = [
     path('edit-profile/', views.AuthorProfileEditView.as_view(), name='edit-profile'),
     path('signup/', views.UserSignUpView.as_view(), name='signup'),
     path('waiting-approval/', views.waiting_approval_view, name='waiting_approval'),
-    
+    # Add the profile image upload URL here
+
+    path('update-profile-image/', views.update_profile_image, name='update-profile-image'),
+
     # Node management URLs - Must come before the author_id pattern
     path('nodes/', views.RemoteNodeListView.as_view(), name='remote-node-list'),
     path('nodes/add/', views.RemoteNodeCreateView.as_view(), name='remote-node-add'),
