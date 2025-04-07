@@ -24,6 +24,7 @@ from urllib.parse import unquote
 from rest_framework.authentication import SessionAuthentication
 from django.conf import settings
 from identity.id_mapping import get_uuid_for_numeric_id
+from identity.models import RemoteAuthor
 
 try:
     from bs4 import BeautifulSoup
@@ -641,7 +642,8 @@ class AuthorListView(APIView):
     
     def get(self, request):
         """Return a paginated list of all authors"""
-        authors = Author.objects.all()
+        #authors = Author.objects.all()
+        authors = Author.objects.exclude(display_name__istartswith="remote_")
         
         # Apply pagination
         paginator = AuthorPagination()
@@ -692,8 +694,8 @@ class AuthorDetailView(APIView):
 @permission_classes([AllowAny])
 def author_list(request):
     """Return a paginated list of all authors"""
-    authors = Author.objects.all()
-    
+    #authors = Author.objects.all()
+    authors = Author.objects.exclude(display_name__istartswith="remote_")
     # Apply pagination
     paginator = AuthorPagination()
     paginated_authors = paginator.paginate_queryset(authors, request)
@@ -837,8 +839,9 @@ def inbox(request, author_id):
     obj_type = data.get("type", "").lower()
 
     if obj_type == "post":
+        print("post data\n",data)
         post_id = data.get("id", "").split("/")[-1]
-        print("Line825, post id:",post_id)
+        print("Line 842: post id:",post_id)
         if is_integer(post_id):
             post_id = get_uuid_for_numeric_id(int(post_id))
         # Extract remote author data
@@ -847,12 +850,14 @@ def inbox(request, author_id):
         if is_integer(remote_author_id):
             remote_author_id = get_uuid_for_numeric_id(int(remote_author_id))
         remote_host=author_data.get("host","")
-        print("Line 830 remote_host:",remote_host)
-        print("Line 831 remote_author_id:",remote_author_id)
+        print("Line 851: remote_host:",remote_host)
+        print("Line 852: remote_author_id:",remote_author_id)
         # Try to fetch the existing remote author
-        remote_author = Author.objects.filter(author_id=remote_author_id,host=remote_host).first()
-
+        remote_author = RemoteAuthor.objects.filter(author_id=remote_author_id,host=remote_host).first()
+        print("Remote author display name:", remote_author.display_name)
+        remote_author_display_name=remote_author.display_name
         if not remote_author:
+            print("Line 857: Remote author does not exits")
             # Create the Author first
             remote_author, created = Author.objects.get_or_create(
                 author_id=remote_author_id,
@@ -865,32 +870,36 @@ def inbox(request, author_id):
             )
 
         if remote_author.user is None:
+            print("Line 870: Remote author does not has associated user")
             username = f"remote_{remote_author_id}"  # Unique username
             
             # Check if a user with this username already exists
             user = User.objects.filter(username=username).first()
 
             if user:
+                print("Line 877: New user created is already present in db")
                 # If the user exists, ensure it isn't already linked to another author
                 existing_author = Author.objects.filter(user=user).first()
 
                 if existing_author:
-                    print(f"User {username} is already linked to an existing Author. Using existing author.")
+                    print(f"User {username} is already linked to an existing Author. Using existing author and attaching the current author with remote author")
                     #existing_author=remote_author
                     remote_author=existing_author
                     #remote_author.host=remote_host
                 else:
                     # Assign the existing user to the remote_author
+                    print("Line 888: user does not has associated with author")
                     remote_author.user = user
                     remote_author.save(update_fields=["user"])
             else:
                 # Create a new User and assign it to the Author
+                print("Line 893: creating new user")
                 user = User.objects.create(username=username)
                 # Now, double-check if an Author already exists for this user
                 existing_author = Author.objects.filter(user=user).first()
                 
                 if existing_author:
-                    print(f"Warning: An Author already exists for {username}. Using existing Author.")
+                    print(f"Line 899: Warning: An Author already exists for {username}. Using existing Author.")
                     remote_author = existing_author
                 else:
                     remote_author.user = user
@@ -952,7 +961,7 @@ def inbox(request, author_id):
             "visibility": data.get("visibility", "PUBLIC"),
             "remote_url": data.get("id", ""),
         }
-        
+        post_data["author"].author_profile.display_name=remote_author_display_name
         # Handle content based on content type
         if is_image_post:
             # This is an image post
@@ -969,8 +978,13 @@ def inbox(request, author_id):
             post_data["image"] = data.get("image", None)
         
         # Create the post
+        print("Author name:",post_data["author"].author_profile.display_name )
         new_post = Post.objects.create(**post_data)
-        
+        new_post.author.author_profile.display_name=remote_author_display_name
+        new_post.author.author_profile.save(update_fields=["display_name"])
+        serializer = PostSerializer(new_post, context={'request': request})
+        post_data = serializer.data
+        print("newly created post\n",post_data)
         return Response(PostSerializer(new_post, context={'request': request}).data, status=201)
 
     elif obj_type == "like":
@@ -992,7 +1006,8 @@ def inbox(request, author_id):
         remote_host = author_data.get("host", "")
 
         # Try to fetch the existing remote author
-        remote_author = Author.objects.filter(author_id=remote_author_id, host=remote_host).first()
+        #remote_author = Author.objects.filter(author_id=remote_author_id, host=remote_host).first()
+        remote_author = RemoteAuthor.objects.filter(author_id=remote_author_id,host=remote_host).first()
 
         if not remote_author:
             # Create the Author if it doesn't exist
@@ -1095,7 +1110,8 @@ def inbox(request, author_id):
         remote_host = author_data.get("host", "")
 
         # Try to fetch the existing remote author
-        remote_author = Author.objects.filter(author_id=remote_author_id, host=remote_host).first()
+        #remote_author = Author.objects.filter(author_id=remote_author_id, host=remote_host).first()
+        remote_author = RemoteAuthor.objects.filter(author_id=remote_author_id,host=remote_host).first()
 
         if not remote_author:
             # Create the Author if it doesn't exist
@@ -1131,7 +1147,10 @@ def inbox(request, author_id):
 
         remote_author.host = remote_host
         remote_author.save()
-
+        new_display_name = author_data.get("displayName")
+        if new_display_name and remote_author.display_name != new_display_name:
+            remote_author.display_name = new_display_name
+            remote_author.save(update_fields=["display_name"])
         # Ensure post exists before adding the comment
         post_url = data.get("post", "")
         post_id = post_url.split("/")[-1]

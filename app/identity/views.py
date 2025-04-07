@@ -49,16 +49,22 @@ class AuthorListView(ListView):
     
     def get_queryset(self):
         # Get local authors
-        local_authors = Author.objects.all()
+        local_authors = Author.objects.all().exclude(display_name__startswith='remote_')
         
         # Get remote authors from all active nodes
-        remote_authors = RemoteAuthor.objects.filter(node__is_active=True)
+        remote_authors = RemoteAuthor.objects.filter(node__is_active=True).exclude(display_name__startswith='remote_')
         
         # Combine local and remote authors into a single queryset
         combined_authors = []
         
         # Add local authors
         for author in local_authors:
+            if author.display_name.lower().startswith("remote_"):
+                print("Skipping author:", author.display_name)
+                continue
+            if author.user.username.lower().startswith("remote_"):
+                print("Skipping username author:", author.display_name)
+                continue
             combined_authors.append({
                 'id': str(author.author_id),  # Ensure string representation
                 'display_name': author.display_name,
@@ -76,6 +82,9 @@ class AuthorListView(ListView):
         # Add remote authors
         for author in remote_authors:
             # Try to extract numeric ID if possible
+            if author.display_name.lower().startswith("remote_"):
+                print("Skipping author:", author.display_name)
+                continue
             try:
                 # Attempt to extract a numeric ID from the author_id
                 numeric_id = int(''.join(filter(str.isdigit, str(author.id))))
@@ -524,9 +533,9 @@ def fetch_remote_authors(request, node_id):
                         author_id = author_data.get('id', '')
                         if '/' in author_id:
                             author_id = author_id.split('/')[-1]
-                        
+                        print("Line 527: Creating or updating user")
                         # Update or create the remote author
-                        RemoteAuthor.objects.update_or_create(
+                        remote_author, created = RemoteAuthor.objects.update_or_create(
                             node=node,
                             author_id=author_id,
                             defaults={
@@ -536,6 +545,11 @@ def fetch_remote_authors(request, node_id):
                                 'profile_image': author_data.get('profileImage', '')
                             }
                         )
+                        remote_author.save()
+                        if created:
+                            print(f"Line 541: Created RemoteAuthor: {remote_author.display_name} ({remote_author.author_id})")
+                        else:
+                            print(f"Line 543: Updated RemoteAuthor: {remote_author.display_name} ({remote_author.author_id})")
                         authors_count += 1
                     
                     total_authors_count += authors_count
@@ -567,7 +581,7 @@ def fetch_remote_authors(request, node_id):
                             author_id = author_id.split('/')[-1]
                         
                         # Update or create the remote author
-                        RemoteAuthor.objects.update_or_create(
+                        remote_author, created =RemoteAuthor.objects.update_or_create(
                             node=node,
                             author_id=author_id,
                             defaults={
@@ -577,6 +591,11 @@ def fetch_remote_authors(request, node_id):
                                 'profile_image': author_data.get('profileImage', '')
                             }
                         )
+                        remote_author.save()
+                        if created:
+                            print(f"Line 587: Created RemoteAuthor: {remote_author.display_name} ({remote_author.author_id})")
+                        else:
+                            print(f"Line 589: Updated RemoteAuthor: {remote_author.display_name} ({remote_author.author_id})")
                         authors_count += 1
                     
                     total_authors_count += authors_count
@@ -624,7 +643,7 @@ class RemoteAuthorListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         self.node = get_object_or_404(RemoteNode, id=self.kwargs['node_id'], is_active=True)
-        return RemoteAuthor.objects.filter(node=self.node)
+        return RemoteAuthor.objects.filter(node=self.node).exclude(display_name__startswith='remote_')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
