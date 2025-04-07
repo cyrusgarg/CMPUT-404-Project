@@ -1,49 +1,343 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>Edit Post</title>
     {% load static %}
     <link rel="stylesheet" type="text/css" href="{% static 'css/PostEdit.css' %}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --primary-dark: #5B6D92;
+            --primary-light: #D5E3E6;
+            --neutral-bg: #F0E2D2;
+            --neutral-light: #fbfaf6;
+            --accent: #D18266;
+            --text: #364042;
+            --success: #4CAF50;
+            --warning: #D93025;
+            --light-warning: #FFE9E9;
+            --blue: #007BFF;
+            --blue-hover: #0056b3;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+            color: var(--text);
+            background-color: var(--neutral-light);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 800px;
+            padding: 30px 20px;
+        }
+        
+        h1 {
+            color: var(--primary-dark);
+            text-align: center;
+            font-size: 2.2rem;
+            margin: 30px 0;
+            position: relative;
+        }
+        
+        h1::after {
+            content: '';
+            display: block;
+            width: 80px;
+            height: 3px;
+            background-color: var(--accent);
+            margin: 15px auto 0;
+            border-radius: 2px;
+        }
+        
+        .edit-form {
+            background-color: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
+            margin: 20px 0 40px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--primary-dark);
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1rem;
+            color: var(--text);
+            transition: border 0.2s ease;
+            box-sizing: border-box;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-dark);
+            box-shadow: 0 0 0 2px rgba(91, 109, 146, 0.2);
+        }
+        
+        select.form-control {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235B6D92' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            padding-right: 40px;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
+        
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+        }
+        
+        .file-input-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 15px;
+            background-color: var(--primary-light);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .file-input-label:hover {
+            background-color: var(--primary-dark);
+            color: white;
+        }
+        
+        .file-input-label svg {
+            flex-shrink: 0;
+        }
+        
+        .file-input {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+        }
+        
+        .file-name {
+            margin-top: 8px;
+            font-size: 0.9rem;
+            color: var(--primary-dark);
+        }
+        
+        .current-image {
+            margin-top: 15px;
+        }
+        
+        .current-image p {
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 10px;
+        }
+        
+        .current-image img {
+            border-radius: 8px;
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid #eee;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            justify-content: flex-end;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        
+        .btn-primary {
+            background-color: var(--accent);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background-color: var(--primary-light);
+            color: var(--primary-dark);
+        }
+        
+        .btn-secondary:hover {
+            background-color: var(--primary-dark);
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 15px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+                margin: 20px 0;
+            }
+            
+            .edit-form {
+                padding: 20px;
+            }
+            
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+            
+            .button-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h1>Edit Post</h1>
-    <form action="{% url 'posts:web_update_post' post.id %}" method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
-        <label>Title:</label>
-        <input type="text" name="title" value="{{ post.title }}" required><br>
+    <div class="container">
+        <h1>Edit Post</h1>
+        
+        <form class="edit-form" action="{% url 'posts:web_update_post' post.id %}" method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="title">Title</label>
+                <input type="text" id="title" name="title" class="form-control" value="{{ post.title }}" required>
+            </div>
 
-        <label>Description:</label>
-        <textarea name="description" required>{{ post.description }}</textarea><br>
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea id="description" name="description" class="form-control" required>{{ post.description }}</textarea>
+            </div>
 
-        <label>Content:</label>
-        <textarea name="content" required>{{ post.content }}</textarea><br>
+            <div class="form-group">
+                <label for="content">Content</label>
+                <textarea id="content" name="content" class="form-control" required>{{ post.content }}</textarea>
+            </div>
 
-        <label>Content Type:</label>
-        <select name="contentType">
-            <option value="text/plain" {% if post.contentType == "text/plain" %}selected{% endif %}>Plain Text</option>
-            <option value="text/markdown" {% if post.contentType == "text/markdown" %}selected{% endif %}>Markdown</option>
-        </select><br>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="contentType">Content Type</label>
+                    <select id="contentType" name="contentType" class="form-control">
+                        <option value="text/plain" {% if post.contentType == "text/plain" %}selected{% endif %}>Plain Text</option>
+                        <option value="text/markdown" {% if post.contentType == "text/markdown" %}selected{% endif %}>Markdown</option>
+                    </select>
+                </div>
 
-        <label>Visibility:</label>
-        <select name="visibility">
-            <option value="PUBLIC" {% if post.visibility == "PUBLIC" %}selected{% endif %}>Public</option>
-            <option value="FRIENDS" {% if post.contentType == "FRIENDS" %}selected{% endif %}>Friends Only</option>
-            <option value="UNLISTED" {% if post.contentType == "UNLISTED" %}selected{% endif %}>Unlisted</option>
-            <option value="DELETED" {% if post.contentType == "DELETED" %}selected{% endif %}>Deleted</option>
-        </select><br>
+                <div class="form-group">
+                    <label for="visibility">Visibility</label>
+                    <select id="visibility" name="visibility" class="form-control">
+                        <option value="PUBLIC" {% if post.visibility == "PUBLIC" %}selected{% endif %}>Public</option>
+                        <option value="FRIENDS" {% if post.visibility == "FRIENDS" %}selected{% endif %}>Friends Only</option>
+                        <option value="UNLISTED" {% if post.visibility == "UNLISTED" %}selected{% endif %}>Unlisted</option>
+                        <option value="DELETED" {% if post.visibility == "DELETED" %}selected{% endif %}>Deleted</option>
+                    </select>
+                </div>
+            </div>
 
-        <label for="image">Upload Image:</label>
-        <input type="file" name="image" accept="image/*">
+            <div class="form-group">
+                <label>Update Image</label>
+                <div class="file-input-wrapper">
+                    <label for="image" class="file-input-label">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                        Choose a new image
+                    </label>
+                    <input type="file" id="image" name="image" accept="image/*" class="file-input">
+                    <div id="file-name" class="file-name"></div>
+                </div>
+            </div>
 
-        {% if post.image %}
-            <p>Current Image:</p>
-            <img src="{{ post.image }}" alt="{{ post.title }} Image" style="max-width: 200px;"><br>
-        {% endif %}
+            {% if post.image %}
+                <div class="current-image">
+                    <p>Current Image:</p>
+                    <img src="{{ post.image }}" alt="{{ post.title }} Image" style="max-width: 300px;">
+                </div>
+            {% endif %}
 
-        <button type="submit">Save Changes</button>
-    </form>
-    <!-- <a href="{% url 'posts:post_detail' post.id %}">Cancel</a> -->
-    <a href="{% url 'posts:index' %}">Cancel</a>
+            <div class="button-group">
+                <a href="{% url 'posts:index' %}" class="btn btn-secondary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                        <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Display selected filename
+        document.getElementById('image').addEventListener('change', function(e) {
+            const fileName = e.target.files[0] ? e.target.files[0].name : 'No file selected';
+            document.getElementById('file-name').textContent = fileName;
+        });
+    </script>
 </body>
 </html>
-

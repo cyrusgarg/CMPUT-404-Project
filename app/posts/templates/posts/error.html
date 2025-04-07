@@ -1,19 +1,118 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-danger text-white">
-                    <h4 class="mb-0">Error</h4>
-                </div>
-                <div class="card-body">
-                    <p class="card-text">{{ message }}</p>
-                    <p class="card-text text-muted">This post is not available for sharing.</p>
-                    <a href="{% url 'home' %}" class="btn btn-primary">Back to Home</a>
-                </div>
-            </div>
+<style>
+    :root {
+        --primary-dark: #5B6D92;
+        --primary-light: #D5E3E6;
+        --neutral-bg: #F0E2D2;
+        --neutral-light: #fbfaf6;
+        --accent: #D18266;
+        --text: #364042;
+        --warning: #D93025;
+        --light-warning: #FFE9E9;
+        --blue: #007BFF;
+        --blue-hover: #0056b3;
+    }
+    
+    .error-container {
+        width: 100%;
+        max-width: 600px;
+        margin: 80px auto;
+        padding: 0 20px;
+    }
+    
+    .error-card {
+        background-color: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
+    }
+    
+    .error-header {
+        background-color: var(--warning);
+        color: white;
+        padding: 20px 25px;
+        position: relative;
+    }
+    
+    .error-header h4 {
+        margin: 0;
+        font-size: 1.4rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .error-body {
+        padding: 30px 25px;
+    }
+    
+    .error-message {
+        font-size: 1.1rem;
+        color: var(--text);
+        margin-bottom: 15px;
+    }
+    
+    .error-note {
+        color: var(--text);
+        opacity: 0.7;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .home-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        background-color: var(--blue);
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        border-radius: 30px;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .home-link:hover {
+        background-color: var(--blue-hover);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .error-container {
+            margin: 40px auto;
+        }
+    }
+</style>
+
+<div class="error-container">
+    <div class="error-card">
+        <div class="error-header">
+            <h4>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                Error
+            </h4>
+        </div>
+        <div class="error-body">
+            <p class="error-message">{{ message }}</p>
+            <p class="error-note">This post is not available for sharing.</p>
+            <a href="{% url 'home' %}" class="home-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+                Back to Home
+            </a>
         </div>
     </div>
 </div>
