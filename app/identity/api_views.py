@@ -819,9 +819,9 @@ def is_uuid(value):
         return False
 
 @api_view(['POST','PUT'])
-@authentication_classes([NodeBasicAuthentication])
-@permission_classes([IsAuthenticated])
-#@permission_classes([AllowAny])
+#@authentication_classes([NodeBasicAuthentication])
+#@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def inbox(request, author_id):
     """
     POST: Accepts remote objects (posts, follow requests, likes, comments)
@@ -831,6 +831,7 @@ def inbox(request, author_id):
       - likes: the body is a like object (processed with LikeSerializer)
       - comments: the body is a comment object (processed with CommentSerializer)
     """
+    print("insideinboxview")
     # Get the target author (the owner of this inbox)
     author = get_object_or_404(Author, author_id=author_id)
     data = request.data
