@@ -1,0 +1,135 @@
+/* Import Nunito font */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&display=swap');
+
+/* Base styles */
+body {
+    font-family: 'Nunito', sans-serif;
+    background-color: #EFEEE5;
+    color: #364042;
+}
+
+.container {
+    max-width: 900px;
+    margin: 30px auto;
+    padding: 30px;
+    background-color: #EFEEE5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    border-top: 4px solid #5B6D92;
+    animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Typography */
+h1 {
+    color: #364042;
+    font-weight: 700;
+    margin-bottom: 25px;
+    font-size: 2.2rem;
+    display: inline-block;
+    position: relative;
+    padding-bottom: 12px;
+}
+
+h1:after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #D18266, #5B6D92);
+    border-radius: 2px;
+}
+
+p {
+    color: #364042;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+/* Alert styles */
+.alert {
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 25px;
+    border: none;
+    background-color: #F0E2D2;
+    color: #364042;
+    border-left: 4px solid #D18266;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.alert-warning {
+    background-color: #F0E2D2;
+    color: #364042;
+    border-left: 4px solid #D18266;
+}
+
+.alert p:last-child {
+    margin-bottom: 0;
+}
+
+/* Form styles */
+form {
+    margin-top: 25px;
+    display: flex;
+    gap: 15px;
+}
+
+/* Button styles */
+.btn {
+    font-weight: 600;
+    padding: 12px 24px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    display: inline-block;
+    text-align: center;
+    font-size: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-danger {
+    background-color: #D18266;
+    border: 2px solid #D18266;
+    color: #EFEEE5;
+}
+
+.btn-danger:hover {
+    background-color: #c06850;
+    border-color: #c06850;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(209, 130, 102, 0.3);
+}
+
+.btn-outline-secondary {
+    background-color: transparent;
+    border: 2px solid #5B6D92;
+    color: #5B6D92;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #5B6D92;
+    color: #EFEEE5;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(91, 109, 146, 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+    form {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+}

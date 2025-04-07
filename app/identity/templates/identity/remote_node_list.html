@@ -1,11 +1,18 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/remote_node_list.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="container">
     <h1>Remote Nodes</h1>
     <p>Manage remote nodes that you want to share content with.</p>
     
-    <a href="{% url 'identity:remote-node-add' %}" class="btn btn-primary mb-3">Add New Node</a>
+    <a href="{% url 'identity:remote-node-add' %}" class="btn btn-primary mb-3">
+        <i class="fas fa-plus-circle"></i> Add New Node
+    </a>
     
     {% if messages %}
     <div class="messages mb-3">
@@ -16,47 +23,55 @@
     {% endif %}
     
     {% if nodes %}
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Host URL</th>
-                    <th>Authors</th>
-                    <th>Status</th>
-                    <th>Added</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for node in nodes %}
-                <tr>
-                    <td>{{ node.name }}</td>
-                    <td>{{ node.host_url }}</td>
-                    <td>
-                        <a href="{% url 'identity:remote-authors-list' node.id %}">
-                            {{ node.author_count|default:"0" }} Authors
-                        </a>
-                    </td>
-                    <td>
-                        {% if node.is_active %}
-                            <span class="badge bg-success">Active</span>
-                        {% else %}
-                            <span class="badge bg-danger">Inactive</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ node.added_at|date:"M d, Y" }}</td>
-                    <td>
-                        <a href="{% url 'identity:remote-node-edit' node.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
-                        <a href="{% url 'identity:remote-node-delete' node.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
-                        <a href="{% url 'identity:remote-authors-list' node.id %}" class="btn btn-sm btn-outline-success">View Authors</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Host URL</th>
+                        <th>Authors</th>
+                        <th>Status</th>
+                        <th>Added</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for node in nodes %}
+                    <tr class="uniform-row">
+                        <td data-label="Name">{{ node.name }}</td>
+                        <td data-label="Host URL">{{ node.host_url }}</td>
+                        <td data-label="Authors">
+                            <a href="{% url 'identity:remote-authors-list' node.id %}">
+                                {{ node.author_count|default:"0" }} Authors
+                            </a>
+                        </td>
+                        <td data-label="Status">
+                            {% if node.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td data-label="Added">{{ node.added_at|date:"M d, Y" }}</td>
+                        <td data-label="Actions">
+                            <a href="{% url 'identity:remote-node-edit' node.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <a href="{% url 'identity:remote-node-delete' node.pk %}" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-trash"></i> Delete
+                            </a>
+                            <a href="{% url 'identity:remote-authors-list' node.id %}" class="btn btn-sm btn-outline-success">
+                                <i class="fas fa-users"></i> View Authors
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% else %}
         <div class="alert alert-info">
-            No remote nodes have been added yet. Click "Add New Node" to get started.
+            <i class="fas fa-info-circle"></i> No remote nodes have been added yet. Click "Add New Node" to get started.
         </div>
     {% endif %}
 </div>

@@ -1,14 +1,18 @@
-/* Custom Login Page Styling with the specified color palette:
-   #deb1b8 (soft pink), #f0e2d9 (cream), #dbdbd3 (light gray),
-   #b5c3b2 (sage green), #4c545b (dark slate) */
+/* Custom Login Page Styling with the new color palette:
+   #5B6D92 (navy blue), #D5E3E6 (light blue), #F0E2D2 (cream),
+   #EFEEE5 (off-white), #D18266 (terracotta), #364042 (dark gray) */
 
-/* Import EB Garamond font */
-@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+/* Import Avenir font - using Adobe Fonts CDN */
+@import url("https://use.typekit.net/pxm4sxy.css"); /* This is a placeholder - you'll need your actual Adobe Fonts kit URL */
+
+/* Alternatively, using Google Fonts Nunito as closest free alternative to Avenir */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@200;300;400;500;600;700&display=swap');
 
 /* Body background */
 body {
-  background-color: #dbdbd3;
-  font-family: 'EB Garamond', serif;
+  background-color: #EFEEE5; /* Using the neutral color #EFEEE5 for background */
+  font-family: 'Avenir', 'Nunito', sans-serif;
+  font-weight: 300;
 }
 
 /* Container styling */
@@ -20,21 +24,21 @@ body {
 .card {
   border: none;
   border-radius: 15px;
-  box-shadow: 0 10px 25px rgba(76, 84, 91, 0.15);
+  box-shadow: 0 10px 25px rgba(54, 64, 66, 0.15);
   overflow: hidden;
   transform-style: preserve-3d;
   transition: all 0.3s ease;
-  background-color: #f0e2d9;
+  background-color: #F0E2D2; /* Using the cream color #F0E2D2 for card */
 }
 
 .card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 15px 30px rgba(76, 84, 91, 0.2);
+  box-shadow: 0 15px 30px rgba(54, 64, 66, 0.2);
 }
 
 /* Card header styling */
 .card-header {
-  background-color: #b5c3b2;
+  background-color: #5B6D92; /* Using the navy blue #5B6D92 for header */
   border-bottom: none;
   padding: 20px;
   text-align: center;
@@ -47,7 +51,7 @@ body {
   position: absolute;
   width: 200%;
   height: 200%;
-  background: linear-gradient(135deg, rgba(222, 177, 184, 0.2) 0%, rgba(181, 195, 178, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(213, 227, 230, 0.2) 0%, rgba(91, 109, 146, 0.1) 100%);
   top: -50%;
   left: -50%;
   transform: rotate(45deg);
@@ -56,8 +60,8 @@ body {
 
 .card-header h2 {
   position: relative;
-  color: #4c545b;
-  font-weight: 600;
+  color: #F0E2D2; /* Light color for contrast against dark header */
+  font-weight: 400;
   margin: 0;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -66,7 +70,7 @@ body {
 /* Card body styling */
 .card-body {
   padding: 30px;
-  background-color: #f0e2d9;
+  background-color: #F0E2D2; /* Using the cream color #F0E2D2 for card body */
 }
 
 /* Form styling */
@@ -78,27 +82,29 @@ form {
 input[type="text"],
 input[type="password"],
 .form-control {
-  background-color: rgba(219, 219, 211, 0.4) !important;
-  border: 2px solid #b5c3b2 !important;
+  background-color: rgba(239, 238, 229, 0.6) !important; /* Light neutral background */
+  border: 2px solid #D5E3E6 !important; /* Light blue border */
   border-radius: 8px !important;
   padding: 12px 15px !important;
   transition: all 0.3s ease !important;
-  color: #4c545b !important;
+  color: #364042 !important; /* Dark text color */
   margin-top: 5px !important;
+  font-family: 'Avenir', 'Nunito', sans-serif !important;
+  font-weight: 300 !important;
 }
 
 input[type="text"]:focus,
 input[type="password"]:focus,
 .form-control:focus {
-  box-shadow: 0 0 0 3px rgba(222, 177, 184, 0.3) !important;
-  border-color: #deb1b8 !important;
+  box-shadow: 0 0 0 3px rgba(91, 109, 146, 0.3) !important; /* Navy blue focus */
+  border-color: #5B6D92 !important;
   outline: none !important;
 }
 
 /* Label styling */
 label {
-  font-weight: 500;
-  color: #4c545b;
+  font-weight: 400;
+  color: #364042; /* Dark text color */
   margin-bottom: 8px;
   display: block;
   transition: all 0.2s ease;
@@ -106,30 +112,30 @@ label {
 
 /* Button styling */
 .btn-primary {
-  background-color: #deb1b8 !important;
-  border-color: #deb1b8 !important;
-  color: #4c545b !important;
-  font-weight: 600 !important;
-  font-family: 'EB Garamond', serif !important;
+  background-color: #D18266 !important; /* Terracotta accent color */
+  border-color: #D18266 !important;
+  color: #F0E2D2 !important; /* Light text for contrast */
+  font-weight: 500 !important;
+  font-family: 'Avenir', 'Nunito', sans-serif !important;
   font-size: 1.15em !important;
   letter-spacing: 0.05em !important;
   padding: 10px 30px !important;
   border-radius: 8px !important;
   transition: all 0.3s ease !important;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 4px 6px rgba(54, 64, 66, 0.1) !important;
   position: relative;
   overflow: hidden;
 }
 
 .btn-primary:hover {
-  background-color: #c9a0a7 !important;
+  background-color: #c07058 !important; /* Darker terracotta on hover */
   transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 6px 12px rgba(54, 64, 66, 0.15) !important;
 }
 
 .btn-primary:active {
   transform: translateY(1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 2px 4px rgba(54, 64, 66, 0.1) !important;
 }
 
 .btn-primary:before {
@@ -161,14 +167,14 @@ label {
 }
 
 .alert-danger {
-  background-color: rgba(222, 177, 184, 0.3);
-  color: #4c545b;
-  border-left: 4px solid #deb1b8;
+  background-color: rgba(209, 130, 102, 0.3); /* Light terracotta for alert */
+  color: #364042; /* Dark text */
+  border-left: 4px solid #D18266; /* Terracotta border */
 }
 
 /* Link styling */
 a {
-  color: #4c545b;
+  color: #5B6D92; /* Navy blue for links */
   text-decoration: none;
   font-weight: 500;
   transition: all 0.2s ease;
@@ -176,7 +182,7 @@ a {
 }
 
 a:hover {
-  color: #deb1b8;
+  color: #D18266; /* Terracotta on hover */
 }
 
 a:after {
@@ -186,7 +192,7 @@ a:after {
   height: 2px;
   bottom: -2px;
   left: 0;
-  background-color: #deb1b8;
+  background-color: #D18266; /* Terracotta underline */
   transition: width 0.3s ease;
 }
 
@@ -282,7 +288,7 @@ a:hover:after {
 /* Focus effect for input labels */
 input:focus + label,
 input:not(:placeholder-shown) + label {
-  color: #deb1b8;
+  color: #5B6D92; /* Navy blue for focused labels */
   transform: translateY(-5px);
   font-size: 0.9em;
 }
@@ -290,21 +296,21 @@ input:not(:placeholder-shown) + label {
 /* Additional refinements */
 .mt-3 p {
   text-align: center;
-  color: #4c545b;
+  color: #364042; /* Dark text */
   margin-top: 20px;
   font-size: 1.1em;
   letter-spacing: 0.02em;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 /* Improve styling for all text elements */
 h1, h2, h3, h4, h5, h6, p, label, button, a, input {
-  font-family: 'EB Garamond', serif;
+  font-family: 'Avenir', 'Nunito', sans-serif;
 }
 
 /* Make headings more elegant */
 h2 {
-  font-weight: 600;
+  font-weight: 500; /* Medium weight for headings */
   letter-spacing: 0.05em;
   font-size: 2.2em;
 }
@@ -317,8 +323,8 @@ label {
 
 /* Style the sign up link specifically */
 .mt-3 p a {
-  color: #deb1b8;
-  font-weight: 600;
+  color: #5B6D92; /* Navy blue for links */
+  font-weight: 500;
   transition: all 0.3s ease;
   text-decoration: none;
   position: relative;
@@ -331,14 +337,15 @@ label {
   height: 1px;
   bottom: -2px;
   left: 0;
-  background-color: #deb1b8;
+  background-color: #5B6D92; /* Navy blue underline */
   transition: height 0.2s ease;
 }
 
 .mt-3 p a:hover {
-  color: #c9a0a7;
+  color: #D18266; /* Terracotta on hover */
 }
 
 .mt-3 p a:hover:after {
   height: 2px;
+  background-color: #D18266; /* Terracotta underline on hover */
 }
