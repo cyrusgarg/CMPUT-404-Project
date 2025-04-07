@@ -1,0 +1,418 @@
+/* Enhanced Authors Page Styling using the new color palette: 
+   #5B6D92, #D5E3E6, #F0E2D2, #EFEEE5, #D18266, #364042 */
+
+/* Import Nunito font */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
+
+/* Body styling for a clean background */
+body {
+  background: #EFEEE5 !important;
+  min-height: 100vh !important;
+  font-family: 'Nunito', sans-serif !important;
+}
+
+/* Main container styling */
+body .authors-container {
+  max-width: 1200px !important;
+  margin: 0 auto !important;
+  padding: 30px 20px !important;
+  font-family: 'Nunito', sans-serif !important;
+  position: relative !important;
+}
+
+/* Background pattern using subtle dots */
+body .authors-container:before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background-image: 
+    radial-gradient(#D5E3E6 1px, transparent 1px),
+    radial-gradient(#F0E2D2 1px, transparent 1px) !important;
+  background-size: 50px 50px !important;
+  background-position: 0 0, 25px 25px !important;
+  opacity: 0.1 !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+}
+
+/* Page heading styling */
+body .authors-container h1 {
+  color: #364042 !important;
+  text-align: center !important;
+  font-size: 2.6em !important;
+  margin-bottom: 40px !important;
+  position: relative !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+  text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.8) !important;
+}
+
+body .authors-container h1:after {
+  content: '' !important;
+  position: absolute !important;
+  width: 80px !important;
+  height: 3px !important;
+  background: linear-gradient(to right, #D18266, #5B6D92) !important;
+  bottom: -12px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  border-radius: 2px !important;
+}
+
+/* Authors grid */
+body .authors-container .authors-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important;
+  gap: 30px !important;
+  margin-top: 30px !important;
+  animation: fadeInUp 0.8s ease both !important;
+}
+
+/* Author card styling */
+body .authors-container .author-card {
+  border: none !important;
+  border-radius: 15px !important;
+  padding: 30px 20px !important;
+  background-color: #F0E2D2 !important;
+  box-shadow: 0 8px 20px rgba(54, 64, 66, 0.08) !important;
+  transition: all 0.4s ease !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+  position: relative !important;
+  overflow: hidden !important;
+  animation: cardAppear 0.6s ease forwards !important;
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  height: 380px !important;
+  justify-content: space-between !important;
+}
+
+body .authors-container .author-card:nth-child(2n) {
+  animation-delay: 0.2s !important;
+}
+
+body .authors-container .author-card:nth-child(3n) {
+  animation-delay: 0.4s !important;
+}
+
+/* Gradient overlay on cards */
+body .authors-container .author-card:before {
+  content: '' !important;
+  position: absolute !important;
+  width: 200% !important;
+  height: 200% !important;
+  background: linear-gradient(135deg, rgba(91, 109, 146, 0.2) 0%, rgba(214, 130, 102, 0.1) 100%) !important;
+  top: -120% !important;
+  left: -50% !important;
+  transform: rotate(35deg) !important;
+  transition: all 0.6s ease !important;
+  z-index: 0 !important;
+}
+
+body .authors-container .author-card:hover {
+  transform: translateY(-10px) !important;
+  box-shadow: 0 15px 30px rgba(54, 64, 66, 0.12) !important;
+}
+
+body .authors-container .author-card:hover:before {
+  top: -80% !important;
+  transition: all 0.4s ease !important;
+}
+
+/* Remote author styling */
+body .authors-container .remote-author-card {
+  border-left: 4px solid #D18266 !important;
+  background: linear-gradient(to bottom right, #F0E2D2 70%, rgba(214, 130, 102, 0.2) 100%) !important;
+}
+
+body .authors-container .author-image {
+  width: 100px !important;
+  height: 100px !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  margin-bottom: 20px !important;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s ease !important;
+  position: relative !important;
+  z-index: 1 !important;
+  /* If there's no img child, the container itself is fully blue. */
+  background-color: #5B6D92 !important;
+}
+
+body .authors-container .author-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid #5B6D92 !important;
+  display: block;
+}
+/* Author initial styling updated similarly */
+body .authors-container .author-initial {
+  width: 100px !important;
+  height: 100px !important;
+  border-radius: 50% !important;
+  background-color: #5B6D92 !important; /* Entirely blue */
+  color: #fff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 2.5em !important;
+  font-weight: 600 !important;
+  margin-bottom: 20px !important;
+  /* Removed border */
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s ease !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Add pulse animation on hover for images and initials */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+body .authors-container .author-card:hover .author-image,
+body .authors-container .author-card:hover .author-initial {
+  transform: scale(1.05) !important;
+  animation: pulse 1s ease infinite !important;
+  box-shadow: 0 8px 25px rgba(54, 64, 66, 0.18) !important;
+}
+
+/* Author name styling */
+body .authors-container .author-card h2 {
+  color: #364042 !important;
+  font-size: 1.8em !important;
+  margin: 10px 0 !important;
+  font-weight: 600 !important;
+  position: relative !important;
+  z-index: 1 !important;
+  transition: all 0.3s ease !important;
+}
+
+body .authors-container .author-card:hover h2 {
+  color: #D18266 !important;
+}
+
+/* Author bio styling */
+body .authors-container .author-bio {
+  color: #364042 !important;
+  opacity: 0.9 !important;
+  margin: 15px 0 !important;
+  font-size: 1.1em !important;
+  line-height: 1.6 !important;
+  position: relative !important;
+  z-index: 1 !important;
+  max-height: 80px !important;
+  overflow: hidden !important;
+}
+
+/* Remote label styling */
+body .authors-container .remote-label {
+  background-color: rgba(214, 130, 102, 0.2) !important;
+  color: #364042 !important;
+  padding: 5px 12px !important;
+  border-radius: 20px !important;
+  font-size: 0.9em !important;
+  display: inline-block !important;
+  margin: 10px 0 !important;
+  position: relative !important;
+  z-index: 1 !important;
+  border: 1px solid rgba(214, 130, 102, 0.3) !important;
+}
+
+/* GitHub link styling */
+body .authors-container .author-github a {
+  color: #364042 !important;
+  text-decoration: none !important;
+  font-weight: 500 !important;
+  position: relative !important;
+  padding-bottom: 2px !important;
+  transition: all 0.3s ease !important;
+  z-index: 1 !important;
+}
+
+body .authors-container .author-github a:after {
+  content: '' !important;
+  position: absolute !important;
+  width: 0 !important;
+  height: 2px !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  background-color: #D18266 !important;
+  transition: width 0.3s ease !important;
+}
+
+body .authors-container .author-github a:hover {
+  color: #D18266 !important;
+}
+
+body .authors-container .author-github a:hover:after {
+  width: 100% !important;
+}
+
+/* Host URL styling */
+body .authors-container .author-host {
+  font-size: 0.9em !important;
+  color: #364042 !important;
+  opacity: 0.7 !important;
+  margin: 10px 0 !important;
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  position: relative !important;
+  z-index: 1 !important;
+  height: 20px !important;
+}
+
+/* View profile button styling */
+body .authors-container .view-profile-btn {
+  display: inline-block !important;
+  padding: 10px 25px !important;
+  background-color: #D18266 !important;
+  color: #fff !important;
+  text-decoration: none !important;
+  border-radius: 30px !important;
+  font-size: 1em !important;
+  letter-spacing: 0.05em !important;
+  font-weight: 500 !important;
+  margin-top: auto !important;
+  transition: all 0.3s ease !important;
+  position: relative !important;
+  overflow: hidden !important;
+  z-index: 1 !important;
+  box-shadow: 0 4px 12px rgba(214, 130, 102, 0.4) !important;
+}
+
+body .authors-container .view-profile-btn:hover {
+  background-color: #5B6D92 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 15px rgba(54, 64, 66, 0.5) !important;
+}
+
+body .authors-container .view-profile-btn:before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: linear-gradient(90deg, 
+    rgba(255, 255, 255, 0) 0%, 
+    rgba(255, 255, 255, 0.3) 50%, 
+    rgba(255, 255, 255, 0) 100%) !important;
+  transition: all 0.5s ease !important;
+}
+
+body .authors-container .view-profile-btn:hover:before {
+  left: 100% !important;
+  animation: buttonShine 1.5s infinite !important;
+}
+
+/* Pagination styling */
+body .authors-container .pagination {
+  margin-top: 50px !important;
+  display: flex !important;
+  justify-content: center !important;
+}
+
+body .authors-container .pagination-list {
+  display: flex !important;
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+body .authors-container .pagination-list li {
+  margin: 0 5px !important;
+}
+
+body .authors-container .pagination-list li a,
+body .authors-container .pagination-list li span {
+  padding: 10px 15px !important;
+  border: 1px solid #D5E3E6 !important;
+  border-radius: 8px !important;
+  color: #364042 !important;
+  text-decoration: none !important;
+  transition: all 0.3s ease !important;
+  font-size: 1.1em !important;
+  display: block !important;
+}
+
+body .authors-container .pagination-list li a:hover {
+  background-color: rgba(214, 130, 102, 0.1) !important;
+  border-color: #D18266 !important;
+}
+
+body .authors-container .pagination-list li.active span {
+  background-color: #5B6D92 !important;
+  color: #fff !important;
+  border-color: #5B6D92 !important;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cardAppear {
+  from {
+    opacity: 0.7;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes buttonShine {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  body .authors-container .authors-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)) !important;
+    gap: 20px !important;
+  }
+  
+  body .authors-container .author-card {
+    padding: 25px 15px !important;
+    height: 350px !important;
+  }
+  
+  body .authors-container .author-image,
+  body .authors-container .author-initial {
+    width: 90px !important;
+    height: 90px !important;
+  }
+  
+  body .authors-container h1 {
+    font-size: 2.2em !important;
+  }
+  
+  body .authors-container .author-card h2 {
+    font-size: 1.5em !important;
+  }
+}

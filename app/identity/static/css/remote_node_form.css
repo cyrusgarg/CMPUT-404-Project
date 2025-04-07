@@ -1,0 +1,283 @@
+/* Import Nunito font - with preconnect for faster loading */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&display=swap');
+
+/* Base styles */
+:root {
+    --blue-gray: #5B6D92;
+    --light-blue-gray: #D5E3E6;
+    --beige: #F0E2D2;
+    --off-white: #EFEEE5;
+    --salmon: #D18266;
+    --dark-gray: #364042;
+}
+
+body {
+    font-family: 'Nunito', sans-serif !important;
+    background-color: var(--off-white);
+    color: var(--dark-gray);
+}
+
+.container {
+    max-width: 900px;
+    margin: 30px auto;
+    padding: 30px;
+    background-color: var(--off-white);
+    box-shadow: 0 6px 16px rgba(54, 64, 66, 0.12);
+    border-radius: 12px;
+    border-top: 4px solid var(--blue-gray);
+}
+
+/* Typography */
+h1 {
+    color: var(--dark-gray);
+    font-weight: 700;
+    margin-bottom: 25px;
+    font-size: 2.2rem;
+    position: relative;
+    padding-bottom: 12px;
+    display: inline-block; /* This makes the element only as wide as its content */
+}
+
+h1:after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%; /* Make the line the same width as the heading text */
+    height: 4px;
+    background: linear-gradient(90deg, var(--blue-gray), var(--salmon));
+    border-radius: 2px;
+}
+
+/* Form styles */
+form {
+    margin-top: 20px;
+}
+
+.mb-3 {
+    margin-bottom: 20px;
+}
+
+label, .form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--dark-gray);
+}
+
+.form-text {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.875rem;
+    color: var(--blue-gray);
+}
+
+/* Input fields styling */
+input[type="text"], 
+input[type="url"], 
+input[type="password"], 
+textarea, 
+select {
+    width: 100%;
+    padding: 12px 15px;
+    font-size: 1rem;
+    border: 2px solid var(--light-blue-gray);
+    border-radius: 8px;
+    background-color: var(--off-white);
+    color: var(--dark-gray);
+    transition: all 0.3s ease;
+    font-family: 'Nunito', sans-serif;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+input[type="text"]:focus, 
+input[type="url"]:focus, 
+input[type="password"]:focus, 
+textarea:focus, 
+select:focus {
+    border-color: var(--blue-gray);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(91, 109, 146, 0.2);
+    background-color: white;
+}
+
+/* Enhanced checkbox styling */
+.form-check {
+    display: flex;
+    align-items: center;
+    margin-bottom: 25px;
+    position: relative;
+    padding-left: 5px;
+}
+
+input[type="checkbox"] {
+    margin-right: 12px;
+    width: 22px;
+    height: 22px;
+    position: relative;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border: 2px solid var(--blue-gray);
+    border-radius: 4px;
+    outline: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    background-color: var(--off-white);
+}
+
+input[type="checkbox"]:checked {
+    background-color: var(--salmon);
+    border-color: var(--salmon);
+}
+
+input[type="checkbox"]:checked::before {
+    content: "✓";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+input[type="checkbox"]:hover {
+    border-color: var(--salmon);
+}
+
+.form-check-label {
+    display: inline-block;
+    cursor: pointer;
+    user-select: none;
+    font-weight: 600;
+    color: var(--dark-gray);
+    transition: color 0.3s ease;
+}
+
+input[type="checkbox"]:checked + .form-check-label {
+    color: var(--salmon);
+}
+
+/* Button styles */
+.btn {
+    font-weight: 600;
+    padding: 12px 24px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    display: inline-block;
+    text-align: center;
+    text-decoration: none;
+    font-size: 1rem;
+    margin-right: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-family: 'Nunito', sans-serif;
+}
+
+.btn-primary {
+    background-color: var(--blue-gray);
+    border: 2px solid var(--blue-gray);
+    color: var(--off-white);
+}
+
+.btn-primary:hover {
+    background-color: #4a5a7a;
+    border-color: #4a5a7a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(91, 109, 146, 0.3);
+}
+
+.btn-outline-secondary {
+    background-color: transparent;
+    border: 2px solid var(--light-blue-gray);
+    color: var(--blue-gray);
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--light-blue-gray);
+    color: var(--dark-gray);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(213, 227, 230, 0.4);
+}
+
+/* Form animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.container {
+    animation: fadeIn 0.5s ease-out;
+}
+
+input[type="text"], 
+input[type="url"], 
+input[type="password"] {
+    animation: fadeIn 0.5s ease-out;
+    animation-fill-mode: both;
+}
+
+.mb-3:nth-child(1) input { animation-delay: 0.1s; }
+.mb-3:nth-child(2) input { animation-delay: 0.15s; }
+.mb-3:nth-child(3) input { animation-delay: 0.2s; }
+.mb-3:nth-child(4) input { animation-delay: 0.25s; }
+
+/* Error messages */
+.text-danger {
+    color: var(--salmon);
+    margin-top: 5px;
+    font-size: 0.875rem;
+    animation: fadeIn 0.3s ease-out;
+    padding: 5px 0;
+}
+
+/* Element focus styles that use the beige color */
+input[type="text"]:focus, 
+input[type="url"]:focus, 
+input[type="password"]:focus {
+    background-color: var(--beige);
+    border-color: var(--salmon);
+}
+
+/* Make save button stand out with gradient */
+button[type="submit"] {
+    background: linear-gradient(135deg, var(--blue-gray), #4a5a7a);
+    border: none;
+    color: white;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 6px rgba(91, 109, 146, 0.2);
+}
+
+button[type="submit"]:hover {
+    background: linear-gradient(135deg, var(--blue-gray), var(--dark-gray));
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(91, 109, 146, 0.3);
+}
+
+/* Ensure font works with !important for form elements */
+input, button, select, textarea, label {
+    font-family: 'Nunito', sans-serif !important;
+}
+
+/* Make sure form elements stack nicely on mobile */
+@media (max-width: 767px) {
+    input[type="text"],
+    input[type="url"],
+    input[type="password"],
+    textarea,
+    select {
+        font-size: 16px; /* Prevents iOS zoom on focus */
+    }
+    
+    .btn {
+        width: 100%;
+        margin-bottom: 10px;
+        margin-right: 0;
+    }
+}

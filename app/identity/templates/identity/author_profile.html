@@ -1,6 +1,524 @@
 {% extends 'base.html' %}
 
 {% block content %}
+{% if messages %}
+<div class="messages mb-4">
+  {% for message in messages %}
+    {% if "profile_update" in message.tags %}
+      {% if request.resolver_match.url_name == "author-profile" %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+      {% endif %}
+    {% else %}
+      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Custom CSS with new color palette and Nunito font -->
+<style>
+    /* Author Profile Page Styles
+     * Updated Color Palette:
+     * - Navy Blue: #5B6D92
+     * - Light Blue: #D5E3E6
+     * - Cream: #F0E2D2
+     * - Off-White: #EFEEE5
+     * - Terracotta: #D18266
+     * - Dark Gray: #364042
+     * Font: Nunito
+     */
+    
+    /* Import Nunito font */
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&display=swap');
+    
+    /* Global Font Setting */
+    body, button, input, select, textarea {
+        font-family: 'Nunito', sans-serif !important;
+    }
+    
+    /* Overall Page Background */
+    body {
+        background-color: #D5E3E6 !important; /* Light blue */
+    }
+    
+    /* Main Container Styles */
+    .profile-container {
+        max-width: 800px !important;
+        margin: 2rem auto !important;
+        padding: 2rem !important;
+        background-color: #F0E2D2 !important; /* Cream */
+        border-radius: 12px !important;
+        box-shadow: 0 8px 20px rgba(54, 64, 66, 0.15) !important;
+        position: relative !important;
+        overflow: hidden !important;
+        animation: fadeIn 0.8s ease-in-out !important;
+        font-family: 'Nunito', sans-serif !important;
+    }
+    
+    /* Creating a subtle pattern in the background */
+    .profile-container::before {
+        content: "" !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        background: linear-gradient(135deg, rgba(213, 227, 230, 0.3) 25%, transparent 25%) !important;
+        background-size: 20px 20px !important;
+        opacity: 0.4 !important;
+        z-index: 0 !important;
+    }
+    
+    .profile-container > * {
+        position: relative !important;
+        z-index: 1 !important;
+    }
+    /* Fade out alerts with the "profile_update" tag after 6 seconds */
+    .alert.profile_update {
+    animation: fadeOut 6s forwards;
+    }
+
+    @keyframes fadeOut {
+    0% {
+        opacity: 1;
+    }
+    80% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+    }
+
+    
+    /* Profile Header Styles */
+    .profile-container h1 {
+        color: #364042 !important; /* Dark gray */
+        font-size: 2.8rem !important;
+        margin-bottom: 1.5rem !important;
+        font-weight: 700 !important;
+        border-bottom: 3px solid #D18266 !important; /* Terracotta */
+        padding-bottom: 10px !important;
+        display: inline-block !important;
+        animation: slideInLeft 0.6s ease-out !important;
+        font-family: 'Nunito', sans-serif !important;
+        letter-spacing: 0.02em !important;
+    }
+    
+    /* Profile Image Styles */
+    .profile-image-section {
+        text-align: center !important;
+        margin: 20px auto !important;
+        position: relative !important;
+    }
+    
+    .profile-image {
+        width: 200px !important;
+        height: 200px !important;
+        object-fit: cover !important;
+        border-radius: 50% !important;
+        border: 6px solid #5B6D92 !important; /* Navy blue */
+        box-shadow: 0 4px 12px rgba(54, 64, 66, 0.2) !important;
+        margin: 10px auto 20px auto !important;
+        display: block !important;
+        animation: pulseEffect 2s infinite alternate !important;
+        transition: transform 0.3s ease !important;
+    }
+    
+    .profile-image:hover {
+        transform: scale(1.05) !important;
+        border-color: #D18266 !important; /* Terracotta */
+    }
+    
+    /* Default avatar when no picture is uploaded */
+    .default-avatar {
+        width: 200px !important;
+        height: 200px !important;
+        border-radius: 50% !important;
+        background: linear-gradient(135deg, #5B6D92, #D18266) !important; /* Navy blue to Terracotta gradient */
+        color: #EFEEE5 !important; /* Off-white text */
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 4rem !important;
+        font-weight: 700 !important;
+        margin: 10px auto 20px auto !important;
+        box-shadow: 0 4px 12px rgba(54, 64, 66, 0.2) !important;
+        animation: pulseEffect 2s infinite alternate !important;
+    }
+    
+    /* Image upload form styling */
+    .image-upload-form {
+        margin-top: 10px !important;
+        text-align: center !important;
+    }
+    
+    .file-input-container {
+        margin-bottom: 10px !important;
+        display: inline-block !important;
+    }
+    
+    /* Bio Section Styles */
+    .bio-section {
+        background-color: #EFEEE5 !important; /* Off-white */
+        padding: 1.5rem !important;
+        border-radius: 8px !important;
+        margin: 20px 0 !important;
+        box-shadow: 0 4px 8px rgba(54, 64, 66, 0.1) !important;
+        animation: fadeIn 1s ease !important;
+    }
+    
+    .bio-section h2 {
+        color: #364042 !important; /* Dark gray */
+        font-size: 1.8rem !important;
+        margin-bottom: 10px !important;
+        font-weight: 600 !important;
+        font-family: 'Nunito', sans-serif !important;
+        letter-spacing: 0.01em !important;
+    }
+    
+    .bio-section p {
+        color: #364042 !important; /* Dark gray */
+        line-height: 1.6 !important;
+        font-size: 1.1rem !important;
+        font-family: 'Nunito', sans-serif !important;
+    }
+    
+    /* User Info Styles */
+    .user-info {
+        background-color: #5B6D92 !important; /* Navy blue */
+        padding: 1rem 1.5rem !important;
+        border-radius: 8px !important;
+        margin: 20px 0 !important;
+        box-shadow: 0 4px 8px rgba(54, 64, 66, 0.1) !important;
+        animation: slideInRight 0.6s ease-out !important;
+    }
+    
+    .user-info p {
+        color: #EFEEE5 !important; /* Off-white text for contrast */
+        margin: 8px 0 !important;
+        font-size: 1.1rem !important;
+        font-family: 'Nunito', sans-serif !important;
+    }
+    
+    /* Button Styles */
+    .profile-button, a[href*="posts"], button[type="submit"] {
+        display: inline-block !important;
+        padding: 10px 20px !important;
+        background-color: #D18266 !important; /* Terracotta */
+        color: #EFEEE5 !important; /* Off-white text */
+        text-decoration: none !important;
+        border-radius: 30px !important;
+        font-size: 1rem !important;
+        font-weight: 600 !important;
+        border: none !important;
+        box-shadow: 0 4px 10px rgba(209, 130, 102, 0.3) !important;
+        margin-right: 12px !important;
+        cursor: pointer !important;
+        transition: all 0.3s ease !important;
+        position: relative !important;
+        overflow: hidden !important;
+        font-family: 'Nunito', sans-serif !important;
+        letter-spacing: 0.03em !important;
+    }
+    
+    .profile-button::after, a[href*="posts"]::after, button[type="submit"]::after {
+        content: "" !important;
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        width: 0 !important;
+        height: 0 !important;
+        background: rgba(255, 255, 255, 0.2) !important;
+        border-radius: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        transition: width 0.6s ease, height 0.6s ease !important;
+    }
+    
+    .profile-button:hover, a[href*="posts"]:hover, button[type="submit"]:hover {
+        transform: translateY(-3px) !important;
+        box-shadow: 0 8px 15px rgba(209, 130, 102, 0.4) !important;
+        background-color: #c07058 !important; /* Darker terracotta */
+    }
+    
+    .profile-button:hover::after, a[href*="posts"]:hover::after, button[type="submit"]:hover::after {
+        width: 300px !important;
+        height: 300px !important;
+    }
+    
+    .profile-button:active, a[href*="posts"]:active, button[type="submit"]:active {
+        transform: translateY(0) !important;
+    }
+    
+    .profile-button.secondary {
+        background-color: #5B6D92 !important; /* Navy blue */
+        color: #EFEEE5 !important; /* Off-white text */
+        box-shadow: 0 4px 10px rgba(91, 109, 146, 0.3) !important;
+    }
+    
+    .profile-button.secondary:hover {
+        box-shadow: 0 8px 15px rgba(91, 109, 146, 0.4) !important;
+        background-color: #4a5b7e !important; /* Darker navy blue */
+    }
+    
+    /* Profile Actions Container */
+    .profile-actions {
+        margin: 1.5rem 0 !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        gap: 10px !important;
+        animation: fadeIn 1.2s ease !important;
+    }
+    
+    /* Action Links Styles with increased specificity */
+    .action-links {
+        margin: 30px 0 !important;
+        padding: 20px !important;
+        background-color: #D5E3E6 !important; /* Light blue */
+        border-radius: 8px !important;
+        box-shadow: 0 4px 8px rgba(54, 64, 66, 0.1) !important;
+        text-align: center !important;
+        animation: fadeInUp 0.7s ease-out !important;
+    }
+    
+    /* Highly specific selector for the action links */
+    .action-links p a[href*="posts"], 
+    .action-links p a {
+        color: #EFEEE5 !important; /* Off-white text */
+        text-decoration: none !important;
+        font-weight: 500 !important;
+        transition: all 0.3s ease !important;
+        position: relative !important;
+        padding: 6px 14px !important; /* Reduced padding */
+        font-size: 0.9rem !important; /* Reduced font size */
+        font-family: 'Nunito', sans-serif !important;
+        background-color: #D18266 !important; /* Terracotta */
+        border-radius: 20px !important; /* Reduced radius */
+        box-shadow: 0 3px 8px rgba(209, 130, 102, 0.3) !important;
+        display: inline-block !important;
+        margin: 5px !important;
+        max-width: 200px !important;
+        width: auto !important;
+        line-height: 1.4 !important;
+        /* Override any conflicting styles */
+        height: auto !important;
+        min-height: 0 !important;
+        letter-spacing: normal !important;
+    }
+    
+    /* Highly specific hover styles */
+    .action-links p a[href*="posts"]:hover, 
+    .action-links p a:hover {
+        color: #EFEEE5 !important;
+        background-color: #5B6D92 !important; /* Navy blue */
+        box-shadow: 0 5px 12px rgba(91, 109, 146, 0.4) !important;
+        transform: translateY(-2px) !important;
+    }
+    
+    /* Reduced paragraph margins */
+    .action-links p {
+        margin: 8px 0 !important;
+        font-size: 0.9rem !important;
+        font-family: 'Nunito', sans-serif !important;
+        color: #364042 !important; /* Dark gray */
+    }
+    
+    /* Very specific selectors for the specific buttons */
+    .action-links p a[href$="index"], 
+    .action-links p a[href$="view_posts"] {
+        background-color: #D18266 !important; /* Terracotta */
+        color: #EFEEE5 !important; /* Off-white text */
+        padding: 6px 14px !important;
+        font-size: 0.9rem !important;
+        font-weight: 500 !important;
+        border-radius: 20px !important;
+        max-width: 200px !important;
+        display: inline-block !important;
+        width: auto !important;
+        line-height: 1.4 !important;
+    }
+    
+    /* Horizontal Rule Styling */
+    hr {
+        border: none !important;
+        height: 2px !important;
+        background-color: #D5E3E6 !important; /* Light blue */
+        margin: 2rem 0 !important;
+    }
+    
+    /* Public Posts Section */
+    .public-posts {
+        background-color: #F0E2D2 !important; /* Cream */
+        padding: 25px !important;
+        border-radius: 10px !important;
+        box-shadow: 0 6px 15px rgba(54, 64, 66, 0.1) !important;
+        margin-top: 30px !important;
+        position: relative !important;
+        border: 2px solid #D5E3E6 !important; /* Light blue border */
+        animation: fadeInUp 0.9s ease-out !important;
+    }
+    
+    .public-posts h2 {
+        color: #364042 !important; /* Dark gray */
+        font-size: 2rem !important;
+        margin-bottom: 20px !important;
+        padding-bottom: 10px !important;
+        border-bottom: 2px dashed #5B6D92 !important; /* Navy blue */
+        font-family: 'Nunito', sans-serif !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.02em !important;
+    }
+    
+    .public-posts ul {
+        list-style-type: none !important;
+        padding: 0 !important;
+    }
+    
+    .public-posts li {
+        background-color: #EFEEE5 !important; /* Off-white */
+        margin-bottom: 15px !important;
+        padding: 15px !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 5px rgba(54, 64, 66, 0.08) !important;
+        transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+        animation: fadeIn 1.2s ease !important;
+        font-family: 'Nunito', sans-serif !important;
+    }
+    
+    .public-posts li:hover {
+        transform: translateY(-3px) !important;
+        box-shadow: 0 8px 15px rgba(54, 64, 66, 0.12) !important;
+    }
+    
+    .public-posts strong {
+        color: #5B6D92 !important; /* Navy blue */
+        font-size: 1.2rem !important;
+        font-family: 'Nunito', sans-serif !important;
+        font-weight: 600 !important;
+    }
+    
+    .public-posts small {
+        color: #364042 !important; /* Dark gray */
+        opacity: 0.7 !important;
+        margin-left: 10px !important;
+        font-size: 1rem !important;
+        font-family: 'Nunito', sans-serif !important;
+        font-style: italic !important;
+    }
+    
+    .post-content {
+        margin-top: 10px !important;
+        background-color: #F0E2D2 !important; /* Cream */
+        padding: 12px !important;
+        border-radius: 6px !important;
+        font-size: 1rem !important;
+        color: #364042 !important; /* Dark gray */
+        overflow-x: auto !important;
+        font-family: 'Nunito', sans-serif !important;
+    }
+    
+    .post-content pre.action {
+        white-space: pre-wrap !important;
+        word-break: break-word !important;
+        font-family: monospace !important;
+    }
+    
+    /* Override any existing styles for those blue buttons */
+    a[href$="index"] {
+        background-color: #D18266 !important; /* Terracotta */
+        color: #EFEEE5 !important; /* Off-white text */
+    }
+    
+    a[href$="view_posts"] {
+        background-color: #D18266 !important; /* Terracotta */
+        color: #EFEEE5 !important; /* Off-white text */
+    }
+    
+    /* Animation Keyframes */
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes slideInLeft {
+        from {
+            transform: translateX(-50px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideInRight {
+        from {
+            transform: translateX(50px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            transform: translateY(30px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes pulseEffect {
+        from {
+            transform: scale(1);
+            box-shadow: 0 4px 12px rgba(54, 64, 66, 0.2);
+        }
+        to {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(54, 64, 66, 0.3);
+        }
+    }
+    
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .profile-container {
+            padding: 1.5rem !important;
+            margin: 1rem !important;
+        }
+        
+        .profile-container h1 {
+            font-size: 2.4rem !important;
+        }
+        
+        .profile-image {
+            width: 150px !important;
+            height: 150px !important;
+        }
+        
+        .default-avatar {
+            width: 150px !important;
+            height: 150px !important;
+            font-size: 3rem !important;
+        }
+        
+        .profile-button, a[href*="posts"], button[type="submit"] {
+            padding: 8px 15px !important;
+            font-size: 0.95rem !important;
+            margin-bottom: 8px !important;
+        }
+        
+        .public-posts h2 {
+            font-size: 1.7rem !important;
+        }
+    }
+</style>
+
 <div class="profile-container">
     <h1>{{ author.display_name }}</h1>
 
@@ -36,36 +554,28 @@
         {% endif %}
     </div>
     
-    <!-- CSS styles for the buttons -->
-    <style>
-        .profile-button {
-            display: inline-block;
-            padding: 8px 15px;
-            background-color: #4361ee;
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            border: none;
-            box-shadow: 0 2px 6px rgba(67, 97, 238, 0.2);
-            margin-right: 10px;
-            cursor: pointer;
-            font-family: inherit; /* Ensures consistent font */
-        }
-        
-        .profile-button.secondary {
-            background-color: #6c757d;
-            box-shadow: 0 2px 6px rgba(108, 117, 125, 0.2);
-        }
-    </style>
-    
     <div style="clear: both; margin-bottom: 20px;"></div>
     
-    <!-- Rest of the template remains unchanged -->
-    {% if author.profile_image %}
-        <img src="{{ author.profile_image.url }}" alt="{{ author.display_name }}" class="profile-image">
-    {% endif %}
+    <!-- Enhanced Profile Image Section -->
+    <div class="profile-image-section">
+        {% if author.profile_image %}
+            <img src="{{ author.profile_image.url }}" alt="{{ author.display_name }}" class="profile-image">
+        {% else %}
+            <div class="default-avatar">
+                {{ author.display_name|slice:":1" }}
+            </div>
+        {% endif %}
+        
+        {% if user.is_authenticated and user.author_profile.author_id == author.author_id %}
+            <form method="post" enctype="multipart/form-data" action="{% url 'identity:update-profile-image' %}" class="image-upload-form">
+                {% csrf_token %}
+                <div class="file-input-container">
+                    <input type="file" name="profile_image" accept="image/*" id="profileImageInput">
+                </div>
+                <button type="submit" class="profile-button">Upload Picture</button>
+            </form>
+        {% endif %}
+    </div>
     
     {% if author.bio %}
         <div class="bio-section">
@@ -85,8 +595,8 @@
 <hr>
 
 <div class="action-links">
-    <p><a href="{% url 'posts:index' %}">Create/View Posts</a></p>
-    <p><a href="{% url 'posts:view_posts' %}">View Other People's Posts</a></p>
+    <a href="{% url 'posts:index' %}" class="profile-button">Create/View Posts</a>
+    <a href="{% url 'posts:view_posts' %}" class="profile-button">View Other People's Posts</a>
 </div>
 
 <!-- Public Posts Section -->

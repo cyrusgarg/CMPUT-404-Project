@@ -18,6 +18,7 @@ from .utils import send_to_node
 from django.http import JsonResponse
 import requests
 from requests.auth import HTTPBasicAuth
+from django.contrib.auth.decorators import login_required
 
 class AuthorProfileView(DetailView):
     model = Author
@@ -41,6 +42,23 @@ class AuthorProfileView(DetailView):
         context['is_follow_requested'] = FollowRequests.objects.filter(sender=self.request.user, receiver=author.user).exists()
         context['is_following'] = Following.objects.filter(follower=self.request.user, followee=author.user).exists()
         return context
+
+@login_required
+def update_profile_image(request):
+    """
+    View to handle profile image uploads.
+    This view processes the image upload form and updates the user's profile image.
+    """
+    if request.method == 'POST' and request.FILES.get('profile_image'):
+        profile = request.user.author_profile
+        
+        # Handle the image upload
+        profile.profile_image = request.FILES['profile_image']
+        profile.save()
+        
+        messages.success(request, "Profile picture updated successfully!", extra_tags="profile_update")
+        
+    return redirect('identity:author-profile', author_id=request.user.author_profile.author_id)
 
 class AuthorListView(ListView):
     template_name = 'identity/author_list.html'

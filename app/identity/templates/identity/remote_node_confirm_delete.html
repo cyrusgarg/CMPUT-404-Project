@@ -1,4 +1,9 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/remote_node_confirm_delete.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="container">

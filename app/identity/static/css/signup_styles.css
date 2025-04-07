@@ -1,14 +1,15 @@
-/* Custom Signup Page Styling with the specified color palette:
-   #deb1b8 (soft pink), #f0e2d9 (cream), #dbdbd3 (light gray),
-   #b5c3b2 (sage green), #4c545b (dark slate) */
+/* Custom Signup Page Styling with the new color palette:
+   #5B6D92 (navy blue), #D5E3E6 (light blue), #F0E2D2 (cream),
+   #EFEEE5 (off-white), #D18266 (terracotta), #364042 (dark gray) */
 
-/* Import EB Garamond font */
-@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+/* Import Nunito font */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@200;300;400;500;600;700&display=swap');
 
 /* Body background */
 body {
-  background-color: #dbdbd3;
-  font-family: 'EB Garamond', serif;
+  background-color: #EFEEE5; /* Off-white neutral background */
+  font-family: 'Nunito', sans-serif;
+  font-weight: 300;
 }
 
 /* Container styling with fade-in animation */
@@ -20,21 +21,21 @@ body {
 .card {
   border: none;
   border-radius: 15px;
-  box-shadow: 0 10px 25px rgba(76, 84, 91, 0.15);
+  box-shadow: 0 10px 25px rgba(54, 64, 66, 0.15);
   overflow: hidden;
   transform-style: preserve-3d;
   transition: all 0.3s ease;
-  background-color: #f0e2d9;
+  background-color: #F0E2D2; /* Cream background for card */
 }
 
 .card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 15px 30px rgba(76, 84, 91, 0.2);
+  box-shadow: 0 15px 30px rgba(54, 64, 66, 0.2);
 }
 
 /* Card header styling */
 .card-header {
-  background-color: #b5c3b2;
+  background-color: #5B6D92; /* Navy blue for header */
   border-bottom: none;
   padding: 20px;
   text-align: center;
@@ -47,7 +48,7 @@ body {
   position: absolute;
   width: 200%;
   height: 200%;
-  background: linear-gradient(135deg, rgba(222, 177, 184, 0.2) 0%, rgba(181, 195, 178, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(213, 227, 230, 0.2) 0%, rgba(91, 109, 146, 0.1) 100%);
   top: -50%;
   left: -50%;
   transform: rotate(45deg);
@@ -56,7 +57,7 @@ body {
 
 .card-header h2 {
   position: relative;
-  color: #4c545b;
+  color: #EFEEE5; /* Light text for contrast on dark background */
   font-weight: 600;
   margin: 0;
   letter-spacing: 1px;
@@ -67,7 +68,7 @@ body {
 /* Card body styling */
 .card-body {
   padding: 30px;
-  background-color: #f0e2d9;
+  background-color: #F0E2D2; /* Cream background for card body */
 }
 
 /* Form styling */
@@ -82,16 +83,17 @@ input[type="email"],
 input[type="url"],
 textarea,
 .form-control {
-  background-color: rgba(219, 219, 211, 0.4) !important;
-  border: 2px solid #b5c3b2 !important;
+  background-color: rgba(239, 238, 229, 0.6) !important; /* Light off-white */
+  border: 2px solid #D5E3E6 !important; /* Light blue border */
   border-radius: 8px !important;
   padding: 12px 15px !important;
   transition: all 0.3s ease !important;
-  color: #4c545b !important;
+  color: #364042 !important; /* Dark text */
   margin-top: 5px !important;
-  font-family: 'EB Garamond', serif !important;
+  font-family: 'Nunito', sans-serif !important;
   font-size: 1.05em !important;
   width: 100% !important;
+  font-weight: 400 !important;
 }
 
 input[type="text"]:focus,
@@ -100,8 +102,8 @@ input[type="email"]:focus,
 input[type="url"]:focus,
 textarea:focus,
 .form-control:focus {
-  box-shadow: 0 0 0 3px rgba(222, 177, 184, 0.3) !important;
-  border-color: #deb1b8 !important;
+  box-shadow: 0 0 0 3px rgba(91, 109, 146, 0.3) !important; /* Navy blue focus */
+  border-color: #5B6D92 !important;
   outline: none !important;
 }
 
@@ -114,7 +116,7 @@ textarea.form-control {
 /* Label styling */
 label {
   font-weight: 500;
-  color: #4c545b;
+  color: #364042; /* Dark text */
   margin-bottom: 8px;
   display: block;
   transition: all 0.2s ease;
@@ -124,30 +126,30 @@ label {
 
 /* Button styling */
 .btn-primary {
-  background-color: #deb1b8 !important;
-  border-color: #deb1b8 !important;
-  color: #4c545b !important;
+  background-color: #D18266 !important; /* Terracotta accent */
+  border-color: #D18266 !important;
+  color: #EFEEE5 !important; /* Light text */
   font-weight: 600 !important;
-  font-family: 'EB Garamond', serif !important;
+  font-family: 'Nunito', sans-serif !important;
   font-size: 1.15em !important;
   letter-spacing: 0.05em !important;
   padding: 10px 30px !important;
   border-radius: 8px !important;
   transition: all 0.3s ease !important;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 4px 6px rgba(54, 64, 66, 0.1) !important;
   position: relative;
   overflow: hidden;
 }
 
 .btn-primary:hover {
-  background-color: #c9a0a7 !important;
+  background-color: #c07058 !important; /* Darker terracotta on hover */
   transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 6px 12px rgba(54, 64, 66, 0.15) !important;
 }
 
 .btn-primary:active {
   transform: translateY(1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 2px 4px rgba(54, 64, 66, 0.1) !important;
 }
 
 .btn-primary:before {
@@ -180,16 +182,16 @@ label {
 }
 
 .alert-danger {
-  background-color: rgba(222, 177, 184, 0.3);
-  color: #4c545b;
-  border-left: 4px solid #deb1b8;
+  background-color: rgba(209, 130, 102, 0.3); /* Light terracotta */
+  color: #364042; /* Dark text */
+  border-left: 4px solid #D18266; /* Terracotta border */
   animation: shake 0.5s ease-in-out;
 }
 
 .alert-info {
-  background-color: rgba(181, 195, 178, 0.3);
-  color: #4c545b;
-  border-left: 4px solid #b5c3b2;
+  background-color: rgba(91, 109, 146, 0.3); /* Light navy */
+  color: #364042; /* Dark text */
+  border-left: 4px solid #5B6D92; /* Navy border */
   animation: slideIn 0.5s ease-in-out;
 }
 
@@ -201,7 +203,7 @@ label {
 
 /* Form text styling */
 .form-text, .text-muted {
-  color: #4c545b !important;
+  color: #364042 !important; /* Dark text */
   font-size: 1.1em !important;
   opacity: 0.85 !important;
   margin-top: 8px !important;
@@ -222,7 +224,7 @@ label {
 
 /* Error message styling */
 .text-danger {
-  color: #deb1b8 !important;
+  color: #D18266 !important; /* Terracotta for errors */
   font-weight: 500;
   margin-top: 5px;
   animation: fadeIn 0.5s ease;
@@ -325,11 +327,83 @@ label {
 /* Focus effect for input labels */
 input:focus + label,
 textarea:focus + label {
-  color: #deb1b8;
+  color: #5B6D92; /* Navy blue when focused */
 }
 
 /* Field hover effect */
 .form-group:hover label {
-  color: #deb1b8;
+  color: #5B6D92; /* Navy blue on hover */
   transition: color 0.3s ease;
+}
+
+/* Link styling */
+a {
+  color: #5B6D92; /* Navy blue links */
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+a:hover {
+  color: #D18266; /* Terracotta on hover */
+}
+
+a:after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: -2px;
+  left: 0;
+  background-color: #D18266; /* Terracotta underline */
+  transition: width 0.3s ease;
+}
+
+a:hover:after {
+  width: 100%;
+}
+
+/* Additional modern social media UI touches */
+.card {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.form-group {
+  position: relative;
+}
+
+/* Add subtle icons for common fields (optional enhancement) */
+.form-group.username:before,
+.form-group.email:before,
+.form-group.password:before,
+.form-group.bio:before {
+  font-family: 'Nunito', sans-serif;
+  position: absolute;
+  right: 15px;
+  top: 45px;
+  color: #D5E3E6;
+  z-index: 1;
+  opacity: 0.7;
+}
+
+/* Modern placeholder styling */
+::placeholder {
+  color: #364042;
+  opacity: 0.5;
+  font-style: italic;
+}
+
+/* Subtle card bottom edge shadow for depth */
+.card:after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 5%;
+  width: 90%;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(54, 64, 66, 0.1);
+  filter: blur(5px);
 }
