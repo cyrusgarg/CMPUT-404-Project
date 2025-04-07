@@ -492,6 +492,42 @@ def shared_post_view(request, post_id):
         "is_liked": is_liked
     })
 
+def prepare_image_for_remote_post(post):
+    """
+    Prepare image data for remote post transmission.
+    Converts base64 image to appropriate format for remote nodes.
+    """
+    if post.image:
+        # If it's a base64 data URL
+        if post.image.startswith('data:image/'):
+            # Split the base64 data URL
+            try:
+                # Separate the metadata from the actual base64 content
+                header, encoded = post.image.split(',', 1)
+                
+                # Extract the mime type
+                mime_type = header.split(':')[1].split(';')[0]
+                
+                # Decode the base64 content
+                image_binary = base64.b64decode(encoded)
+                
+                return {
+                    'contentType': mime_type +';base64',  # e.g., 'image/jpeg', 'image/png'
+                    'content': base64.b64encode(image_binary).decode('utf-8')  # Re-encode to base64
+                }
+            except Exception as e:
+                print(f"Error processing image: {e}")
+                return None
+        
+        # If it's already a URL
+        elif post.image.startswith('http://') or post.image.startswith('https://'):
+            return {
+                'contentType': 'image/url',
+                'content': post.image
+            }
+    
+    return None
+
 def send_post_to_remote_recipients(post, request,is_update=False):
     """
     Sends a post (new or updated) to the appropriate remote recipients.
@@ -573,14 +609,33 @@ def send_post_to_remote_recipients(post, request,is_update=False):
     for inbox_url in recipients:
         print(f"Sending post to {inbox_url}")
         print("thisis postdata", post_data)
-        auth = HTTPBasicAuth("indigo-node1", "node1-pass")
+        #auth = HTTPBasicAuth("indigo-node1", "node1-pass")
+
+        parsed_url = urlparse(inbox_url)
+        base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        serializer = PostSerializer(post, context={'request': request})
+        post_data = serializer.data  # Convert to JSON format
+        
+        image_data = prepare_image_for_remote_post(post)
+        if image_data:
+            post_data['contentType'] = image_data['contentType']
+            post_data['content'] = image_data['content']
+        print("post_data:\n",post_data)
+        # Retrieve the corresponding RemoteNode for authentication
+        print("Base host:",base_host)
+        remote_node = RemoteNode.objects.filter(host_url__icontains=base_host).first()
+        print("Remote node:",remote_node.username,remote_node.password)
+        if not remote_node:
+            print(f"Warning: Remote node not found for {base_host}. Skipping authentication.")
+            auth = None  # No authentication
 
         try:
             response = requests.post(
                 inbox_url,
-                auth = auth,
+                #auth = auth,
                 json=post_data,
                 headers={"Content-Type": "application/json"},
+                auth = HTTPBasicAuth(remote_node.username, remote_node.password)
             )
 
             if response.status_code in [200, 201]:

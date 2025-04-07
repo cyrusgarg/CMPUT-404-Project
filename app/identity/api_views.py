@@ -819,9 +819,9 @@ def is_uuid(value):
         return False
 
 @api_view(['POST','PUT'])
-#@authentication_classes([NodeBasicAuthentication])
-#@permission_classes([IsAuthenticated])
-@permission_classes([AllowAny])
+@authentication_classes([NodeBasicAuthentication])
+@permission_classes([IsAuthenticated])
+#@permission_classes([AllowAny])
 def inbox(request, author_id):
     """
     POST: Accepts remote objects (posts, follow requests, likes, comments)
