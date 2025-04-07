@@ -62,6 +62,9 @@ class AuthorListView(ListView):
             if author.display_name.lower().startswith("remote_"):
                 print("Skipping author:", author.display_name)
                 continue
+            if author.user.username.lower().startswith("remote_"):
+                print("Skipping username author:", author.display_name)
+                continue
             combined_authors.append({
                 'id': str(author.author_id),  # Ensure string representation
                 'display_name': author.display_name,
