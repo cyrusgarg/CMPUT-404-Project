@@ -1091,5 +1091,25 @@
             document.getElementById('file-name').textContent = fileName;
         });
     </script>
+    {% if post.contentType == "text/markdown" %}
+    <script src="{% static 'markdown-renderer.min.js' %}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if markdown renderer is loaded
+            if (typeof markdownRenderer !== 'undefined') {
+                // Find all post content elements with markdown
+                const contentElements = document.querySelectorAll('.post-card-content');
+                contentElements.forEach(contentEl => {
+                    // Look for the post description if it's markdown
+                    const descriptionEl = contentEl.querySelector('.post-description');
+                    if (descriptionEl) {
+                        const markdown = descriptionEl.innerHTML.trim();
+                        descriptionEl.innerHTML = markdownRenderer.render(markdown);
+                    }
+                });
+            }
+        });
+    </script>
+    {% endif %}
 </body>
 </html>

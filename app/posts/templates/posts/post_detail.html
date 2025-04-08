@@ -5,7 +5,9 @@
     {% load static %}
     <meta name="csrf-token" content="{{ csrf_token }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" type="text/css" href="{% static 'css/PostDetail.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary-dark: #5B6D92;
@@ -13,50 +15,67 @@
             --neutral-bg: #F0E2D2;
             --neutral-light: #fbfaf6;
             --accent: #D18266;
+            --header-bg: var(--primary-light); /* Using the same color as like/edit buttons */
             --text: #364042;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --radius: 12px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
         
         body {
-            font-family: 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Nunito', sans-serif;
             line-height: 1.6;
             color: var(--text);
-            background-color: var(--neutral-light);
+            background-color: var(--neutral-bg);
             margin: 0;
             padding: 0;
-            display: flex;
-            justify-content: center;
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .app-container {
+            width: 100%;
+            max-width: 800px; /* Increased from 600px to 800px */
+            background-color: var(--neutral-light);
+            min-height: 100vh;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
         }
         
         .container {
             width: 100%;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 30px 20px;
+            padding: 20px;
         }
         
         .post-header {
-            text-align: center;
-            margin-bottom: 25px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--primary-light);
+            padding-bottom: 15px;
         }
         
         h1 {
             color: var(--primary-dark);
-            font-size: 2.5rem;
-            margin-bottom: 15px;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
             font-weight: 700;
         }
         
         .post-meta {
             background-color: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            margin-bottom: 25px;
+            border-radius: var(--radius);
+            padding: 15px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
         }
         
         .meta-item {
-            margin-bottom: 12px;
+            margin-bottom: 8px;
             display: flex;
             align-items: baseline;
         }
@@ -74,25 +93,30 @@
         
         .content {
             background-color: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            margin-bottom: 25px;
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
             line-height: 1.8;
         }
         
         .post-image {
             width: 100%;
-            border-radius: 8px;
-            margin: 20px 0;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-radius: var(--radius);
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        
+        .post-image img {
+            width: 100%;
+            display: block;
         }
         
         .no-image {
-            padding: 40px;
+            padding: 30px;
             text-align: center;
             background-color: var(--neutral-bg);
-            border-radius: 8px;
+            border-radius: var(--radius);
             color: var(--text);
             font-style: italic;
         }
@@ -100,51 +124,96 @@
         .engagement-section {
             display: flex;
             gap: 15px;
-            margin-bottom: 25px;
+            margin: 25px 0;
             flex-wrap: wrap;
+            position: relative;
+            z-index: 5;
         }
         
         .button {
-            padding: 10px 20px;
+            font-family: 'Nunito', sans-serif;
+            padding: 8px 16px;
             border: none;
             border-radius: 30px;
             font-weight: 600;
+            font-size: 0.9rem;
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 8px;
             transition: all 0.2s ease;
         }
-        
+                /* Markdown rendering styles */
+        .rendered-markdown h1, .rendered-markdown h2, .rendered-markdown h3 {
+            margin-top: 1em !important;
+            margin-bottom: 0.5em !important;
+        }
+        .rendered-markdown ul, .rendered-markdown ol {
+            padding-left: 1.5em !important;
+            list-style-position: outside !important;
+        }
+        .rendered-markdown li {
+            margin-bottom: 0.5em !important;
+        }
+        .rendered-markdown code {
+            background-color: #f0f0f0 !important;
+            padding: 0.2em 0.4em !important;
+            border-radius: 3px !important;
+            font-family: monospace !important;
+        }
+        .rendered-markdown pre {
+            background-color: #f5f5f5 !important;
+            padding: 1em !important;
+            border-radius: 5px !important;
+            overflow-x: auto !important;
+        }
+        .rendered-markdown blockquote {
+            border-left: 4px solid var(--primary-light) !important;
+            padding-left: 1em !important;
+            margin-left: 0 !important;
+            color: #666 !important;
+        }
+                
         .like-button {
+            font-family: 'Nunito', sans-serif;
             background-color: var(--primary-light);
             color: var(--primary-dark);
+            flex: 1;
+            justify-content: center;
         }
         
         .like-button.liked {
+            font-family: 'Nunito', sans-serif;
             background-color: var(--primary-dark);
             color: white;
+            font-family: 'Nunito', sans-serif;
         }
         
         .like-button:hover {
+            font-family: 'Nunito', sans-serif;
             background-color: var(--primary-dark);
             color: white;
             transform: translateY(-2px);
         }
         
         .likes-list-button {
-            padding: 10px 20px;
+            font-family: 'Nunito', sans-serif;
+            padding: 8px 16px;
             background-color: var(--neutral-bg);
             color: var(--text);
             text-decoration: none;
             border-radius: 30px;
             font-weight: 600;
+            font-size: 0.9rem;
             transition: all 0.2s ease;
             display: inline-flex;
             align-items: center;
+            flex: 1;
+            justify-content: center;
         }
         
         .likes-list-button:hover {
+            font-family: 'Nunito', sans-serif;
             background-color: var(--neutral-bg);
             opacity: 0.9;
             transform: translateY(-2px);
@@ -152,53 +221,56 @@
         
         .comment-section {
             background-color: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            margin-bottom: 25px;
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
         }
         
         .section-title {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             color: var(--primary-dark);
             margin-top: 0;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             border-bottom: 2px solid var(--primary-light);
-            padding-bottom: 10px;
+            padding-bottom: 8px;
         }
         
         .comment-form {
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
         
         .comment-form label {
             display: block;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             font-weight: 600;
             color: var(--primary-dark);
+            font-size: 0.95rem;
         }
         
         .comment-form textarea {
             width: 100%;
-            padding: 15px;
+            padding: 12px;
             border: 1px solid #ddd;
-            border-radius: 8px;
-            min-height: 100px;
-            margin-bottom: 15px;
+            border-radius: var(--radius);
+            min-height: 80px;
+            margin-bottom: 12px;
             font-family: inherit;
             resize: vertical;
             box-sizing: border-box;
         }
         
         .comment-form button {
+            font-family: 'Nunito', sans-serif;
             background-color: var(--accent);
             color: white;
-            padding: 10px 25px;
+            padding: 8px 20px;
             border: none;
             border-radius: 30px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
+            font-size: 0.9rem;
         }
         
         .comment-form button:hover {
@@ -214,7 +286,7 @@
         
         #comment-list li {
             border-bottom: 1px solid #eee;
-            padding: 15px 0;
+            padding: 12px 0;
         }
         
         #comment-list li:last-child {
@@ -234,8 +306,8 @@
         .comment-actions {
             display: flex;
             align-items: center;
-            margin-top: 10px;
-            gap: 15px;
+            margin-top: 8px;
+            gap: 12px;
         }
         
         .like-comment-form {
@@ -245,37 +317,42 @@
         .like-count {
             font-weight: 600;
             color: var(--primary-dark);
+            font-size: 0.85rem;
         }
         
         #deleted-warning {
+            font-family: 'Nunito', sans-serif;
             background-color: #FFE9E9;
             color: #D93025;
-            padding: 15px;
-            border-radius: 8px;
+            padding: 12px;
+            border-radius: var(--radius);
             font-weight: 600;
-            margin: 20px 0;
+            margin: 15px 0;
             text-align: center;
         }
         
         .author-actions {
             display: flex;
-            gap: 15px;
-            margin: 25px 0;
+            gap: 10px;
+            margin: 20px 0;
         }
         
         .author-actions a, 
         .author-actions button {
             background-color: var(--primary-light);
             color: var(--primary-dark);
-            padding: 10px 20px;
+            padding: 8px 16px;
             border: none;
             border-radius: 30px;
             font-weight: 600;
+            font-size: 0.9rem;
             text-decoration: none;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
             transition: all 0.2s ease;
+            flex: 1;
+            justify-content: center;
         }
         
         .author-actions a:hover, 
@@ -286,21 +363,24 @@
         }
         
         .delete-button {
+            font-family: 'Nunito', sans-serif;
             background-color: #FFE9E9 !important;
             color: #D93025 !important;
         }
         
         .delete-button:hover {
+            font-family: 'Nunito', sans-serif;
             background-color: #D93025 !important;
             color: white !important;
         }
         
         .share-section {
+            font-family: 'Nunito', sans-serif;
             background-color: white;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            margin-bottom: 25px;
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
         }
         
         .share-link-container {
@@ -310,22 +390,27 @@
         }
         
         #share-link {
+            font-family: 'Nunito', sans-serif;
             flex-grow: 1;
             padding: 10px 15px;
             border: 1px solid #ddd;
             border-radius: 30px;
             font-family: inherit;
+            font-size: 0.85rem;
         }
         
         #copy-link-btn {
+            font-family: 'Nunito', sans-serif;
             background-color: var(--accent);
             color: white;
-            padding: 10px 20px;
+            padding: 8px 15px;
             border: none;
             border-radius: 30px;
             font-weight: 600;
+            font-size: 0.9rem;
             cursor: pointer;
             transition: all 0.2s ease;
+            white-space: nowrap;
         }
         
         #copy-link-btn:hover {
@@ -336,49 +421,89 @@
         #copy-confirmation {
             font-weight: 600;
             color: #4CAF50;
+            font-size: 0.85rem;
         }
         
         .back-link {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
-            margin-top: 20px;
+            margin-top: 15px;
             padding: 10px 20px;
-            background-color: #D18266;
+            background-color: var(--accent);
             color: white;
             text-decoration: none;
             font-weight: 600;
             border-radius: 30px;
             transition: all 0.2s ease;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            text-align: center;
         }
         
         .back-link:hover {
-            background-color: #0056b3;
+            background-color: #c1735a;
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
         
+        .app-header {
+            background-color: var(--header-bg);
+            padding: 0 20px; /* Reduced vertical padding to accommodate larger logo */
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+        
+        .header-icon {
+            color: var(--primary-dark);
+        }
+        
+        .app-logo {
+            display: flex;
+            align-items: center;
+        }
+        
+        .app-logo img {
+            height: 100px; /* Significantly increased logo size */
+            width: auto;
+            margin-right: 10px;
+            padding: 8px 0;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .header-icon {
+            color: white;
+            padding: 5px;
+            cursor: pointer;
+        }
+        
         /* Responsive styles */
         @media (max-width: 768px) {
+            .app-container {
+                max-width: 100%;
+            }
+            
             .container {
-                padding: 20px 15px;
-                width: 95%;
-                margin: 0 auto;
+                padding: 15px;
             }
             
             h1 {
-                font-size: 2rem;
+                font-size: 1.5rem;
+            }
+            
+            .section-title {
+                font-size: 1.1rem;
             }
             
             .engagement-section {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .like-button, .likes-list-button {
-                text-align: center;
-                justify-content: center;
+                flex-wrap: wrap;
             }
             
             .share-link-container {
@@ -389,199 +514,198 @@
                 align-self: flex-end;
             }
         }
-        
-        /* To ensure perfect center alignment on all screen sizes */
-        @media (min-width: 1400px) {
-            body {
-                display: flex;
-                justify-content: center;
-                align-items: flex-start;
-            }
-            
-            .container {
-                margin-top: 30px;
-                margin-bottom: 30px;
-            }
-        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="post-header">
-            <h1>{{ post.title }}</h1>
-        </div>
-        
-        <div class="post-meta">
-            <div class="meta-item">
-                <span class="meta-label">Description:</span>
-                <span>{{ post.description }}</span>
-            </div>
-            <div class="meta-item">
-                <span class="meta-label">Published:</span>
-                <span>{{ post.published }}</span>
-            </div>
-            <div class="meta-item">
-                <span class="meta-label">Visibility:</span>
-                <span>{{ post.visibility }}</span>
+    <div class="app-container">
+        <div class="app-header">
+            <div class="app-logo">
+                <img src="{% static 'images/logo.png' %}" alt="Logo">
             </div>
         </div>
         
-        <div class="content">
-            {{ post.content }}
-        </div>
-        
-        {% if post.image %}
-            <img src="{{ post.image }}" alt="{{ post.title }} Image" class="post-image">
-        {% else %}
-            <div class="no-image">
-                <p>No image available for this post.</p>
+        <div class="container">
+            <div class="post-header">
+                <h1>{{ post.title }}</h1>
             </div>
-        {% endif %}
-        
-        <div class="engagement-section">
-            <!-- Like button form -->
-            <form action="{% url 'posts:like_post' post.id %}" method="POST">
-                {% csrf_token %}
-                <button type="submit" class="button like-button {% if post.is_liked_by_user %}liked{% else %}unliked{% endif %}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                    </svg>
-                    {% if post.is_liked_by_user %}
-                        Unlike
-                    {% else %}
-                        Like
-                    {% endif %}
-                    ({{ post.likes.count }})
-                </button>
-            </form>
-
-            <a href="{% url 'posts:post_likes' post.id %}" class="likes-list-button">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
-                View Likes ({{ post.likes.count }})
-            </a>
-        </div>
-        
-        <div class="comment-section">
-            <h2 class="section-title">Comments</h2>
             
-            <!-- Comment form -->
-            <form id="comment-form" action="{% url 'posts:add_comment' post.id %}" method="POST" class="comment-form">
-                {% csrf_token %}
-                <label for="comment-content">Leave a comment</label>
-                <textarea id="comment-content" name="content" placeholder="Share your thoughts..." required></textarea>
-                <button type="submit">Add Comment</button>
-            </form>
-
-            <!-- Comment list -->
-            <ul id="comment-list">
-                {% for comment in comments %}
-                    <li data-comment-id="{{ comment.id }}">
-                        {% if comment.user.author_profile %}
-                            <strong>
-                                <a href="{% url 'identity:author-profile' author_id=comment.user.author_profile.author_id %}">
-                                    {{ comment.user.author_profile.display_name }}
-                                </a>
-                            </strong>
-                        {% else %}
-                            <strong>{{ comment.user.username }}</strong>
-                        {% endif %}
-                        : {{ comment.content }}
-                        
-                        <div class="comment-actions">
-                            <span class="like-count">{{ comment.like_count }} likes</span>
-                            
-                            <!-- Like button for comment -->
-                            <form action="{% url 'posts:like_comment' post.id comment.id %}" method="POST" class="like-comment-form">
-                                {% csrf_token %}
-                                <button type="submit" class="button like-button {% if comment.is_liked_by_user %}liked{% else %}unliked{% endif %}">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                                    </svg>
-                                    {% if comment.is_liked_by_user %}Liked{% else %}Like{% endif %}
-                                </button>
-                            </form>
-                        </div>
-                    </li>
-                {% empty %}
-                    <li><em>No comments yet. Be the first to comment!</em></li>
-                {% endfor %}
-            </ul>
-        </div>
-        
-        {% if post.visibility == "DELETED" %}
-            <!-- Show deleted message if the post is marked as deleted -->
-            <div id="deleted-warning">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                </svg>
-                <strong>This post has been deleted.</strong>
+            <div class="post-meta">
+                <div class="meta-item">
+                    <span class="meta-label">Description:</span>
+                    <span>{{ post.description }}</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Published:</span>
+                    <span>{{ post.published }}</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Visibility:</span>
+                    <span>{{ post.visibility }}</span>
+                </div>
             </div>
-        {% endif %}
-
-        {% if request.user == post.author %}
-            <!-- If the logged-in user is the author, allow editing -->
-            <div class="author-actions">
-                <a href="{% url 'posts:edit_post' post.id %}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                    </svg>
-                    Edit Post
-                </a>
-
-                <!-- Delete post form -->
-                <form action="{% url 'posts:delete_post' post.id %}" method="post" style="display:inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="delete-button">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            <line x1="10" y1="11" x2="10" y2="17"></line>
-                            <line x1="14" y1="11" x2="14" y2="17"></line>
+            
+            <div class="content rendered-markdown {% if post.contentType == 'text/markdown' %}markdown-content{% endif %}">
+                <pre style="white-space: pre-wrap;" id="markdown-raw">{{ post.content|escapejs }}</pre>
+            </div>
+            {% if post.image %}
+                <img src="{{ post.image }}" alt="{{ post.title }} Image" class="post-image">
+            {% else %}
+                <div class="post-image" style="height: 250px; display: flex; align-items: center; justify-content: center; background-color: var(--neutral-bg); border-radius: var(--radius);">
+                    <div style="text-align: center;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 10px; opacity: 0.6;">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
                         </svg>
-                        Delete Post
+                        <p>No image available for this post.</p>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div style="height: 1px; background: var(--primary-light); margin: 25px 0; opacity: 0.5;"></div>
+                    
+            
+            <div class="engagement-section">
+                <!-- Like button form -->
+                <form action="{% url 'posts:like_post' post.id %}" method="POST">
+                    {% csrf_token %}
+                    <button type="submit" class="button like-button {% if post.is_liked_by_user %}liked{% else %}unliked{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                        {% if post.is_liked_by_user %}
+                            Unlike
+                        {% else %}
+                            Like
+                        {% endif %}
+                        ({{ post.likes.count }})
                     </button>
                 </form>
-            </div>
-        {% endif %}
 
-        {% if post.visibility == "PUBLIC" or post.visibility == "UNLISTED" %}
-            <div class="share-section">
-                <h3 class="section-title">Share this post</h3>
-                <div class="share-link-container">
-                    <input type="text" id="share-link" value="{{ request.scheme }}://{{ request.get_host }}{% url 'posts:shared_post' post.id %}" readonly>
-                    <button id="copy-link-btn" onclick="copyShareLink()">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-                        Copy Link
-                    </button>
+                <a href="{% url 'posts:post_likes' post.id %}" class="likes-list-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    View Likes ({{ post.likes.count }})
+                </a>
+            </div>
+            
+            <div class="comment-section">
+                <h2 class="section-title">Comments</h2>
+                
+                <!-- Comment form -->
+                <form id="comment-form" action="{% url 'posts:add_comment' post.id %}" method="POST" class="comment-form">
+                    {% csrf_token %}
+                    <label for="comment-content">Leave a comment</label>
+                    <textarea id="comment-content" name="content" placeholder="Share your thoughts..." required></textarea>
+                    <button type="submit">Add Comment</button>
+                </form>
+
+                <!-- Comment list -->
+                <ul id="comment-list">
+                    {% for comment in comments %}
+                        <li data-comment-id="{{ comment.id }}">
+                            {% if comment.user.author_profile %}
+                                <strong>
+                                    <a href="{% url 'identity:author-profile' author_id=comment.user.author_profile.author_id %}">
+                                        {{ comment.user.author_profile.display_name }}
+                                    </a>
+                                </strong>
+                            {% else %}
+                                <strong>{{ comment.user.username }}</strong>
+                            {% endif %}
+                            : {{ comment.content }}
+                            
+                            <div class="comment-actions">
+                                <span class="like-count">{{ comment.like_count }} likes</span>
+                                
+                                <!-- Like button for comment -->
+                                <form action="{% url 'posts:like_comment' post.id comment.id %}" method="POST" class="like-comment-form">
+                                    {% csrf_token %}
+                                    <button type="submit" class="button like-button {% if comment.is_liked_by_user %}liked{% else %}unliked{% endif %}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                        </svg>
+                                        {% if comment.is_liked_by_user %}Liked{% else %}Like{% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                        </li>
+                    {% empty %}
+                        <li><em>No comments yet. Be the first to comment!</em></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            
+            {% if post.visibility == "DELETED" %}
+                <!-- Show deleted message if the post is marked as deleted -->
+                <div id="deleted-warning">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <strong>This post has been deleted.</strong>
                 </div>
-                <p id="copy-confirmation" style="display: none;">Link copied to clipboard!</p>
-            </div>
-        {% endif %}
-        
-        <!-- Back to posts list -->
-        <a href="{% url 'posts:index' %}" class="back-link">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="19" y1="12" x2="5" y2="12"></line>
-                <polyline points="12 19 5 12 12 5"></polyline>
-            </svg>
-            Back to Posts
-        </a>
-    </div>
+            {% endif %}
 
-    {% if post.contentType == "text/markdown" %}
-        <script src="{% static 'markdown-renderer.min.js' %}"></script>
-    {% endif %}
+            {% if request.user == post.author %}
+                <!-- If the logged-in user is the author, allow editing -->
+                <div class="author-actions">
+                    <a href="{% url 'posts:edit_post' post.id %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        Edit Post
+                    </a>
+
+                    <!-- Delete post form -->
+                    <form action="{% url 'posts:delete_post' post.id %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="delete-button">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                <line x1="10" y1="11" x2="10" y2="17"></line>
+                                <line x1="14" y1="11" x2="14" y2="17"></line>
+                            </svg>
+                            Delete Post
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
+
+            {% if post.visibility == "PUBLIC" or post.visibility == "UNLISTED" %}
+                <div class="share-section">
+                    <h3 class="section-title">Share this post</h3>
+                    <div class="share-link-container">
+                        <input type="text" id="share-link" value="{{ request.scheme }}://{{ request.get_host }}{% url 'posts:shared_post' post.id %}" readonly>
+                        <button id="copy-link-btn" onclick="copyShareLink()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            Copy Link
+                        </button>
+                    </div>
+                    <p id="copy-confirmation" style="display: none;">Link copied to clipboard!</p>
+                </div>
+            {% endif %}
+            
+            <!-- Back to posts list -->
+            <a href="{% url 'posts:index' %}" class="back-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Back to Posts
+            </a>
+        </div>
+    </div>
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
@@ -711,5 +835,19 @@
             }, 3000);
         }
     </script>
+    {% if post.contentType == "text/markdown" %}
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const markdownEl = document.getElementById('markdown-raw');
+            if (markdownEl && typeof marked !== 'undefined') {
+                const rawMarkdown = markdownEl.textContent;
+                const rendered = marked.parse(rawMarkdown);
+                markdownEl.outerHTML = `<div class="rendered-markdown">${rendered}</div>`;
+            }
+        });
+    </script>
+
+    {% endif %}
 </body>
 </html>
