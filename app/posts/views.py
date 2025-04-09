@@ -629,22 +629,43 @@ def send_post_to_remote_recipients(post, request,is_update=False):
             print(f"Warning: Remote node not found for {base_host}. Skipping authentication.")
             auth = None  # No authentication
 
-        try:
-            response = requests.post(
-                inbox_url,
-                #auth = auth,
-                json=post_data,
-                headers={"Content-Type": "application/json"},
-                auth = HTTPBasicAuth(remote_node.username, remote_node.password)
-            )
+        if inbox_url == "http://[2605:fd00:4:1001:f816:3eff:fe8d:ba91]":
+            auth = HTTPBasicAuth("indigo-node1", "node1-pass")
 
-            if response.status_code in [200, 201]:
-                print(f"Post sent successfully to {inbox_url}")
-            else:
-                print(f"Failed to send post to {inbox_url}: {response.status_code}, {response.text}")
+            try:
+                response = requests.post(
+                    inbox_url,
+                    auth = auth,
+                    json=post_data,
+                    headers={"Content-Type": "application/json"},
+                    #auth = HTTPBasicAuth(remote_node.username, remote_node.password)
+                )
 
-        except requests.RequestException as e:
-            print(f" Error sending post to {inbox_url}: {e}")
+                if response.status_code in [200, 201]:
+                    print(f"Post sent successfully to {inbox_url}")
+                else:
+                    print(f"Failed to send post to {inbox_url}: {response.status_code}, {response.text}")
+
+            except requests.RequestException as e:
+                print(f" Error sending post to {inbox_url}: {e}")
+
+        else:
+            try:
+                response = requests.post(
+                    inbox_url,
+                    #auth = auth,
+                    json=post_data,
+                    headers={"Content-Type": "application/json"},
+                    auth = HTTPBasicAuth(remote_node.username, remote_node.password)
+                )
+
+                if response.status_code in [200, 201]:
+                    print(f"Post sent successfully to {inbox_url}")
+                else:
+                    print(f"Failed to send post to {inbox_url}: {response.status_code}, {response.text}")
+
+            except requests.RequestException as e:
+                print(f" Error sending post to {inbox_url}: {e}")
 
 #just for testing
 def send_post_to_remote(post, request,is_update=False):
