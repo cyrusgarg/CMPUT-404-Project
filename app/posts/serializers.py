@@ -42,7 +42,8 @@ class PostSerializer(serializers.ModelSerializer):
     comments = serializers.SerializerMethodField()  # Include comments
     likes = serializers.SerializerMethodField()  # Include likes
     image = serializers.CharField(write_only=True, required=False)
- 
+    published = serializers.DateTimeField()
+    
     class Meta:
         model = Post  # Specify model / 指定模型（GJ）
         fields = [

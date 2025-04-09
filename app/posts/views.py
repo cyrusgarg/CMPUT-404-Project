@@ -22,8 +22,7 @@ from django.http import HttpResponse, JsonResponse
 import base64
 from urllib.parse import urlparse
 from requests.auth import HTTPBasicAuth
-import uuid
-from identity.id_mapping import get_numeric_id_for_author
+from datetime import datetime
 import re
 
 @login_required
@@ -79,6 +78,7 @@ def view_posts(request):
 
     if remote_node and not remote_node.is_active:
         posts = Post.objects.filter(author=user).exclude(visibility="DELETED").order_by('-published')
+        #print(f"123") 
         return render(request, "posts/views.html", {"posts": posts, "user": user.username})
         
     # Get the followers of the current user / 获取当前用户的关注者（即用户关注的对象）（GJ）
@@ -139,9 +139,7 @@ def post_detail(request, post_id):
 
     if post.visibility == "FRIENDS" and user != post.author and post.author.id not in mutual_friends_ids and not user.is_superuser and not remote_node:
         return HttpResponseForbidden("You do not have permission to view this post.")  # Prevent unauthorized friend-only access / 防止未授权用户访问仅好友可见帖子（GJ）
-    
-    print("post body while clicking post detail:\n",post.visibility)
-          
+        
     return render(request, "posts/post_detail.html", {"post": post, "user": request.user.username, "comments": comments}) 
 
 def image_to_base64(image_file):
@@ -237,6 +235,8 @@ def delete_post(request, post_id):
 
     send_post_to_remote_recipients(post,request,True)
     
+    send_post_to_remote_recipients(post, request, is_update=True)
+
     return redirect("posts:index")  # Redirect back to post list / 返回帖子列表（GJ）
 
 @login_required
@@ -334,6 +334,20 @@ def web_update_post(request, post_id):
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def like_post(request, post_id):
+    """
+    post = get_object_or_404(Post, id=post_id)
+
+    # Check if the user already liked the post
+    like, created = Like.objects.get_or_create(user=request.user, post=post)
+    
+    if not created:
+        like.delete()   # If the user already liked, remove the like
+
+    # Dynamically calculate the like count:
+    like_count = Like.objects.filter(post=post).count()
+
+    return redirect('posts:post_detail', post_id=post.id)  # Redirect back to post detail
+    """
     post = get_object_or_404(Post, id=post_id)
 
     # Check if the user already liked the post
@@ -355,6 +369,7 @@ def like_post(request, post_id):
     like_count = Like.objects.filter(post=post).count()
 
     return redirect('posts:post_detail', post_id=post.id)  # Redirect back to post detail
+
 
 @login_required
 def post_likes(request, post_id):
@@ -442,6 +457,7 @@ def like_comment(request, post_id, comment_id):
         "liked": liked
     })
 
+
 def shared_post_view(request, post_id):
     """
     Public view for accessing shared posts.
@@ -475,18 +491,6 @@ def shared_post_view(request, post_id):
         "is_logged_in": is_logged_in,
         "is_liked": is_liked
     })
-
-def is_integer(value):
-    """Check if the value is an integer."""
-    return isinstance(value, int) or (isinstance(value, str) and value.isdigit())
-
-def is_uuid(value):
-    """Check if the value is a valid UUID."""
-    try:
-        uuid.UUID(str(value), version=4)
-        return True
-    except ValueError:
-        return False
 
 def prepare_image_for_remote_post(post):
     """
@@ -533,7 +537,24 @@ def send_post_to_remote_recipients(post, request,is_update=False):
     - Includes image as base64 if available
     """
     author = post.author.author_profile
-    
+    # we change this for indigo
+    published = str(datetime.now()) 
+    original_post_url = f"{author.host}authors/{post.author.id}/posts/{post.id}"
+    #end
+    # Prepare post data
+    post_data = {
+        "type": "post",
+        "id": original_post_url, # also this lin indigo
+        "author":author.to_dict(request),
+        "title": post.title,
+        "description": post.description,
+        "contentType": post.contentType,
+        "content": post.content,
+        "visibility": post.visibility,
+        "image": post.image if post.image else None,  # Include image if available
+        "published": published # also this line ingigo
+    }
+
     recipients = set()
 
     if post.visibility == "PUBLIC" or post.visibility == "DELETED":
@@ -543,15 +564,10 @@ def send_post_to_remote_recipients(post, request,is_update=False):
         for remote_follower in remote_followers:
             #print("Line 489")
             parsed_url = urlparse(remote_follower.follower_id)
-            print("line506:",parsed_url)
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
-            path = f"{parsed_url.path}"
-            parts = path.strip("/").split("/")  # Remove leading/trailing slashes & split
-            if len(parts) > 1:
-                extracted = "/".join(parts[:-1])  # Join everything except the last part
             author_id = parsed_url.path.strip("/").split("/")[-1]
             #print("baseHost:",base_host,"author_id:",author_id)
-            inbox_url = f"{base_host}/{extracted}/{author_id}/inbox"
+            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
             print("inbox url:",inbox_url)
             recipients.add(inbox_url)
 
@@ -561,14 +577,9 @@ def send_post_to_remote_recipients(post, request,is_update=False):
         remote_friends = RemoteFriendship.objects.filter(local=author.user)
         for remote_friend in remote_friends:
             parsed_url = urlparse(remote_friend.remote)
-            print("line519:",parsed_url)
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
-            path = f"{parsed_url.path}"
-            parts = path.strip("/").split("/")  # Remove leading/trailing slashes & split
-            if len(parts) > 1:
-                extracted = "/".join(parts[:-1])  # Join everything except the last part
             author_id = parsed_url.path.strip("/").split("/")[-1]
-            inbox_url = f"{base_host}/{extracted}/{author_id}/inbox"
+            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
             print("inbox url:",inbox_url)
             recipients.add(inbox_url)
 
@@ -580,20 +591,25 @@ def send_post_to_remote_recipients(post, request,is_update=False):
             #print("delete")
             parsed_url = urlparse(remote_follower.follower_id)
             base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
-            path = f"{parsed_url.path}"
-            parts = path.strip("/").split("/")  # Remove leading/trailing slashes & split
-            if len(parts) > 1:
-                extracted = "/".join(parts[:-1])  # Join everything except the last part
             author_id = parsed_url.path.strip("/").split("/")[-1]
             #print("baseHost:",base_host,"author_id:",author_id)
-            inbox_url = f"{base_host}/{extracted}/{author_id}/inbox"
+            inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
             recipients.add(inbox_url)
           
-  
-
+    # # Convert image to base64 if it exists
+    # if post.image and not post.image.startswith("data:image"):
+    #     try:
+    #         with open(post.image.path, "rb") as img_file:
+    #             encoded_image = base64.b64encode(img_file.read()).decode("utf-8")
+    #             post_data["image"] = f"data:image/jpeg;base64,{encoded_image}"  # Assuming JPEG
+    #     except Exception as e:
+    #         print(f"Error encoding image: {e}")
+    
     # Send post to all recipients
     for inbox_url in recipients:
         print(f"Sending post to {inbox_url}")
+        print("thisis postdata", post_data)
+        #auth = HTTPBasicAuth("indigo-node1", "node1-pass")
 
         parsed_url = urlparse(inbox_url)
         base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
@@ -612,9 +628,11 @@ def send_post_to_remote_recipients(post, request,is_update=False):
         if not remote_node:
             print(f"Warning: Remote node not found for {base_host}. Skipping authentication.")
             auth = None  # No authentication
+
         try:
             response = requests.post(
                 inbox_url,
+                #auth = auth,
                 json=post_data,
                 headers={"Content-Type": "application/json"},
                 auth = HTTPBasicAuth(remote_node.username, remote_node.password)
@@ -627,7 +645,63 @@ def send_post_to_remote_recipients(post, request,is_update=False):
 
         except requests.RequestException as e:
             print(f" Error sending post to {inbox_url}: {e}")
-#post_author = post.author.author_profile
+
+#just for testing
+def send_post_to_remote(post, request,is_update=False):
+    """
+    Sends a post (new or updated) to the appropriate remote recipients.
+    
+    - PUBLIC posts → Remote followers + friends
+    - FRIENDS posts → Only remote mutual friends
+    - Includes image as base64 if available
+    """
+    author = post.author.author_profile
+    # Get remote followers
+    # remote_followers = Following.objects.filter(
+    #     followee_id=f"{post.author.author_profile.id}",
+    #     follower_host__isnull=False  # Ensure it's a remote follower
+    # )
+    post_data = {
+        "type": "post",
+        "id": f"{post.id}",
+        "author":author.to_dict(request),
+        "title": post.title,
+        "description": post.description,
+        "contentType": post.contentType,
+        "content": post.content,
+        "visibility": post.visibility,
+        "image": post.image if post.image else None,  # Include image if available
+    }
+    # post_data={"type": "post",}
+    #inbox_url = f"http://10.2.6.207:8000/api/authors/3ccf030e-68f0-4de1-a135-a072e1c4902c/inbox"
+    #inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fed0:ce37]/api/authors/19290a3a-5ab8-4044-8834-d8dc497f08c5/inbox"
+    #inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fe56:c195]/api/authors/f5b24430-e8e6-4e09-bd49-f4574d72b85c/inbox"
+    #inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:feb6:bbc]/api/authors/a3354abf-375d-4039-b712-3da6c1225366/inbox"
+    inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fe1a:a199]/api/authors/80fe48df-2868-46aa-82ed-70d30f8e7a89/inbox"
+    
+    print("Sending post data:", json.dumps(post_data, indent=4))
+    method='POST'
+    try:
+        response = requests.post(
+            inbox_url,
+            json=post_data,
+            headers={"Content-Type": "application/json"},
+            #auth=("nodeTesting", "Smriti21!")  # Replace with real authentication
+        )
+
+        if response.status_code in [200, 201]:
+            print(f"Post sent successfully")
+            #print(f"Post sent successfully to {recipient.author_id}")
+        else:
+            print(f"Failed to send post")
+            #print(f"Failed to send post to {recipient.author_id}: {response.status_code}, {response.text}")
+
+    except requests.RequestException as e:
+        print(f"Error sending post {e}")
+        #print(f"Error sending post to {recipient.author_id}: {e}")
+
+
+
 def send_like_to_remote_recipients(like, request, is_update=False):
     """
     Sends a like object to the remote recipient (the author of the liked post).
@@ -717,6 +791,7 @@ def send_like_to_remote_recipients(like, request, is_update=False):
 
         except requests.RequestException as e:
             print(f"Error sending like to {post_author.author_id}: {e}")
+
 
 def send_Comment_like_to_remote_recipients(like, request, is_update=False):
     """
@@ -871,138 +946,3 @@ def send_comment_to_remote_recipients(comment, request, is_update=False):
 
         except requests.RequestException as e:
             print(f"Error sending comment to {remote_author_id}: {e}")
-
-#just for testing
-def send_post_to_remote(post, request,is_update=False):
-    """
-    Sends a post (new or updated) to the appropriate remote recipients.
-    
-    - PUBLIC posts → Remote followers + friends
-    - FRIENDS posts → Only remote mutual friends
-    - Includes image as base64 if available
-    """
-    author = post.author.author_profile
-    # Get remote followers
-    # remote_followers = Following.objects.filter(
-    #     followee_id=f"{post.author.author_profile.id}",
-    #     follower_host__isnull=False  # Ensure it's a remote follower
-    # )
-    post_data = {
-        "type": "post",
-        "id": f"{post.id}",
-        "author":author.to_dict(request),
-        "title": post.title,
-        "description": post.description,
-        "contentType": post.contentType,
-        "content": post.content,
-        "visibility": post.visibility,
-        "image": post.image if post.image else None,  # Include image if available
-    }
-    # post_data={"type": "post",}
-    #inbox_url = f"http://10.2.6.207:8000/api/authors/3ccf030e-68f0-4de1-a135-a072e1c4902c/inbox"
-    #inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fed0:ce37]/api/authors/19290a3a-5ab8-4044-8834-d8dc497f08c5/inbox"
-    #inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fe56:c195]/api/authors/f5b24430-e8e6-4e09-bd49-f4574d72b85c/inbox"
-    #inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:feb6:bbc]/api/authors/a3354abf-375d-4039-b712-3da6c1225366/inbox"
-    inbox_url = f"http://[2605:fd00:4:1001:f816:3eff:fe1a:a199]/api/authors/80fe48df-2868-46aa-82ed-70d30f8e7a89/inbox"
-    
-    print("Sending post data:", json.dumps(post_data, indent=4))
-    method='POST'
-    try:
-        response = requests.post(
-            inbox_url,
-            json=post_data,
-            headers={"Content-Type": "application/json"},
-            #auth=("nodeTesting", "Smriti21!")  # Replace with real authentication
-        )
-
-        if response.status_code in [200, 201]:
-            print(f"Post sent successfully")
-            #print(f"Post sent successfully to {recipient.author_id}")
-        else:
-            print(f"Failed to send post")
-            #print(f"Failed to send post to {recipient.author_id}: {response.status_code}, {response.text}")
-
-    except requests.RequestException as e:
-        print(f"Error sending post {e}")
-        #print(f"Error sending post to {recipient.author_id}: {e}")
-
-
- #author_id=post.author.username.split("_")[-1]
-        # author_id=post_author.author_id
-        # if(is_uuid(author_id)): #for Enine
-        #     author_id=get_numeric_id_for_author(author_id)
-
-#post_author = post.author.remote_author
-    #post_author_dict=post.author.author_profile.to_dict()
-    # print("Inside post view,printing post username",post.author.username)
-    # print("Inside post view,printing post author host",post.author.author_profile.host)
-    # print("Inside post view,printing post author display name",post.author.author_profile.display_name)
-    # print("post_author dict:\n",post_author_dict)
-    # print("post_author.host:",post_author.host,"\nhttp://{request.get_host()}:",f"http://{request.get_host()}")
-    # Check if the post author is remote (only send if they are on a different node)
- #Serialize the like object
-        # serializer = LikeSerializer(like, context={'request': request})
-        # like_data = serializer.data  # Convert to JSON format
-        # CRITICAL FIX: Use the remote post's original URL format
-        # This is what the other node expects for the post reference
-
-
-# def send_comment_to_remote_recipients(comment, request, is_update=False):
-#     """
-#     Sends a comment object to the remote recipient (the author of the post being commented on).
-#     Uses `CommentSerializer` to format the data properly.
-#     """
-#     post = comment.post
-#     post_author = post.author.author_profile  # Get the author of the post
-#     #post_author = post.author.remote_author
-#     author_id=post.author.username.split("_")[-1]
-#     print("author_id:",author_id)
-#     if(is_uuid(author_id)): #for Enine
-#         author_id=get_numeric_id_for_author(author_id)
-#     # Check if the post author is remote (only send if they are on a different node)
-#     if post_author.host != f"http://{request.get_host()}":
-#         parsed_url = urlparse(post_author.host)
-#         base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
-#         path = f"{parsed_url.path}"
-#         parts = path.strip("/").split("/")  # Remove leading/trailing slashes & split
-#         if len(parts) > 1:
-#             extracted = "/".join(parts[:-1])  # Join everything except the last part
-#         #author_id = parsed_url.path.strip("/").split("/")[-1]
-#         #author_id = post_author.author_id
-#         #remote_node = RemoteNode.objects.filter(host_url__icontains=post_author.host).first()
-#         #parsed_url = urlparse(inbox_url)
-#         #base_host = f"{parsed_url.scheme}://{parsed_url.netloc}"
-#         remote_node = RemoteNode.objects.filter(host_url__icontains=base_host).first()
-#         print("Remote node:",remote_node.username, remote_node.password)
-#         if not remote_node:
-#             print(f"Remote node not found for host: {post_author.host}")
-#             return
-
-#         # Extract authentication credentials
-#         node_username = remote_node.username
-#         node_password = remote_node.password
-#         #inbox_url = f"{base_host}/api/authors/{author_id}/inbox"
-#         print("Line 742 author id:",author_id)
-#         inbox_url = f"{base_host}/{extracted}/api/authors/{author_id}/inbox"
-#         print("inbox url",inbox_url)
-#         # Serialize the comment object
-#         serializer = CommentSerializer(comment, context={'request': request})
-#         comment_data = serializer.data  # Convert to JSON format
-#         print("Comment_data:\n",comment_data)
-
-#         try:
-#             response = requests.post(
-#                 inbox_url,
-#                 json=comment_data,
-#                 headers={"Content-Type": "application/json"},
-#                 # Uncomment below if authentication is needed
-#                 auth=HTTPBasicAuth(node_username, node_password)  # Use Basic Auth
-#             )
-
-#             if response.status_code in [200, 201]:
-#                 print(f"Comment sent successfully to {author_id}")
-#             else:
-#                 print(f"Failed to send comment to {author_id}: {response.status_code}, {response.text}")
-
-#         except requests.RequestException as e:
-#             print(f"Error sending comment to {author_id}: {e}")

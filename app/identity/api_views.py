@@ -833,6 +833,7 @@ def inbox(request, author_id):
       - likes: the body is a like object (processed with LikeSerializer)
       - comments: the body is a comment object (processed with CommentSerializer)
     """
+    print("insideinboxview")
     # Get the target author (the owner of this inbox)
     author = get_object_or_404(Author, author_id=author_id)
     data = request.data

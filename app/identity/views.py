@@ -253,11 +253,34 @@ def remoteFollow(request):
     elif("http://[2605:fd00:4:1001:f816:3eff:fecd:2b99]:8000/"in local_followee.host):
         followee_response = requests.get(local_followee.host + "/authors/" + local_followee.author_id, auth = HTTPBasicAuth(remote_node.username, remote_node.password))
     else:
-        followee_response = requests.get(local_followee.host + "authors/" + local_followee.author_id)
+        base_url = local_followee.host.rstrip("/")
+        author_id = local_followee.author_id
+
+        # 构建两个可能的 URL
+        path_1 = f"{base_url}/authors/{author_id}"
+        path_2 = f"{base_url}/authors/{author_id}/"
+
+        followee_response = None
+        for url in [path_1, path_2]:
+            try:
+                response = requests.get(url, auth=auth)
+                content_type = response.headers.get("Content-Type", "")
+                print(f"try request: {url}, code: {response.status_code}，tyoe: {content_type}")
+                if response.status_code == 200 and "application/json" in content_type:
+                    followee_response = response
+                    break
+            except Exception as e:
+                print(f"request failed: {url}，error: {e}")
+
+        if not followee_response:
+            return HttpResponse("Error retrieving remote user (tried both with and without trailing slash).", status=502)
+
 
     if followee_response.status_code != 200:
         return HttpResponse("Error retrieving remote user:", followee_response.text)
     
+    #print(followee_response.text)
+
     followee = followee_response.json()
 
     url = followee.get("id") + "/inbox"
