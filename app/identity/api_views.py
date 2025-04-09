@@ -622,7 +622,7 @@ class AuthorPagination(PageNumberPagination):
     Custom pagination response matching the required format for authors.
     """
     page_size_query_param = 'size'
-    page_size = 1  # Default page size set to 3
+    page_size = 200  # Default page size set to 3
     max_page_size = 100  # Maximum allowed page size
 
     def get_paginated_response(self, data):
