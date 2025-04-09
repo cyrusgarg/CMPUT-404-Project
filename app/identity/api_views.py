@@ -622,7 +622,7 @@ class AuthorPagination(PageNumberPagination):
     Custom pagination response matching the required format for authors.
     """
     page_size_query_param = 'size'
-    page_size = 1  # Default page size set to 3
+    page_size = 200  # Default page size set to 3
     max_page_size = 100  # Maximum allowed page size
 
     def get_paginated_response(self, data):
@@ -855,8 +855,9 @@ def inbox(request, author_id):
         print("Line 852: remote_author_id:",remote_author_id)
         # Try to fetch the existing remote author
         remote_author = RemoteAuthor.objects.filter(author_id=remote_author_id,host=remote_host).first()
-        print("Remote author display name:", remote_author.display_name)
-        remote_author_display_name=remote_author.display_name
+        if remote_host != "http://[2605:fd00:4:1001:f816:3eff:fecd:2b99]:8000/api/":
+            print("Remote author display name:", remote_author.display_name)
+            remote_author_display_name=remote_author.display_name
         if not remote_author:
             print("Line 857: Remote author does not exits")
             # Create the Author first
@@ -886,6 +887,8 @@ def inbox(request, author_id):
                     print(f"User {username} is already linked to an existing Author. Using existing author and attaching the current author with remote author")
                     #existing_author=remote_author
                     remote_author=existing_author
+                    remote_author.display_name = "ahmer"
+                    remote_author_display_name = "ahmer"
                     #remote_author.host=remote_host
                 else:
                     # Assign the existing user to the remote_author
