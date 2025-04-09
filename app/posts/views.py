@@ -624,7 +624,7 @@ def send_post_to_remote_recipients(post, request,is_update=False):
         # Retrieve the corresponding RemoteNode for authentication
         print("Base host:",base_host)
         remote_node = RemoteNode.objects.filter(host_url__icontains=base_host).first()
-        print("Remote node:",remote_node.username,remote_node.password)
+        
         if not remote_node:
             print(f"Warning: Remote node not found for {base_host}. Skipping authentication.")
             auth = None  # No authentication
@@ -651,6 +651,7 @@ def send_post_to_remote_recipients(post, request,is_update=False):
 
         else:
             try:
+                print("Remote node:",remote_node.username,remote_node.password)
                 response = requests.post(
                     inbox_url,
                     #auth = auth,
