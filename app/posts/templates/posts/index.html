@@ -1,83 +1,1115 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>My Posts</title>
     {% load static %}
-    <link rel="stylesheet" type="text/css" href="{% static 'css/PostIndex.css' %}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Modern Post Styles - Using Exact Color Palette with !important */
+        :root {
+            --primary-dark: #5B6D92 !important;    /* Blue-gray */
+            --primary-light: #D5E3E6 !important;   /* Light blue-gray */
+            --neutral-bg: #F0E2D2 !important;      /* Light warm beige */
+            --neutral-light: #EFEEE5 !important;   /* Off-white */
+            --accent: #D18266 !important;          /* Terracotta/coral */
+            --text: #364042 !important;            /* Dark gray for text */
+            --shadow-light: rgba(91, 109, 146, 0.1) !important;
+            --shadow-medium: rgba(91, 109, 146, 0.2) !important;
+            --shadow-dark: rgba(91, 109, 146, 0.3) !important;
+            --transition-speed: 0.3s !important;
+            /* Keep some of your original variables */
+            --success: #4CAF50 !important;
+            --warning: #D93025 !important;
+            --light-warning: #FFE9E9 !important;
+            --blue: #007BFF !important;
+            --blue-hover: #0056b3 !important;
+        }
+
+        /* Reset & Base Styles - Override previous styles */
+        body {
+            font-family: 'Nunito', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif !important;
+            line-height: 1.6 !important;
+            color: var(--text) !important;
+            background-color: var(--neutral-light) !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            transition: all var(--transition-speed) ease !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            min-height: 100vh !important;
+            background: linear-gradient(135deg, var(--neutral-light), var(--neutral-bg)) !important;
+        }
+
+        .container {
+            width: 100% !important;
+            max-width: 1100px !important;
+            padding: 2.5rem 1.5rem !important;
+            margin: 0 auto !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important; /* Center everything horizontally */
+        }
+
+        /* Modern Typography */
+        h1, h2 {
+            color: var(--primary-dark) !important;
+            position: relative !important;
+            font-weight: 700 !important;
+            letter-spacing: -0.5px !important;
+            text-align: center !important;
+            width: 100% !important; /* Ensures full width for proper centering */
+        }
+
+        h1 {
+            font-size: 3.5rem !important;
+            margin: 2rem 0 3rem !important;
+            text-transform: uppercase !important;
+            letter-spacing: 2px !important;
+            display: inline-block !important;
+            background: linear-gradient(45deg, var(--primary-dark), var(--accent)) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            background-clip: text !important;
+            text-fill-color: transparent !important;
+            filter: drop-shadow(0 2px 10px rgba(91, 109, 146, 0.2)) !important;
+            animation: fadeInDown 1s ease-out !important;
+        }
+
+        h1::after {
+            content: '' !important;
+            display: block !important;
+            width: 120px !important;
+            height: 5px !important;
+            background: linear-gradient(90deg, var(--primary-light), var(--accent), var(--primary-light)) !important;
+            margin: 1rem auto 0 !important;
+            border-radius: 10px !important;
+            transform: scaleX(0.7) !important;
+            opacity: 0.8 !important;
+            transition: transform 0.4s ease, opacity 0.4s ease !important;
+            animation: expandWidth 1.5s ease-in-out forwards !important;
+        }
+
+        @keyframes expandWidth {
+            0% { width: 0; opacity: 0; }
+            100% { width: 120px; opacity: 1; }
+        }
+
+        @keyframes fadeInDown {
+            0% { opacity: 0; transform: translateY(-20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        h1:hover::after {
+            transform: scaleX(1) !important;
+            opacity: 1 !important;
+        }
+
+        h2 {
+            font-size: 2.2rem !important;
+            margin: 3rem 0 2rem !important;
+            transition: transform var(--transition-speed) ease !important;
+            color: var(--primary-dark) !important;
+            animation: fadeIn 1s ease-out !important;
+            position: relative !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        h2::before, h2::after {
+            content: '' !important;
+            height: 2px !important;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent) !important;
+            flex: 1 !important;
+            margin: 0 15px !important;
+        }
+
+        /* Create Post Form Styles - Modern & Beautiful */
+        .create-post-form {
+            background-color: white !important;
+            border-radius: 16px !important;
+            padding: 2.5rem !important;
+            box-shadow: 0 10px 30px var(--shadow-light) !important;
+            margin: 1rem 0 3rem !important;
+            border: none !important;
+            transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease !important;
+            width: 100% !important;
+            max-width: 900px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            background: rgba(255, 255, 255, 0.9) !important;
+            backdrop-filter: blur(10px) !important;
+            -webkit-backdrop-filter: blur(10px) !important;
+            animation: fadeInUp 0.8s ease-out !important;
+            border: 1px solid rgba(213, 227, 230, 0.2) !important;
+            position: relative !important;
+            overflow: hidden !important;
+        }
+
+        @keyframes fadeInUp {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .create-post-form::before {
+            content: "" !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 5px !important;
+            background: linear-gradient(90deg, var(--primary-light), var(--accent), var(--primary-dark)) !important;
+        }
+
+        .create-post-form:hover {
+            transform: translateY(-5px) !important;
+            box-shadow: 0 15px 35px var(--shadow-medium) !important;
+        }
+
+        /* Fixed form width for all inputs */
+        .form-group {
+            margin-bottom: 1.8rem !important;
+            width: 100% !important;
+            position: relative !important;
+            overflow: hidden !important;
+        }
+
+        .form-group label {
+            display: block !important;
+            margin-bottom: 0.75rem !important;
+            font-weight: 600 !important;
+            color: var(--primary-dark) !important;
+            font-size: 1.1rem !important;
+            transition: color var(--transition-speed) ease !important;
+            position: relative !important;
+            left: 0 !important;
+            transform-origin: left !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .form-group:focus-within label {
+            color: var(--accent) !important;
+            transform: scale(1.05) !important;
+        }
+
+        .form-control {
+            width: 100% !important;
+            padding: 1rem 1.2rem !important;
+            border: 2px solid var(--primary-light) !important;
+            border-radius: 12px !important;
+            font-family: 'Nunito', sans-serif !important;
+            font-size: 1rem !important;
+            color: var(--text) !important;
+            transition: all var(--transition-speed) ease !important;
+            background-color: var(--neutral-light) !important;
+            box-sizing: border-box !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+        }
+
+        .form-control:focus {
+            outline: none !important;
+            border-color: var(--accent) !important;
+            box-shadow: 0 0 0 4px var(--shadow-light) !important;
+            background-color: white !important;
+            transform: translateY(-2px) !important;
+        }
+
+        /* Fixed select dropdown color */
+        select.form-control {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235B6D92' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 15px center !important;
+            padding-right: 40px !important;
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            cursor: pointer !important;
+        }
+
+        textarea.form-control {
+            min-height: 180px !important;
+            resize: vertical !important;
+            line-height: 1.6 !important;
+        }
+
+        /* File Input Styling */
+        .file-input-wrapper {
+            position: relative !important;
+            margin-top: 0.5rem !important;
+            width: 100% !important;
+        }
+
+        .file-input-label {
+            display: flex !important;
+            align-items: center !important;
+            gap: 12px !important;
+            padding: 1rem 1.2rem !important;
+            background-color: var(--primary-light) !important;
+            border-radius: 12px !important;
+            cursor: pointer !important;
+            transition: all var(--transition-speed) ease !important;
+            font-weight: 500 !important;
+            border: 2px solid transparent !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        .file-input-label:hover {
+            background-color: var(--primary-dark) !important;
+            color: white !important;
+            transform: translateY(-2px) !important;
+        }
+
+        .file-input-label svg {
+            flex-shrink: 0 !important;
+            transition: transform 0.3s ease !important;
+        }
+
+        .file-input-label:hover svg {
+            transform: scale(1.1) rotate(15deg) !important;
+        }
+
+        /* Fix for blue color under file input button */
+        .file-input, 
+        .file-input-wrapper,
+        .file-input-label,
+        input[type="file"],
+        input[type="file"]::file-selector-button {
+            outline: none !important;
+            border: none !important;
+            background-color: transparent !important;
+            color: inherit !important;
+        }
+
+        /* Also ensure the container itself doesn't have a blue bottom */
+        .file-input-wrapper {
+            border-bottom-color: transparent !important;
+        }
+
+        /* If it's a :focus state causing the issue */
+        .file-input-wrapper:focus-within,
+        .file-input:focus {
+            outline: none !important;
+            box-shadow: none !important;
+            border-color: transparent !important;
+        }
+
+        .file-input {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            opacity: 0 !important;
+        }
+
+        /* Hide file name initially */
+        .file-name {
+            opacity: 0 !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            transition: all 0.3s ease !important;
+        }
+
+        /* Show file name with animation when content exists */
+        .file-name:not(:empty) {
+            opacity: 1 !important;
+            height: auto !important;
+            margin-top: 0.75rem !important;
+            padding: 0.5rem 1rem !important;
+            background-color: var(--primary-light) !important;
+            color: var(--primary-dark) !important;
+            border-radius: 8px !important;
+            animation: fadeIn 0.5s ease-out !important;
+        }
+
+        /* Button Styling - Fix blue color glitch */
+        .submit-btn {
+            background: linear-gradient(45deg, var(--accent), #E49983) !important;
+            color: white !important;
+            border: none !important;
+            padding: 1rem 2rem !important;
+            border-radius: 30px !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            font-size: 1.05rem !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+            transition: all 0.3s ease !important;
+            margin-top: 1.5rem !important;
+            box-shadow: 0 4px 15px rgba(209, 130, 102, 0.3) !important;
+            position: relative !important;
+            overflow: hidden !important;
+            letter-spacing: 0.5px !important;
+            align-self: center !important;
+            /* Clear all blue color issues */
+            outline: none !important;
+            border-color: transparent !important;
+        }
+
+        .submit-btn::before {
+            content: '' !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.2), transparent) !important;
+            transform: translateX(-100%) !important;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-5px) scale(1.02) !important;
+            box-shadow: 0 8px 20px rgba(209, 130, 102, 0.4) !important;
+        }
+
+        .submit-btn:hover::before {
+            animation: shimmer 1.5s infinite !important;
+        }
+
+        @keyframes shimmer {
+            100% {
+                transform: translateX(100%) !important;
+            }
+        }
+
+        .submit-btn svg {
+            transition: transform 0.3s ease !important;
+        }
+
+        .submit-btn:hover svg {
+            transform: rotate(10deg) scale(1.1) !important;
+        }
+
+        /* Form Row */
+        .form-row {
+            display: flex !important;
+            gap: 1.5rem !important;
+            width: 100% !important;
+        }
+
+        /* Posts List Styling - FIXED VERSION */
+        .posts-container {
+            margin: 2.5rem 0 !important;
+            width: 100% !important;
+            display: flex !important;
+            justify-content: center !important;
+        }
+
+        .posts-list {
+            list-style-type: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            display: grid !important;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+            gap: 2rem !important;
+            width: 100% !important;
+            /* FIX: Make sure posts are visible */
+            min-height: 200px !important;
+            position: relative !important;
+            z-index: 5 !important;
+        }
+
+        /* FIX: Make sure list items are visible */
+        .posts-list > li {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: relative !important;
+            z-index: 5 !important;
+        }
+
+        .post-card {
+            background-color: white !important;
+            border-radius: 16px !important;
+            overflow: hidden !important;
+            box-shadow: 0 8px 20px var(--shadow-light) !important;
+            transition: transform 0.4s ease, box-shadow 0.4s ease !important;
+            position: relative !important;
+            border: none !important;
+            transform-style: preserve-3d !important;
+            perspective: 1000px !important;
+            height: 100% !important;
+            /* FIX: Remove animation starting with opacity 0 */
+            animation: cardAppear 0.5s ease-out forwards !important;
+            opacity: 1 !important; /* START VISIBLE */
+            transform: translateY(0) !important; /* START AT FINAL POSITION */
+            display: block !important;
+            visibility: visible !important;
+        }
+
+        @keyframes cardAppear {
+            from {
+                opacity: 0.7 !important;
+                transform: translateY(20px) !important;
+            }
+            to {
+                opacity: 1 !important;
+                transform: translateY(0) !important;
+            }
+        }
+
+        .post-card::before {
+            content: "" !important;
+            position: absolute !important;
+            top: -2px !important;
+            left: -2px !important;
+            width: calc(100% + 4px) !important;
+            height: calc(100% + 4px) !important;
+            background: linear-gradient(45deg, var(--primary-light), var(--accent), var(--primary-dark)) !important;
+            border-radius: 18px !important;
+            z-index: -1 !important;
+            opacity: 0 !important;
+            transition: opacity 0.4s ease !important;
+        }
+
+        .post-card:hover {
+            transform: translateY(-8px) scale(1.02) !important;
+            box-shadow: 0 15px 30px var(--shadow-medium) !important;
+        }
+
+        .post-card:hover::before {
+            opacity: 1 !important;
+        }
+
+        .post-card-img {
+            width: 100% !important;
+            height: 200px !important;
+            object-fit: cover !important;
+            border-bottom: 1px solid var(--primary-light) !important;
+            background: linear-gradient(135deg, var(--neutral-bg), var(--neutral-light)) !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            color: var(--primary-dark) !important;
+            font-style: italic !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .post-card:hover .post-card-img {
+            filter: brightness(1.05) !important;
+        }
+
+        .post-card-img svg {
+            margin-bottom: 10px !important;
+            opacity: 0.7 !important;
+            transition: all 0.3s ease !important;
+        }
+                
+        .post-card:hover .post-card-img svg {
+            transform: scale(1.1) !important;
+            opacity: 1 !important;
+        }
+                
+        .post-card-img p {
+            margin: 0 !important;
+            font-style: italic !important;
+            font-size: 0.9rem !important;
+        }
+
+        .post-card-content {
+            padding: 1.75rem !important;
+            position: relative !important;
+        }
+
+        .post-title {
+            margin: 0 0 1rem !important;
+            font-size: 1.35rem !important;
+            color: var(--primary-dark) !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: flex-start !important;
+            line-height: 1.4 !important;
+        }
+
+        .post-title a {
+            color: inherit !important;
+            text-decoration: none !important;
+            transition: color 0.3s ease !important;
+            position: relative !important;
+            display: inline-block !important;
+        }
+
+        .post-title a::after {
+            content: '' !important;
+            position: absolute !important;
+            bottom: -4px !important;
+            left: 0 !important;
+            width: 0 !important;
+            height: 2px !important;
+            background-color: var(--accent) !important;
+            transition: width 0.3s ease !important;
+        }
+
+        .post-title a:hover {
+            color: var(--accent) !important;
+        }
+
+        .post-title a:hover::after {
+            width: 100% !important;
+        }
+
+        /* Post description styling */
+        .post-description {
+            margin-bottom: 1rem !important;
+            color: var(--text) !important;
+            font-size: 0.95rem !important;
+            line-height: 1.5 !important;
+            opacity: 0.9 !important;
+        }
+
+        .visibility-badge {
+            font-size: 0.8rem !important;
+            padding: 0.3rem 0.8rem !important;
+            border-radius: 20px !important;
+            background-color: var(--primary-light) !important;
+            color: var(--primary-dark) !important;
+            font-weight: 600 !important;
+            margin-left: 10px !important;
+            display: inline-block !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .post-card:hover .visibility-badge {
+            background-color: var(--primary-dark) !important;
+            color: white !important;
+        }
+
+        /* Ribbon for visibility */
+        .ribbon-wrapper {
+            width: 85px !important;
+            height: 88px !important;
+            overflow: hidden !important;
+            position: absolute !important;
+            top: -3px !important;
+            right: -3px !important;
+            z-index: 1 !important;
+        }
+                
+        .ribbon {
+            font-size: 0.7rem !important;
+            font-weight: bold !important;
+            text-align: center !important;
+            transform: rotate(45deg) !important;
+            position: relative !important;
+            padding: 5px 0 !important;
+            left: -5px !important;
+            top: 15px !important;
+            width: 120px !important;
+            background-color: var(--primary-dark) !important;
+            color: white !important;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+        }
+
+        /* Post Actions */
+        .post-actions {
+            display: flex !important;
+            gap: 12px !important;
+            margin-top: 1.25rem !important;
+            align-items: center !important; /* Vertically center the buttons */
+            justify-content: flex-start !important; /* Align buttons to the start */
+        }
+        .btn-edit, .btn-delete {
+            flex: 0 0 120px !important; /* Fixed width with no growing/shrinking */
+            box-sizing: border-box !important;
+        }
+
+        
+        .post-actions form {
+            margin: 0 !important;
+            padding: 0 !important;
+            display: inline-flex !important; /* Match button display */
+        }
+
+        .btn {
+            padding: 0.75rem 1.25rem !important;
+            border: none !important;
+            border-radius: 25px !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            font-size: 0.95rem !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important; /* Center text and icon */
+            gap: 8px !important;
+            transition: all 0.3s ease !important;
+            text-decoration: none !important;
+            position: relative !important;
+            overflow: hidden !important;
+            min-width: 110px !important; /* Set minimum width for consistency */
+            height: 44px !important; /* Set fixed height for all buttons */
+        }
+
+        .btn::before {
+            content: '' !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.2), transparent) !important;
+            transform: translateX(-100%) !important;
+        }
+
+        .btn:hover::before {
+            animation: shimmer 1.5s infinite !important;
+        }
+
+        .btn-edit {
+            background-color: var(--primary-light) !important;
+            color: var(--primary-dark) !important;
+            box-shadow: 0 4px 10px var(--shadow-light) !important;
+        }
+
+        .btn-edit:hover {
+            background-color: var(--primary-dark) !important;
+            color: white !important;
+            transform: translateY(-3px) !important;
+            box-shadow: 0 8px 15px var(--shadow-medium) !important;
+        }
+
+        .btn-delete {
+            background-color: #FFE9E9 !important;
+            color: #D93025 !important;
+            box-shadow: 0 4px 10px rgba(217, 48, 37, 0.1) !important;
+        }
+
+        .btn-delete:hover {
+            background-color: #D93025 !important;
+            color: white !important;
+            transform: translateY(-3px) !important;
+            box-shadow: 0 8px 15px rgba(217, 48, 37, 0.2) !important;
+        }
+
+        .btn svg {
+            width: 16px !important;
+            height: 16px !important;
+            flex-shrink: 0 !important;
+        }
+
+        .btn:hover svg {
+            transform: scale(1.2) !important;
+        }
+
+        /* Deleted Badge */
+        .deleted-badge {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            font-size: 0.95rem !important;
+            padding: 0.5rem 1rem !important;
+            background-color: #FFE9E9 !important;
+            color: #D93025 !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+            animation: pulse 2s infinite !important;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(217, 48, 37, 0.4) !important;
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(217, 48, 37, 0) !important;
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(217, 48, 37, 0) !important;
+            }
+        }
+
+        /* Navigation Links - Center fix */
+        .navigation-links {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 1.25rem !important;
+            margin: 3rem auto !important;
+            width: 100% !important;
+            max-width: 450px !important;
+            align-items: center !important;
+        }
+
+        .nav-link {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 15px !important;
+            padding: 1.1rem 1.8rem !important;
+            background-color: var(--accent) !important;
+            color: white !important;
+            text-decoration: none !important;
+            font-weight: 600 !important;
+            border-radius: 30px !important;
+            transition: all 0.3s ease !important;
+            box-shadow: 0 4px 15px rgba(209, 130, 102, 0.3) !important;
+            width: 100% !important;
+            position: relative !important;
+            overflow: visible !important;
+            font-size: 1.05rem !important;
+        }
+                
+        .nav-icon-container {
+            background-color: rgba(255,255,255,0.2) !important;
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: all 0.3s ease !important;
+        }
+                
+        .nav-link:hover .nav-icon-container {
+            transform: rotate(360deg) !important;
+        }
+                
+        .nav-link-users {
+            background: linear-gradient(45deg, var(--primary-dark), var(--accent)) !important;
+        }
+                
+        .nav-link-profile {
+            background: linear-gradient(45deg, var(--accent), #c4836d) !important;
+        }
+
+        .nav-link::before {
+            content: '' !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.2), transparent) !important;
+            transform: translateX(-100%) !important;
+        }
+
+        .nav-link:hover {
+            background-color: var(--primary-dark) !important;
+            transform: translateY(-5px) scale(1.02) !important;
+            box-shadow: 0 15px 25px var(--shadow-medium) !important;
+        }
+
+        .nav-link:hover::before {
+            animation: shimmer 1.5s infinite !important;
+        }
+
+        .nav-link svg {
+            transition: transform 0.3s ease !important;
+        }
+
+        .nav-link:hover svg {
+            transform: rotate(10deg) scale(1.2) !important;
+        }
+
+        /* Empty Message - FIXED VERSION */
+        .empty-message {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 3rem 2rem !important;
+            background-color: white !important;
+            border-radius: 16px !important;
+            box-shadow: 0 8px 25px var(--shadow-light) !important;
+            text-align: center !important;
+            grid-column: 1 / -1 !important;
+            border: 1px solid var(--primary-light) !important;
+            transition: all 0.3s ease !important;
+            width: 100% !important;
+            max-width: 600px !important;
+            margin: 0 auto !important;
+            min-height: 200px !important;
+            animation: fadeInUp 0.8s ease-out !important;
+            /* Fix visibility issues */
+            position: relative !important;
+            z-index: 10 !important;
+            opacity: 1 !important;
+            color: var(--text) !important;
+        }
+
+        .empty-message:hover {
+            transform: translateY(-5px) !important;
+            box-shadow: 0 15px 35px var(--shadow-medium) !important;
+            border-color: var(--accent) !important;
+        }
+        /* Header and Logo Styles */
+        .site-header {
+            padding: 1.5rem 0 !important;
+            background: linear-gradient(to right, var(--neutral-bg), var(--neutral-light)) !important;
+            border-bottom: 2px solid var(--primary-light) !important; /* More visible border */
+            width: 100% !important;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05) !important; /* Add subtle shadow */
+        }
+
+        /* Update header styling for proper alignment */
+        .header-content {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important; 
+            width: 100% !important;
+            position: relative !important;
+            padding: 0 150px !important; /* Increase padding to accommodate larger logo */
+            min-height: 80px !important; /* Ensure minimum height for header */
+        }
+
+
+        .logo-container {
+            position: absolute !important;
+            left: 20px !important; /* Add some margin from the left edge */
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            z-index: 10 !important;
+        }
+
+        .page-title {
+            margin: 0 !important;
+            padding: 0 !important;
+            text-align: center !important;
+            font-size: 2.8rem !important;
+            flex-grow: 1 !important;
+            position: relative !important;
+            z-index: 5 !important;
+            line-height: 1.2 !important;
+        }
+
+        .spacer {
+            width: 80px !important; /* Same width as logo */
+            flex-shrink: 0 !important;
+        }
+
+        .site-logo {
+            width: 140px !important; /* Make logo bigger */
+            height: auto !important;
+            transition: transform 0.3s ease !important;
+            object-fit: contain !important;
+            max-height: none !important; /* Remove height restriction */
+            display: block !important;
+        }
+
+        .site-logo:hover {
+            transform: scale(1.05) !important;
+        }
+
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column !important;
+                align-items: center !important;
+                gap: 0.75rem !important;
+            }
+            
+            .site-logo {
+                width: 60px !important;
+            }
+        }
+            
+    </style>
 </head>
 <body>
-    <h1>My Posts</h1>
+    <header class="site-header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-container">
+                    <img src="{% static 'images/logo.png' %}" alt="Site Logo" class="site-logo">
+                </div>
+                <h1 class="page-title">My Posts</h1>
+            </div>
+        </div>
+    </header>
+    <div class="container">
+        <!-- Form for creating a new post -->
+        <form action="{% url 'posts:create_post' %}" method="post" enctype="multipart/form-data" class="create-post-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="title">Title</label>
+                <input type="text" id="title" name="title" class="form-control" required placeholder="Enter post title">
+            </div>
 
-    <!-- Form for creating a new post / 创建新帖子的表单（GJ） -->
-    <form action="{% url 'posts:create_post' %}" method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        
-        <label for="title">Title:</label>
-        <input type="text" name="title" required>
+            <div class="form-group">
+                <label for="description">Description</label>
+                <input type="text" id="description" name="description" class="form-control" required placeholder="A brief description of your post">
+            </div>
 
-        <label for="description">Description:</label>
-        <input type="text" name="description" required>
+            <div class="form-group">
+                <label for="content">Content</label>
+                <textarea id="content" name="content" class="form-control" required placeholder="Write your post content here..."></textarea>
+            </div>
 
-        <label for="content">Content:</label>
-        <textarea name="content" required></textarea>
+            <div class="form-row" style="display: flex; gap: 20px;">
+                <div class="form-group" style="flex: 1;">
+                    <label for="contentType">Content Type</label>
+                    <select id="contentType" name="contentType" class="form-control">
+                        <option value="text/plain">Plain Text</option>
+                        <option value="text/markdown">Markdown</option>
+                    </select>
+                </div>
 
-        <label for="contentType">Content Type:</label>
-        <select name="contentType">
-            <option value="text/plain">Plain Text</option>
-            <option value="text/markdown">Markdown</option>
-        </select>
+                <div class="form-group" style="flex: 1;">
+                    <label for="visibility">Visibility</label>
+                    <select id="visibility" name="visibility" class="form-control">
+                        <option value="PUBLIC">Public</option>
+                        <option value="FRIENDS">Friends Only</option>
+                        <option value="UNLISTED">Unlisted</option>
+                    </select>
+                </div>
+            </div>
 
-        <label for="visibility">Visibility:</label>
-        <select name="visibility">
-            <option value="PUBLIC">Public</option>
-            <option value="FRIENDS">Friends Only</option>
-            <option value="UNLISTED">Unlisted</option>
-        </select>
+            <div class="form-group">
+                <label>Upload Image</label>
+                <div class="file-input-wrapper">
+                    <label for="image" class="file-input-label">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                        Choose an image
+                    </label>
+                    <input type="file" id="image" name="image" accept="image/*" class="file-input">
+                    <div id="file-name" class="file-name"></div>
+                </div>
+            </div>
 
-        <label for="image">Upload Image:</label>
-        <input type="file" name="image" accept="image/*">
+            <button type="submit" class="submit-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                Create Post
+            </button>
+        </form>
 
-        <button type="submit">Create Post</button>
-    </form>
+        <h2>My Posts List</h2>
+        <div class="posts-container">
+            <ul class="posts-list">
+                {% for post in posts %}
+                    <li class="post-card">
+                        {% if post.image %}
+                            <img src="{{ post.image }}" alt="{{ post.title }} Image" class="post-card-img">
+                        {% else %}
+                            <div class="post-card-img">No image available</div>
+                        {% endif %}
+                        
+                        <div class="post-card-content">
+                            <h3 class="post-title">
+                                <a href="{% url 'posts:post_detail' post.id %}">{{ post.title }}</a>
+                                <span class="visibility-badge">{{ post.visibility }}</span>
+                            </h3>
 
-    <h2>My Posts List</h2>
-    <ul>
-        {% for post in posts %}
-            <li>
-                <!-- Display post title and visibility / 显示帖子标题和可见性（GJ） -->
-                <a href="{% url 'posts:post_detail' post.id %}">{{ post.title }}</a>
-                <span>({{ post.visibility }})</span>
+                            {% if post.visibility == "DELETED" %}
+                                <div class="deleted-badge">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                    </svg>
+                                    Deleted Post
+                                </div>
+                            {% else %}
+                                {% if user == post.author.username %}
+                                    <div class="post-actions">
+                                        <a href="{% url 'posts:edit_post' post.id %}" class="btn btn-edit">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                            </svg>
+                                            Edit
+                                        </a>
 
-                {% if post.image %}
-                    <br>
-                    <img src="{{ post.image }}" alt="{{ post.title }} Image" style="max-width: 100px;">
-                {% endif %}
+                                        <form action="{% url 'posts:delete_post' post.id %}" method="post" style="display:inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-delete">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                                                </svg>
+                                                Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </li>
+                {% empty %}
+                    <li class="empty-message">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 15px;">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                        <p>No posts available. Create your first post using the form above!</p>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
 
-                {% if post.visibility == "DELETED" %}
-                    <!-- Show deleted message / 显示已删除提示（GJ） -->
-                    <span id="deleted-warning">[Deleted]</span>
-                {% else %}
-                    {% if user == post.author.username %}
-                        <!-- Buttons for editing and deleting posts / 编辑和删除帖子的按钮（GJ） -->
-                        <a href="{% url 'posts:edit_post' post.id %}">Edit</a>
+        <div class="navigation-links">
+            <!-- Link to view other posts -->
+            <a href="{% url 'posts:view_posts' %}" class="nav-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                View Other Users' Posts
+            </a>
+            
+            <!-- Back to Profile -->
+            <a href="{% url 'identity:author-profile' author_id=request.user.author_profile.author_id %}" class="nav-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Back to Profile
+            </a>
+        </div>
+    </div>
 
-                        <form action="{% url 'posts:delete_post' post.id %}" method="post" style="display:inline;">
-                            {% csrf_token %}
-                            <button type="submit">Delete</button>
-                        </form>
-                    {% endif %}
-                {% endif %}
-            </li>
-        {% empty %}
-            <!-- Message when no posts are available / 没有帖子时显示消息（GJ） -->
-            <li>No posts available.</li>
-        {% endfor %}
-    </ul>
-
-    <br>
-    <!-- Link to view other posts / 查看其他帖子页面的链接（GJ） -->
-    <a href="{% url 'posts:view_posts' %}">View Other Users' Posts</a>
-    <br>
-    <a href="{% url 'identity:author-profile' author_id=request.user.author_profile.author_id %}" class="btn btn-secondary">Back to Profile</a>
+    <script>
+        // Script to display the selected file name
+        document.getElementById('image').addEventListener('change', function(e) {
+            const fileName = e.target.files[0] ? e.target.files[0].name : 'No file selected';
+            document.getElementById('file-name').textContent = fileName;
+        });
+    </script>
+    {% if post.contentType == "text/markdown" %}
+    <script src="{% static 'markdown-renderer.min.js' %}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if markdown renderer is loaded
+            if (typeof markdownRenderer !== 'undefined') {
+                // Find all post content elements with markdown
+                const contentElements = document.querySelectorAll('.post-card-content');
+                contentElements.forEach(contentEl => {
+                    // Look for the post description if it's markdown
+                    const descriptionEl = contentEl.querySelector('.post-description');
+                    if (descriptionEl) {
+                        const markdown = descriptionEl.innerHTML.trim();
+                        descriptionEl.innerHTML = markdownRenderer.render(markdown);
+                    }
+                });
+            }
+        });
+    </script>
+    {% endif %}
 </body>
 </html>
