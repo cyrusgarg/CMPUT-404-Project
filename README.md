@@ -9,83 +9,76 @@
 | sgctcub  | samyak1 |
 | ashlynmaria  | abenoy |
 
-CMPUT 404: Distributed Social Network Project
-Course: CMPUT 404 – Web Applications and Architecture
-Term: Winter 2025
-Team Name: Bisque
-Team Members: Mentioned Above
+# CMPUT 404: Distributed Social Network Project
+**Course:** CMPUT 404 – Web Applications and Architecture
+**Term:** Winter 2025
+**Team Name:** Bisque
+**Team Members:** Mentioned Above
 
-📌 Project Overview
+## 📌 Project Overview
 This project is a distributed social networking platform developed as part of the CMPUT 404 course at the University of Alberta. It allows users to create, share, and interact with posts across multiple servers, emphasizing decentralized communication and data ownership.
 
-🚀 Features
-User Authentication: Secure login and registration system.
+## 🚀 Features
+**User Authentication:** Secure login and registration system.
 
-Post Creation: Users can create, edit, and delete posts.
+**Post Creation:** Users can create, edit, and delete posts.
 
-Friend Management: Send, accept, and remove friend requests.
+**Friend Management:** Send, accept, and remove friend requests.
 
-Distributed Networking: Interact with users on other nodes.
+**Distributed Networking:** Interact with users on other nodes.
 
-Privacy Controls: Set posts to public, friends-only, or unlisted.
+**Privacy Controls:** Set posts to public, friends-only, or unlisted.
 
-RESTful API: Comprehensive API for frontend and external integrations.
+**RESTful API:** Comprehensive API for frontend and external integrations.
 
-🛠️ Technologies Used
-Backend: Django, Django REST Framework
+## 🛠️ Technologies Used
+**Backend:** Django, Django REST Framework
 
-Frontend: HTML/CSS/Javascript
+**Frontend:** HTML/CSS/Javascript
 
-Database: PostgreSQL (production), SQLite (development)
+**Database:** PostgreSQL (production), SQLite (development)
 
-Deployment: Gunicorn
+**Deployment:** Gunicorn
 
-Version Control: Git, GitHub
+**Version Control:** Git, GitHub
 
-📂 Project Structure
-backend/: Django project containing models, views, and APIs.
+## 📂 Project Structure
+**backend:** Django project containing models, views, and APIs.
 
-frontend/: HTML/CSS/Javascript
+**frontend:** HTML/CSS/Javascript
 
-docs/: Documentation and API specifications.
+**docs:** Documentation and API specifications.
 
-tests/: Unit and integration tests.
+**tests:** Unit and integration tests.
 
 
-🧪 Running the Project Locally
-Clone the Repository:
+## 🧪 Running the Project Locally
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/cyrusgarg/CMPUT-404-Project.git
+   cd CMPUT-404-Project
 
-bash
-Copy
-Edit
-git clone https://github.com/cyrusgarg/CMPUT-404-Project.git
-cd CMPUT-404-Project
-Set Up Virtual Environment:
+2. **Set Up Virtual Environment:**
 
-bash
-Copy
-Edit
+```bash
 python3 -m venv env
 source env/bin/activate
-Install Dependencies:
+```
+3. **Install Dependencies:**
 
-bash
-Copy
-Edit
+```bash
 pip install -r requirements.txt
-Apply Migrations:
+```
+4. **Apply Migrations:**
 
-bash
-Copy
-Edit
+```bash
 python manage.py migrate
-Run the Development Server:
+```
+5. **Run the Development Server:**
 
-bash
-Copy
-Edit
+```bash
 python manage.py runserver
- 
+```
 SITE HOSTED ON:
 | Site URL  | CCID |
 | ------------- | ------------- |
