@@ -54,10 +54,10 @@ This project is a distributed social networking platform developed as part of th
 
 ## 🧪 Running the Project Locally
 1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/cyrusgarg/CMPUT-404-Project.git
-   cd CMPUT-404-Project
-
+```bash
+git clone https://github.com/cyrusgarg/CMPUT-404-Project.git
+cd CMPUT-404-Project
+```
 2. **Set Up Virtual Environment:**
 
 ```bash
